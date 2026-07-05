@@ -2,7 +2,7 @@ import { Effect } from "effect"
 import { and, desc, eq, sql } from "drizzle-orm"
 import type { Db } from "../connection.ts"
 import { stories, storyEvidence } from "../schema/tables.ts"
-import { NotFoundError, ConflictError, ConnectionError } from "./errors.ts"
+import { NotFoundError, ConnectionError } from "./errors.ts"
 import type { RepositoryError } from "./errors.ts"
 
 export interface StoryQueryOptions {
