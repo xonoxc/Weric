@@ -1,4 +1,4 @@
 {
-  "*.{ts,tsx}": ["prettier --write", "turbo run check-types --filter"],
+  "*.{ts,tsx}": ["prettier --write", "bun run scripts/lint-staged-check-types.ts"],
   "*.{md,json,yml,yaml}": ["prettier --write"]
 }
