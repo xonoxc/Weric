@@ -1,0 +1,1 @@
+// @weric/config — Configuration management

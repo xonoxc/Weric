@@ -1,0 +1,33 @@
+{
+  "name": "@weric/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "scripts": {
+    "dev": "bun run --hot src/index.ts",
+    "build": "bun build src/index.ts --outdir dist",
+    "start": "bun run dist/index.js",
+    "check-types": "tsc --noEmit",
+    "lint": "echo 'no linter configured'",
+    "test": "echo 'no tests yet'",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@weric/contracts": "workspace:*",
+    "@weric/database": "workspace:*",
+    "@weric/story-engine": "workspace:*",
+    "@weric/recommendation": "workspace:*",
+    "@weric/browser": "workspace:*",
+    "@weric/ai": "workspace:*",
+    "@weric/shared": "workspace:*",
+    "@weric/config": "workspace:*",
+    "@weric/auth": "workspace:*",
+    "hono": "^4.7.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.2.0",
+    "typescript": "5.9.2"
+  }
+}

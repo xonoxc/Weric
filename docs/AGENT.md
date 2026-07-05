@@ -57,16 +57,15 @@ Before writing code, ask:
 
 ```typescript
 // GOOD: Service depends on abstraction
-export class StoryService
-  extends Effect.Service<StoryService>()("StoryService", {
-    effect: Effect.gen(function* () {
-      const repo = yield* StoryRepository;
-      return {
-        ingest: (evidence: Evidence) => repo.create(evidence),
-      };
-    }),
-    dependencies: [StoryRepositoryLive],
-  }) {}
+export class StoryService extends Effect.Service<StoryService>()("StoryService", {
+  effect: Effect.gen(function* () {
+    const repo = yield* StoryRepository
+    return {
+      ingest: (evidence: Evidence) => repo.create(evidence),
+    }
+  }),
+  dependencies: [StoryRepositoryLive],
+}) {}
 
 // BAD: Constructor injection or global singleton
 ```
@@ -127,16 +126,16 @@ packages/
 
 ### Package Ownership Rules
 
-| Package | Owns | Must Not |
-|---|---|---|
-| Agent Runtime | Discovery, orchestration | Persist data, update stories |
-| Story Engine | Knowledge, stories, clustering | Search the web |
-| Recommendation Engine | Ranking, feed, interests | Create or persist stories |
-| Repositories | Database persistence | Contain business logic |
-| AI | LLM abstraction | Write to database |
-| Browser | Internet access | Touch database |
-| API | HTTP, auth, routing | Contain business logic |
-| Worker | Background jobs | Expose HTTP endpoints |
+| Package               | Owns                           | Must Not                     |
+| --------------------- | ------------------------------ | ---------------------------- |
+| Agent Runtime         | Discovery, orchestration       | Persist data, update stories |
+| Story Engine          | Knowledge, stories, clustering | Search the web               |
+| Recommendation Engine | Ranking, feed, interests       | Create or persist stories    |
+| Repositories          | Database persistence           | Contain business logic       |
+| AI                    | LLM abstraction                | Write to database            |
+| Browser               | Internet access                | Touch database               |
+| API                   | HTTP, auth, routing            | Contain business logic       |
+| Worker                | Background jobs                | Expose HTTP endpoints        |
 
 ## Effect Conventions
 
@@ -147,9 +146,15 @@ Services expose use cases. They never know HTTP exists. They never know React ex
 ```typescript
 // Service signature
 interface StoryService {
-  readonly ingest: (evidence: RawEvidence) => Effect<Story, StoryError, StoryEngineDeps>;
-  readonly update: (id: string, data: StoryUpdate) => Effect<Story, StoryError, StoryEngineDeps>;
-  readonly merge: (targetId: string, sourceId: string) => Effect<Story, StoryError, StoryEngineDeps>;
+  readonly ingest: (evidence: RawEvidence) => Effect<Story, StoryError, StoryEngineDeps>
+  readonly update: (
+    id: string,
+    data: StoryUpdate
+  ) => Effect<Story, StoryError, StoryEngineDeps>
+  readonly merge: (
+    targetId: string,
+    sourceId: string
+  ) => Effect<Story, StoryError, StoryEngineDeps>
 }
 ```
 
@@ -161,14 +166,14 @@ Every infrastructure dependency is represented by a `Layer`.
 // Production layer
 const StoryEngineLiveLayer = StoryServiceLiveLayer.pipe(
   Layer.provide(StoryRepositoryLiveLayer),
-  Layer.provide(AIServiceLiveLayer),
-);
+  Layer.provide(AIServiceLiveLayer)
+)
 
 // Test layer (replaces AI and repository with test implementations)
 const StoryEngineTestLayer = StoryServiceLiveLayer.pipe(
   Layer.provide(StoryRepositoryTestLayer),
-  Layer.provide(AIServiceTestLayer),
-);
+  Layer.provide(AIServiceTestLayer)
+)
 ```
 
 ### Execution
@@ -190,15 +195,15 @@ No other location should call `runPromise` directly.
 - Use Effect Test (`TestClock`, `TestRandom`, `TestServices`) for deterministic testing.
 
 ```typescript
-import { it } from "@effect/vitest";
+import { it } from "@effect/vitest"
 
 it("should create a story from valid evidence", () =>
   Effect.gen(function* () {
-    const service = yield* StoryService;
-    const story = yield* service.ingest(validEvidence);
-    expect(story.title).toBe("Test Story");
-    expect(story.evidence).toHaveLength(1);
-  }).pipe(Effect.provide(StoryEngineTestLayer)));
+    const service = yield* StoryService
+    const story = yield* service.ingest(validEvidence)
+    expect(story.title).toBe("Test Story")
+    expect(story.evidence).toHaveLength(1)
+  }).pipe(Effect.provide(StoryEngineTestLayer)))
 ```
 
 ## Documentation Conventions

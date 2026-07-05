@@ -1,0 +1,22 @@
+{
+  "name": "@weric/recommendation",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "check-types": "tsc --noEmit",
+    "lint": "echo 'no linter configured'",
+    "test": "echo 'no tests yet'",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@weric/contracts": "workspace:*",
+    "@weric/database": "workspace:*",
+    "@weric/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "5.9.2"
+  }
+}

@@ -157,24 +157,24 @@ If the Agent Runtime persisted data:
 
 ## Technology Choices Summary
 
-| Decision | Choice | Rationale |
-|---|---|---|
-| Runtime | Bun | Fast native TypeScript execution, built-in test runner, package manager |
-| Backend framework | Hono | Minimal, web-standard, framework-agnostic business logic |
-| Effect system | Effect | Composable, type-safe, layered DI, structured concurrency |
-| ORM | Drizzle | Type-safe SQL, zero abstraction, framework-independent |
-| Database | PostgreSQL | ACID, JSONB, full-text search, single-database principle |
-| Frontend framework | React | Mature ecosystem, component model |
-| Bundler | Vite | Fast HMR, first-class TypeScript support |
-| Router | TanStack Router | Type-safe routing, file-based routes |
-| Query client | TanStack Query | Server state management, caching, mutations |
-| Forms | React Hook Form | Performant, minimal re-renders |
-| Validation | Zod | Runtime type validation, TypeScript inference |
-| Styling | TailwindCSS | Utility-first, consistent design system |
-| Components | shadcn/ui | Accessible, customizable, not a component library |
-| Icons | Lucide | Consistent, tree-shakeable icon set |
-| AI SDK | Vercel AI SDK | Provider-agnostic, streaming support |
-| Cloud provider | Cloudflare | Workers, Queues, Cron, R2 |
-| Formatter | Biome | Fast, single-tool formatting and linting |
-| Testing | Vitest + Effect Test | Fast, native ESM, Effect integration |
-| Git hooks | Husky | Enforce quality gates before commits |
+| Decision           | Choice               | Rationale                                                               |
+| ------------------ | -------------------- | ----------------------------------------------------------------------- |
+| Runtime            | Bun                  | Fast native TypeScript execution, built-in test runner, package manager |
+| Backend framework  | Hono                 | Minimal, web-standard, framework-agnostic business logic                |
+| Effect system      | Effect               | Composable, type-safe, layered DI, structured concurrency               |
+| ORM                | Drizzle              | Type-safe SQL, zero abstraction, framework-independent                  |
+| Database           | PostgreSQL           | ACID, JSONB, full-text search, single-database principle                |
+| Frontend framework | React                | Mature ecosystem, component model                                       |
+| Bundler            | Vite                 | Fast HMR, first-class TypeScript support                                |
+| Router             | TanStack Router      | Type-safe routing, file-based routes                                    |
+| Query client       | TanStack Query       | Server state management, caching, mutations                             |
+| Forms              | React Hook Form      | Performant, minimal re-renders                                          |
+| Validation         | Zod                  | Runtime type validation, TypeScript inference                           |
+| Styling            | TailwindCSS          | Utility-first, consistent design system                                 |
+| Components         | shadcn/ui            | Accessible, customizable, not a component library                       |
+| Icons              | Lucide               | Consistent, tree-shakeable icon set                                     |
+| AI SDK             | Vercel AI SDK        | Provider-agnostic, streaming support                                    |
+| Cloud provider     | Cloudflare           | Workers, Queues, Cron, R2                                               |
+| Formatter          | Biome                | Fast, single-tool formatting and linting                                |
+| Testing            | Vitest + Effect Test | Fast, native ESM, Effect integration                                    |
+| Git hooks          | Husky                | Enforce quality gates before commits                                    |

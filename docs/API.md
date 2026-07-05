@@ -29,12 +29,12 @@ List stories with pagination.
 
 **Query Parameters**
 
-| Parameter | Type | Default | Description |
-|---|---|---|---|
-| `page` | `number` | `1` | Page number |
-| `limit` | `number` | `20` | Items per page (max 100) |
-| `status` | `string` | `published` | Filter by status |
-| `sort` | `string` | `-createdAt` | Sort field with direction prefix |
+| Parameter | Type     | Default      | Description                      |
+| --------- | -------- | ------------ | -------------------------------- |
+| `page`    | `number` | `1`          | Page number                      |
+| `limit`   | `number` | `20`         | Items per page (max 100)         |
+| `status`  | `string` | `published`  | Filter by status                 |
+| `sort`    | `string` | `-createdAt` | Sort field with direction prefix |
 
 **Response**
 
@@ -121,10 +121,10 @@ Get personalized feed for the authenticated user.
 
 **Query Parameters**
 
-| Parameter | Type | Default | Description |
-|---|---|---|---|
-| `page` | `number` | `1` | Page number |
-| `limit` | `number` | `20` | Items per page (max 50) |
+| Parameter | Type     | Default | Description             |
+| --------- | -------- | ------- | ----------------------- |
+| `page`    | `number` | `1`     | Page number             |
+| `limit`   | `number` | `20`    | Items per page (max 50) |
 
 **Response**
 
@@ -153,12 +153,12 @@ Search stories and evidence.
 
 **Query Parameters**
 
-| Parameter | Type | Default | Description |
-|---|---|---|---|
-| `q` | `string` | required | Search query |
-| `type` | `string` | `all` | `stories`, `evidence`, or `all` |
-| `page` | `number` | `1` | Page number |
-| `limit` | `number` | `20` | Items per page |
+| Parameter | Type     | Default  | Description                     |
+| --------- | -------- | -------- | ------------------------------- |
+| `q`       | `string` | required | Search query                    |
+| `type`    | `string` | `all`    | `stories`, `evidence`, or `all` |
+| `page`    | `number` | `1`      | Page number                     |
+| `limit`   | `number` | `20`     | Items per page                  |
 
 ### Interactions
 
@@ -283,25 +283,25 @@ All errors follow a consistent format:
 
 ### Common Error Codes
 
-| Code | HTTP Status | Description |
-|---|---|---|
-| `VALIDATION_ERROR` | 400 | Input validation failed |
-| `UNAUTHORIZED` | 401 | Missing or invalid authentication |
-| `FORBIDDEN` | 403 | Insufficient permissions |
-| `NOT_FOUND` | 404 | Resource not found |
-| `CONFLICT` | 409 | Resource already exists |
-| `RATE_LIMITED` | 429 | Too many requests |
-| `INTERNAL_ERROR` | 500 | Unexpected server error |
+| Code               | HTTP Status | Description                       |
+| ------------------ | ----------- | --------------------------------- |
+| `VALIDATION_ERROR` | 400         | Input validation failed           |
+| `UNAUTHORIZED`     | 401         | Missing or invalid authentication |
+| `FORBIDDEN`        | 403         | Insufficient permissions          |
+| `NOT_FOUND`        | 404         | Resource not found                |
+| `CONFLICT`         | 409         | Resource already exists           |
+| `RATE_LIMITED`     | 429         | Too many requests                 |
+| `INTERNAL_ERROR`   | 500         | Unexpected server error           |
 
 ## Rate Limiting
 
 Rate limits are applied per authenticated user:
 
-| Endpoint | Limit |
-|---|---|
-| All endpoints | 100 requests per minute |
-| Search | 30 requests per minute |
-| Authentication | 10 requests per minute |
+| Endpoint       | Limit                   |
+| -------------- | ----------------------- |
+| All endpoints  | 100 requests per minute |
+| Search         | 30 requests per minute  |
+| Authentication | 10 requests per minute  |
 
 Rate limit headers are included in all responses:
 

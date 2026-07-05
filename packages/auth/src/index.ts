@@ -1,0 +1,1 @@
+// @weric/auth — Authentication logic

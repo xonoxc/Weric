@@ -6,28 +6,29 @@
 
 ### Milestones
 
-| # | Milestone | Est. Complexity | Dependencies |
-|---|---|---|---|
-| 1 | Repository Bootstrap | Low | None |
-| 2 | Tooling | Low | #1 |
-| 3 | Shared Contracts | Medium | #1, #2 |
-| 4 | Database | Medium | #3 |
-| 5 | Repository Layer | Medium | #3, #4 |
-| 6 | Effect Infrastructure | Medium | #3, #5 |
-| 7 | Story Engine | High | #3, #5, #6 |
-| 8 | Browser Package | Medium | #3, #6 |
-| 9 | AI Package | Medium | #3, #6 |
-| 10 | Recommendation Engine | High | #3, #5, #6 |
-| 11 | Worker | Medium | #6, #7, #8, #9, #10 |
-| 12 | API | Medium | #6, #7, #9, #10 |
-| 13 | Frontend | Medium | #12 |
-| 14 | Landing Page | Low | None |
-| 15 | Integration | Medium | #11, #12, #13, #14 |
-| 16 | Testing | Medium | All above |
-| 17 | Documentation | Low | All above |
-| 18 | Deployment | Low | #15 |
+| #   | Milestone             | Est. Complexity | Dependencies        |
+| --- | --------------------- | --------------- | ------------------- |
+| 1   | Repository Bootstrap  | Low             | None                |
+| 2   | Tooling               | Low             | #1                  |
+| 3   | Shared Contracts      | Medium          | #1, #2              |
+| 4   | Database              | Medium          | #3                  |
+| 5   | Repository Layer      | Medium          | #3, #4              |
+| 6   | Effect Infrastructure | Medium          | #3, #5              |
+| 7   | Story Engine          | High            | #3, #5, #6          |
+| 8   | Browser Package       | Medium          | #3, #6              |
+| 9   | AI Package            | Medium          | #3, #6              |
+| 10  | Recommendation Engine | High            | #3, #5, #6          |
+| 11  | Worker                | Medium          | #6, #7, #8, #9, #10 |
+| 12  | API                   | Medium          | #6, #7, #9, #10     |
+| 13  | Frontend              | Medium          | #12                 |
+| 14  | Landing Page          | Low             | None                |
+| 15  | Integration           | Medium          | #11, #12, #13, #14  |
+| 16  | Testing               | Medium          | All above           |
+| 17  | Documentation         | Low             | All above           |
+| 18  | Deployment            | Low             | #15                 |
 
 **Definition of Done:**
+
 - Repository builds successfully
 - Every application starts independently
 - Every package owns a single responsibility

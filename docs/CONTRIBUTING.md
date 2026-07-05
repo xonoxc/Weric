@@ -62,13 +62,13 @@ test(recommendation): add feed diversification tests
 
 Every change must pass before merging:
 
-| Gate | Command | Description |
-|---|---|---|
-| TypeScript | `bun run typecheck` | No type errors |
-| Lint | `bun run lint` | No lint violations |
-| Format | `bun run format` | Consistent formatting |
-| Test | `bun run test` | All tests pass |
-| Build | `bun run build` | All apps build successfully |
+| Gate       | Command             | Description                 |
+| ---------- | ------------------- | --------------------------- |
+| TypeScript | `bun run typecheck` | No type errors              |
+| Lint       | `bun run lint`      | No lint violations          |
+| Format     | `bun run format`    | Consistent formatting       |
+| Test       | `bun run test`      | All tests pass              |
+| Build      | `bun run build`     | All apps build successfully |
 
 ## Package Guidelines
 
@@ -94,12 +94,12 @@ Every change must pass before merging:
 
 ### Required Tools
 
-| Tool | Version | Purpose |
-|---|---|---|
-| [Bun](https://bun.sh) | >= 1.2 | Runtime, package manager, test runner |
-| [Node.js](https://nodejs.org) | >= 22 | Tooling compatibility |
-| [PostgreSQL](https://postgresql.org) | >= 16 | Database |
-| [Docker](https://docker.com) | Latest | Local PostgreSQL |
+| Tool                                 | Version | Purpose                               |
+| ------------------------------------ | ------- | ------------------------------------- |
+| [Bun](https://bun.sh)                | >= 1.2  | Runtime, package manager, test runner |
+| [Node.js](https://nodejs.org)        | >= 22   | Tooling compatibility                 |
+| [PostgreSQL](https://postgresql.org) | >= 16   | Database                              |
+| [Docker](https://docker.com)         | Latest  | Local PostgreSQL                      |
 
 ### Environment Variables
 

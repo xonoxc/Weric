@@ -1,0 +1,4 @@
+{
+  "*.{ts,tsx}": ["prettier --write", "turbo run check-types --filter"],
+  "*.{md,json,yml,yaml}": ["prettier --write"]
+}

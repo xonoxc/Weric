@@ -79,40 +79,40 @@
 
 A unified story built from one or more pieces of evidence.
 
-| Column | Type | Constraints | Description |
-|---|---|---|---|
-| id | `uuid` | PK, default `gen_random_uuid()` | Unique identifier |
-| title | `text` | NOT NULL | Story title |
-| slug | `text` | UNIQUE, NOT NULL | URL-friendly identifier |
-| summary | `text` | | AI-generated or manual summary |
-| confidence | `real` | DEFAULT 0.0 | Confidence score (0.0 - 1.0) |
-| status | `text` | DEFAULT 'draft' | One of: draft, published, archived |
-| createdAt | `timestamptz` | NOT NULL, default `now()` | Creation timestamp |
-| updatedAt | `timestamptz` | NOT NULL, default `now()` | Last update timestamp |
+| Column     | Type          | Constraints                     | Description                        |
+| ---------- | ------------- | ------------------------------- | ---------------------------------- |
+| id         | `uuid`        | PK, default `gen_random_uuid()` | Unique identifier                  |
+| title      | `text`        | NOT NULL                        | Story title                        |
+| slug       | `text`        | UNIQUE, NOT NULL                | URL-friendly identifier            |
+| summary    | `text`        |                                 | AI-generated or manual summary     |
+| confidence | `real`        | DEFAULT 0.0                     | Confidence score (0.0 - 1.0)       |
+| status     | `text`        | DEFAULT 'draft'                 | One of: draft, published, archived |
+| createdAt  | `timestamptz` | NOT NULL, default `now()`       | Creation timestamp                 |
+| updatedAt  | `timestamptz` | NOT NULL, default `now()`       | Last update timestamp              |
 
 ### `evidence`
 
 Raw information collected from the internet. Immutable after insertion.
 
-| Column | Type | Constraints | Description |
-|---|---|---|---|
-| id | `uuid` | PK, default `gen_random_uuid()` | Unique identifier |
-| source | `text` | NOT NULL | Source type (e.g., rss, github, reddit, hn, web) |
-| url | `text` | UNIQUE, NOT NULL | Original URL |
-| author | `text` | | Content author |
-| title | `text` | NOT NULL | Evidence title |
-| content | `text` | NOT NULL | Full content or extracted text |
-| metadata | `jsonb` | DEFAULT '{}' | Source-specific metadata |
-| publishedAt | `timestamptz` | | Original publication date |
-| discoveredAt | `timestamptz` | NOT NULL, default `now()` | Discovery timestamp |
+| Column       | Type          | Constraints                     | Description                                      |
+| ------------ | ------------- | ------------------------------- | ------------------------------------------------ |
+| id           | `uuid`        | PK, default `gen_random_uuid()` | Unique identifier                                |
+| source       | `text`        | NOT NULL                        | Source type (e.g., rss, github, reddit, hn, web) |
+| url          | `text`        | UNIQUE, NOT NULL                | Original URL                                     |
+| author       | `text`        |                                 | Content author                                   |
+| title        | `text`        | NOT NULL                        | Evidence title                                   |
+| content      | `text`        | NOT NULL                        | Full content or extracted text                   |
+| metadata     | `jsonb`       | DEFAULT '{}'                    | Source-specific metadata                         |
+| publishedAt  | `timestamptz` |                                 | Original publication date                        |
+| discoveredAt | `timestamptz` | NOT NULL, default `now()`       | Discovery timestamp                              |
 
 ### `story_evidence`
 
 Many-to-many relationship between stories and evidence.
 
-| Column | Type | Constraints | Description |
-|---|---|---|---|
-| storyId | `uuid` | FK → stories(id), NOT NULL | Story reference |
+| Column     | Type   | Constraints                 | Description        |
+| ---------- | ------ | --------------------------- | ------------------ |
+| storyId    | `uuid` | FK → stories(id), NOT NULL  | Story reference    |
 | evidenceId | `uuid` | FK → evidence(id), NOT NULL | Evidence reference |
 
 Unique constraint on `(storyId, evidenceId)`.
@@ -121,20 +121,20 @@ Unique constraint on `(storyId, evidenceId)`.
 
 Named entities extracted from evidence and stories.
 
-| Column | Type | Constraints | Description |
-|---|---|---|---|
-| id | `uuid` | PK, default `gen_random_uuid()` | Unique identifier |
-| name | `text` | NOT NULL | Entity name |
-| type | `text` | NOT NULL | Entity type (person, org, location, topic, etc.) |
-| aliases | `jsonb` | DEFAULT '[]' | Alternative names |
+| Column  | Type    | Constraints                     | Description                                      |
+| ------- | ------- | ------------------------------- | ------------------------------------------------ |
+| id      | `uuid`  | PK, default `gen_random_uuid()` | Unique identifier                                |
+| name    | `text`  | NOT NULL                        | Entity name                                      |
+| type    | `text`  | NOT NULL                        | Entity type (person, org, location, topic, etc.) |
+| aliases | `jsonb` | DEFAULT '[]'                    | Alternative names                                |
 
 ### `story_entities`
 
 Connects entities to stories.
 
-| Column | Type | Constraints | Description |
-|---|---|---|---|
-| storyId | `uuid` | FK → stories(id), NOT NULL | Story reference |
+| Column   | Type   | Constraints                 | Description      |
+| -------- | ------ | --------------------------- | ---------------- |
+| storyId  | `uuid` | FK → stories(id), NOT NULL  | Story reference  |
 | entityId | `uuid` | FK → entities(id), NOT NULL | Entity reference |
 
 Unique constraint on `(storyId, entityId)`.
@@ -143,59 +143,59 @@ Unique constraint on `(storyId, entityId)`.
 
 Relationships between entities.
 
-| Column | Type | Constraints | Description |
-|---|---|---|---|
-| id | `uuid` | PK, default `gen_random_uuid()` | Unique identifier |
-| sourceEntity | `uuid` | FK → entities(id), NOT NULL | Source entity |
-| targetEntity | `uuid` | FK → entities(id), NOT NULL | Target entity |
-| relationType | `text` | NOT NULL | Type of relationship |
+| Column       | Type   | Constraints                     | Description          |
+| ------------ | ------ | ------------------------------- | -------------------- |
+| id           | `uuid` | PK, default `gen_random_uuid()` | Unique identifier    |
+| sourceEntity | `uuid` | FK → entities(id), NOT NULL     | Source entity        |
+| targetEntity | `uuid` | FK → entities(id), NOT NULL     | Target entity        |
+| relationType | `text` | NOT NULL                        | Type of relationship |
 
 ### `users`
 
 User accounts.
 
-| Column | Type | Constraints | Description |
-|---|---|---|---|
-| id | `uuid` | PK, default `gen_random_uuid()` | Unique identifier |
-| email | `text` | UNIQUE, NOT NULL | Email address |
-| username | `text` | UNIQUE, NOT NULL | Display name |
-| createdAt | `timestamptz` | NOT NULL, default `now()` | Registration timestamp |
+| Column    | Type          | Constraints                     | Description            |
+| --------- | ------------- | ------------------------------- | ---------------------- |
+| id        | `uuid`        | PK, default `gen_random_uuid()` | Unique identifier      |
+| email     | `text`        | UNIQUE, NOT NULL                | Email address          |
+| username  | `text`        | UNIQUE, NOT NULL                | Display name           |
+| createdAt | `timestamptz` | NOT NULL, default `now()`       | Registration timestamp |
 
 ### `interests`
 
 Learned user interests.
 
-| Column | Type | Constraints | Description |
-|---|---|---|---|
-| id | `uuid` | PK, default `gen_random_uuid()` | Unique identifier |
-| userId | `uuid` | FK → users(id), NOT NULL | User reference |
-| topic | `text` | NOT NULL | Interest topic |
-| score | `real` | NOT NULL, DEFAULT 0.0 | Interest strength |
-| updatedAt | `timestamptz` | NOT NULL, default `now()` | Last update |
+| Column    | Type          | Constraints                     | Description       |
+| --------- | ------------- | ------------------------------- | ----------------- |
+| id        | `uuid`        | PK, default `gen_random_uuid()` | Unique identifier |
+| userId    | `uuid`        | FK → users(id), NOT NULL        | User reference    |
+| topic     | `text`        | NOT NULL                        | Interest topic    |
+| score     | `real`        | NOT NULL, DEFAULT 0.0           | Interest strength |
+| updatedAt | `timestamptz` | NOT NULL, default `now()`       | Last update       |
 
 ### `interactions`
 
 User interactions with stories.
 
-| Column | Type | Constraints | Description |
-|---|---|---|---|
-| id | `uuid` | PK, default `gen_random_uuid()` | Unique identifier |
-| userId | `uuid` | FK → users(id), NOT NULL | User reference |
-| storyId | `uuid` | FK → stories(id), NOT NULL | Story reference |
-| interactionType | `text` | NOT NULL | Type (read, read_complete, share, click, etc.) |
-| duration | `integer` | | Duration in seconds |
-| createdAt | `timestamptz` | NOT NULL, default `now()` | Interaction timestamp |
+| Column          | Type          | Constraints                     | Description                                    |
+| --------------- | ------------- | ------------------------------- | ---------------------------------------------- |
+| id              | `uuid`        | PK, default `gen_random_uuid()` | Unique identifier                              |
+| userId          | `uuid`        | FK → users(id), NOT NULL        | User reference                                 |
+| storyId         | `uuid`        | FK → stories(id), NOT NULL      | Story reference                                |
+| interactionType | `text`        | NOT NULL                        | Type (read, read_complete, share, click, etc.) |
+| duration        | `integer`     |                                 | Duration in seconds                            |
+| createdAt       | `timestamptz` | NOT NULL, default `now()`       | Interaction timestamp                          |
 
 ### `bookmarks`
 
 User bookmarks.
 
-| Column | Type | Constraints | Description |
-|---|---|---|---|
-| id | `uuid` | PK, default `gen_random_uuid()` | Unique identifier |
-| userId | `uuid` | FK → users(id), NOT NULL | User reference |
-| storyId | `uuid` | FK → stories(id), NOT NULL | Story reference |
-| createdAt | `timestamptz` | NOT NULL, default `now()` | Bookmark timestamp |
+| Column    | Type          | Constraints                     | Description        |
+| --------- | ------------- | ------------------------------- | ------------------ |
+| id        | `uuid`        | PK, default `gen_random_uuid()` | Unique identifier  |
+| userId    | `uuid`        | FK → users(id), NOT NULL        | User reference     |
+| storyId   | `uuid`        | FK → stories(id), NOT NULL      | Story reference    |
+| createdAt | `timestamptz` | NOT NULL, default `now()`       | Bookmark timestamp |
 
 Unique constraint on `(userId, storyId)`.
 
@@ -203,28 +203,28 @@ Unique constraint on `(userId, storyId)`.
 
 Background job queue.
 
-| Column | Type | Constraints | Description |
-|---|---|---|---|
-| id | `uuid` | PK, default `gen_random_uuid()` | Unique identifier |
-| type | `text` | NOT NULL | Job type (discover_stories, refresh_story, etc.) |
-| payload | `jsonb` | DEFAULT '{}' | Job parameters |
-| status | `text` | NOT NULL, DEFAULT 'pending' | pending, running, completed, failed |
-| retries | `integer` | NOT NULL, DEFAULT 0 | Retry count |
-| scheduledAt | `timestamptz` | | Scheduled execution time |
-| executedAt | `timestamptz` | | Actual execution time |
+| Column      | Type          | Constraints                     | Description                                      |
+| ----------- | ------------- | ------------------------------- | ------------------------------------------------ |
+| id          | `uuid`        | PK, default `gen_random_uuid()` | Unique identifier                                |
+| type        | `text`        | NOT NULL                        | Job type (discover_stories, refresh_story, etc.) |
+| payload     | `jsonb`       | DEFAULT '{}'                    | Job parameters                                   |
+| status      | `text`        | NOT NULL, DEFAULT 'pending'     | pending, running, completed, failed              |
+| retries     | `integer`     | NOT NULL, DEFAULT 0             | Retry count                                      |
+| scheduledAt | `timestamptz` |                                 | Scheduled execution time                         |
+| executedAt  | `timestamptz` |                                 | Actual execution time                            |
 
 ## Repository Ownership
 
-| Repository | Table | Methods |
-|---|---|---|
-| `StoryRepository` | `stories`, `story_evidence` | create, findById, findBySlug, update, merge, search, delete |
-| `EvidenceRepository` | `evidence` | create, findById, findByUrl, findBySource, list, delete |
-| `EntityRepository` | `entities`, `story_entities` | create, findByName, findByType, linkToStory, merge |
-| `RelationshipRepository` | `relationships` | create, findByEntity, delete |
-| `UserRepository` | `users` | create, findById, findByEmail, update |
-| `InteractionRepository` | `interactions` | create, findByUser, findByStory, aggregate |
-| `BookmarkRepository` | `bookmarks` | create, findByUser, delete, exists |
-| `JobRepository` | `jobs` | create, findPending, updateStatus, incrementRetries |
+| Repository               | Table                        | Methods                                                     |
+| ------------------------ | ---------------------------- | ----------------------------------------------------------- |
+| `StoryRepository`        | `stories`, `story_evidence`  | create, findById, findBySlug, update, merge, search, delete |
+| `EvidenceRepository`     | `evidence`                   | create, findById, findByUrl, findBySource, list, delete     |
+| `EntityRepository`       | `entities`, `story_entities` | create, findByName, findByType, linkToStory, merge          |
+| `RelationshipRepository` | `relationships`              | create, findByEntity, delete                                |
+| `UserRepository`         | `users`                      | create, findById, findByEmail, update                       |
+| `InteractionRepository`  | `interactions`               | create, findByUser, findByStory, aggregate                  |
+| `BookmarkRepository`     | `bookmarks`                  | create, findByUser, delete, exists                          |
+| `JobRepository`          | `jobs`                       | create, findPending, updateStatus, incrementRetries         |
 
 ## Index Recommendations
 

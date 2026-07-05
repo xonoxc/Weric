@@ -28,27 +28,27 @@ Internet
 
 ### Applications
 
-| Application | Purpose | Stack |
-|---|---|---|
-| **api** | HTTP interface, authentication, search, feeds, stories | Hono, Effect |
-| **worker** | Scheduled jobs, agents, ingestion, maintenance | Bun, Effect |
-| **web** | Authenticated user interface | React, Vite, TanStack |
-| **landing** | Marketing website | Astro |
+| Application | Purpose                                                | Stack                 |
+| ----------- | ------------------------------------------------------ | --------------------- |
+| **api**     | HTTP interface, authentication, search, feeds, stories | Hono, Effect          |
+| **worker**  | Scheduled jobs, agents, ingestion, maintenance         | Bun, Effect           |
+| **web**     | Authenticated user interface                           | React, Vite, TanStack |
+| **landing** | Marketing website                                      | Astro                 |
 
 ### Packages
 
-| Package | Responsibility |
-|---|---|
-| **contracts** | Single source of truth — Zod schemas, DTOs, events, shared types |
-| **story-engine** | Knowledge generation, story creation, clustering, persistence |
-| **recommendation** | Ranking, personalization, feed generation |
-| **browser** | Internet access, searching, page extraction, scraping |
-| **ai** | LLM abstraction, summarization, embeddings, structured outputs |
-| **database** | Repositories, Drizzle, migrations |
-| **shared** | Pure utility functions |
-| **config** | Configuration management |
-| **auth** | Authentication logic |
-| **ui** | Shared UI components |
+| Package            | Responsibility                                                   |
+| ------------------ | ---------------------------------------------------------------- |
+| **contracts**      | Single source of truth — Zod schemas, DTOs, events, shared types |
+| **story-engine**   | Knowledge generation, story creation, clustering, persistence    |
+| **recommendation** | Ranking, personalization, feed generation                        |
+| **browser**        | Internet access, searching, page extraction, scraping            |
+| **ai**             | LLM abstraction, summarization, embeddings, structured outputs   |
+| **database**       | Repositories, Drizzle, migrations                                |
+| **shared**         | Pure utility functions                                           |
+| **config**         | Configuration management                                         |
+| **auth**           | Authentication logic                                             |
+| **ui**             | Shared UI components                                             |
 
 ## Repository Layout
 

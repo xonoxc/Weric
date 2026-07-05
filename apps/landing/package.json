@@ -1,0 +1,22 @@
+{
+  "name": "@weric/landing",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check-types": "astro check",
+    "lint": "echo 'no linter configured'",
+    "test": "echo 'no tests yet'",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "astro": "^5.0.0"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.0",
+    "typescript": "5.9.2"
+  }
+}

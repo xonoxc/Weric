@@ -133,18 +133,18 @@ Components communicate through events to maintain loose coupling.
 
 ### Package Dependencies
 
-| Package | Internal Dependencies |
-|---|---|
-| `shared` | None |
-| `contracts` | `shared` |
-| `config` | `shared` |
-| `database` | `contracts`, `shared` |
-| `ai` | `contracts`, `shared` |
-| `browser` | `contracts`, `shared` |
-| `story-engine` | `contracts`, `database`, `ai`, `shared` |
-| `recommendation` | `contracts`, `database`, `shared` |
-| `auth` | `contracts`, `database`, `shared` |
-| `ui` | `contracts`, `shared` |
+| Package          | Internal Dependencies                   |
+| ---------------- | --------------------------------------- |
+| `shared`         | None                                    |
+| `contracts`      | `shared`                                |
+| `config`         | `shared`                                |
+| `database`       | `contracts`, `shared`                   |
+| `ai`             | `contracts`, `shared`                   |
+| `browser`        | `contracts`, `shared`                   |
+| `story-engine`   | `contracts`, `database`, `ai`, `shared` |
+| `recommendation` | `contracts`, `database`, `shared`       |
+| `auth`           | `contracts`, `database`, `shared`       |
+| `ui`             | `contracts`, `shared`                   |
 
 ## Application Dependency Graph
 
@@ -165,12 +165,12 @@ Components communicate through events to maintain loose coupling.
 
 ### Application Dependencies
 
-| Application | Depends On |
-|---|---|
-| `api` | `contracts`, `database`, `story-engine`, `recommendation`, `browser`, `ai`, `shared`, `config`, `auth` |
-| `worker` | `contracts`, `database`, `story-engine`, `recommendation`, `browser`, `ai`, `shared`, `config` |
-| `web` | `contracts`, `ui`, `shared` (communicates only through API) |
-| `landing` | None (static site, independent deployment) |
+| Application | Depends On                                                                                             |
+| ----------- | ------------------------------------------------------------------------------------------------------ |
+| `api`       | `contracts`, `database`, `story-engine`, `recommendation`, `browser`, `ai`, `shared`, `config`, `auth` |
+| `worker`    | `contracts`, `database`, `story-engine`, `recommendation`, `browser`, `ai`, `shared`, `config`         |
+| `web`       | `contracts`, `ui`, `shared` (communicates only through API)                                            |
+| `landing`   | None (static site, independent deployment)                                                             |
 
 ## Domain Boundaries
 
@@ -240,15 +240,15 @@ Does Not Own:
 
 ## Ownership Summary
 
-| Subsystem | Owns | Must Not |
-|---|---|---|
-| Agent Runtime | Discovery, orchestration | Persist data |
-| Story Engine | Knowledge, stories, clustering | Search the web |
-| Recommendation Engine | Ranking, feed, interests | Create or persist stories |
-| Repositories | Database persistence | Contain business logic |
-| AI | LLM abstraction | Write to database |
-| Browser | Internet access | Touch database |
-| API | HTTP, auth, routing | Contain business logic |
-| Worker | Background jobs | Expose HTTP endpoints |
-| Web | Authenticated UI | Access database directly |
-| Landing | Marketing content | Contain business logic |
+| Subsystem             | Owns                           | Must Not                  |
+| --------------------- | ------------------------------ | ------------------------- |
+| Agent Runtime         | Discovery, orchestration       | Persist data              |
+| Story Engine          | Knowledge, stories, clustering | Search the web            |
+| Recommendation Engine | Ranking, feed, interests       | Create or persist stories |
+| Repositories          | Database persistence           | Contain business logic    |
+| AI                    | LLM abstraction                | Write to database         |
+| Browser               | Internet access                | Touch database            |
+| API                   | HTTP, auth, routing            | Contain business logic    |
+| Worker                | Background jobs                | Expose HTTP endpoints     |
+| Web                   | Authenticated UI               | Access database directly  |
+| Landing               | Marketing content              | Contain business logic    |

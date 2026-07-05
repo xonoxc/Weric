@@ -1,17 +1,32 @@
 {
-  "name": "Weric",
+  "name": "weric",
   "private": true,
   "scripts": {
-    "build": "turbo run build",
     "dev": "turbo run dev",
+    "dev:api": "turbo run dev --filter=@weric/api",
+    "dev:worker": "turbo run dev --filter=@weric/worker",
+    "dev:web": "turbo run dev --filter=@weric/web",
+    "dev:landing": "turbo run dev --filter=@weric/landing",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "test:watch": "turbo run test:watch",
     "lint": "turbo run lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "check-types": "turbo run check-types"
+    "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,md,json}\"",
+    "check-types": "turbo run check-types",
+    "clean": "rm -rf apps/*/dist packages/*/dist node_modules/.cache",
+    "db:generate": "turbo run db:generate --filter=@weric/database",
+    "db:migrate": "turbo run db:migrate --filter=@weric/database",
+    "prepare": "husky"
   },
   "devDependencies": {
+    "@effect/vitest": "^0.29.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.8",
     "prettier": "^3.7.4",
     "turbo": "^2.10.3",
-    "typescript": "5.9.2"
+    "typescript": "5.9.2",
+    "vitest": "^4.1.9"
   },
   "engines": {
     "node": ">=18"
