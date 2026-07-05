@@ -6,8 +6,6 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": {
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
     "check-types": "tsc --noEmit",
     "lint": "echo 'no linter configured'",
     "test": "echo 'no tests yet'",
@@ -17,10 +15,10 @@
     "@weric/contracts": "workspace:*",
     "@weric/shared": "workspace:*",
     "drizzle-orm": "^0.40.0",
-    "postgres": "^3.4.0"
+    "postgres": "^3.4.0",
+    "zod": "^3.24.0"
   },
   "devDependencies": {
-    "drizzle-kit": "^0.30.0",
     "typescript": "5.9.2"
   }
 }

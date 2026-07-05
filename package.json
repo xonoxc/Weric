@@ -15,12 +15,13 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,md,json}\"",
     "check-types": "turbo run check-types",
     "clean": "rm -rf apps/*/dist packages/*/dist node_modules/.cache",
-    "db:generate": "turbo run db:generate --filter=@weric/database",
-    "db:migrate": "turbo run db:migrate --filter=@weric/database",
+    "db:generate": "drizzle-kit generate --config=drizzle.config.ts",
+    "db:migrate": "drizzle-kit migrate --config=drizzle.config.ts",
     "prepare": "husky"
   },
   "devDependencies": {
     "@effect/vitest": "^0.29.0",
+    "drizzle-kit": "^0.31.10",
     "husky": "^9.1.7",
     "lint-staged": "^17.0.8",
     "prettier": "^3.7.4",

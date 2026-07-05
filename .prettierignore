@@ -6,4 +6,5 @@ out/
 .turbo/
 coverage/
 .astro/
+drizzle/migrations/
 bun.lock
