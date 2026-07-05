@@ -14,11 +14,11 @@ export class BookmarkRepository {
   ): Effect.Effect<typeof bookmarks.$inferSelect, RepositoryError> {
     return Effect.tryPromise({
       try: async () => {
-        const rows = await this.db
+        const [row] = await this.db
           .insert(bookmarks)
           .values({ userId, storyId })
           .returning()
-        return rows[0]!
+        return row!
       },
       catch: cause => {
         if (
@@ -51,12 +51,12 @@ export class BookmarkRepository {
   delete(userId: string, storyId: string): Effect.Effect<void, RepositoryError> {
     return Effect.tryPromise({
       try: async () => {
-        const existing = await this.db
+        const [existing] = await this.db
           .select()
           .from(bookmarks)
           .where(and(eq(bookmarks.userId, userId), eq(bookmarks.storyId, storyId)))
           .limit(1)
-        if (!existing[0]) throw new NotFoundError("Bookmark", `${userId}:${storyId}`)
+        if (!existing) throw new NotFoundError("Bookmark", `${userId}:${storyId}`)
 
         await this.db
           .delete(bookmarks)
@@ -72,12 +72,12 @@ export class BookmarkRepository {
   exists(userId: string, storyId: string): Effect.Effect<boolean, RepositoryError> {
     return Effect.tryPromise({
       try: async () => {
-        const rows = await this.db
+        const [row] = await this.db
           .select({ id: bookmarks.id })
           .from(bookmarks)
           .where(and(eq(bookmarks.userId, userId), eq(bookmarks.storyId, storyId)))
           .limit(1)
-        return rows[0] !== undefined
+        return row !== undefined
       },
       catch: cause => new ConnectionError(cause),
     })

@@ -15,8 +15,8 @@ export class RelationshipRepository {
   }): Effect.Effect<typeof relationships.$inferSelect, RepositoryError> {
     return Effect.tryPromise({
       try: async () => {
-        const rows = await this.db.insert(relationships).values(data).returning()
-        return rows[0]!
+        const [row] = await this.db.insert(relationships).values(data).returning()
+        return row!
       },
       catch: cause => new ConnectionError(cause),
     })

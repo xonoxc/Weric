@@ -26,7 +26,7 @@ export class StoryRepository {
   > {
     return Effect.tryPromise({
       try: async () => {
-        const rows = await this.db
+        const [story] = await this.db
           .insert(stories)
           .values({
             title: data.title,
@@ -35,7 +35,6 @@ export class StoryRepository {
           })
           .returning()
 
-        const story = rows[0]
         if (!story) throw new Error("Failed to create story")
 
         if (data.evidenceIds && data.evidenceIds.length > 0) {
@@ -58,12 +57,12 @@ export class StoryRepository {
   ): Effect.Effect<typeof stories.$inferSelect | null, RepositoryError> {
     return Effect.tryPromise({
       try: async () => {
-        const rows = await this.db
+        const [row] = await this.db
           .select()
           .from(stories)
           .where(eq(stories.id, id))
           .limit(1)
-        return rows[0] ?? null
+        return row ?? null
       },
       catch: cause => new ConnectionError(cause),
     })
@@ -74,12 +73,12 @@ export class StoryRepository {
   ): Effect.Effect<typeof stories.$inferSelect | null, RepositoryError> {
     return Effect.tryPromise({
       try: async () => {
-        const rows = await this.db
+        const [row] = await this.db
           .select()
           .from(stories)
           .where(eq(stories.slug, slug))
           .limit(1)
-        return rows[0] ?? null
+        return row ?? null
       },
       catch: cause => new ConnectionError(cause),
     })
@@ -120,7 +119,10 @@ export class StoryRepository {
             .where(where),
         ])
 
-        return { data, total: Number(countResult[0]?.count ?? 0) }
+        return {
+          data,
+          total: Number(countResult[0]?.count ?? 0),
+        }
       },
       catch: cause => new ConnectionError(cause),
     })
@@ -138,22 +140,21 @@ export class StoryRepository {
   ): Effect.Effect<typeof stories.$inferSelect, RepositoryError> {
     return Effect.tryPromise({
       try: async () => {
-        const existing = await this.db
+        const [existing] = await this.db
           .select()
           .from(stories)
           .where(eq(stories.id, id))
           .limit(1)
-        if (!existing[0]) throw new NotFoundError("Story", id)
 
-        const rows = await this.db
+        if (!existing) throw new NotFoundError("Story", id)
+
+        const [row] = await this.db
           .update(stories)
-          .set({
-            ...data,
-            updatedAt: new Date(),
-          })
+          .set({ ...data, updatedAt: new Date() })
           .where(eq(stories.id, id))
           .returning()
-        return rows[0]!
+
+        return row!
       },
       catch: cause => {
         if (cause instanceof NotFoundError) return cause
@@ -165,12 +166,12 @@ export class StoryRepository {
   delete(id: string): Effect.Effect<void, RepositoryError> {
     return Effect.tryPromise({
       try: async () => {
-        const existing = await this.db
+        const [existing] = await this.db
           .select()
           .from(stories)
           .where(eq(stories.id, id))
           .limit(1)
-        if (!existing[0]) throw new NotFoundError("Story", id)
+        if (!existing) throw new NotFoundError("Story", id)
 
         await this.db.delete(stories).where(eq(stories.id, id))
       },

@@ -15,7 +15,7 @@ export class JobRepository {
   }): Effect.Effect<typeof jobs.$inferSelect, RepositoryError> {
     return Effect.tryPromise({
       try: async () => {
-        const rows = await this.db
+        const [row] = await this.db
           .insert(jobs)
           .values({
             type: data.type,
@@ -23,7 +23,7 @@ export class JobRepository {
             scheduledAt: data.scheduledAt ?? null,
           })
           .returning()
-        return rows[0]!
+        return row!
       },
       catch: cause => new ConnectionError(cause),
     })

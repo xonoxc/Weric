@@ -21,7 +21,7 @@ export class InteractionRepository {
   }): Effect.Effect<typeof interactions.$inferSelect, RepositoryError> {
     return Effect.tryPromise({
       try: async () => {
-        const rows = await this.db
+        const [row] = await this.db
           .insert(interactions)
           .values({
             userId: data.userId,
@@ -30,7 +30,7 @@ export class InteractionRepository {
             duration: data.duration ?? null,
           })
           .returning()
-        return rows[0]!
+        return row!
       },
       catch: cause => new ConnectionError(cause),
     })

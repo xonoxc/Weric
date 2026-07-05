@@ -14,8 +14,8 @@ export class UserRepository {
   }): Effect.Effect<typeof users.$inferSelect, RepositoryError> {
     return Effect.tryPromise({
       try: async () => {
-        const rows = await this.db.insert(users).values(data).returning()
-        return rows[0]!
+        const [row] = await this.db.insert(users).values(data).returning()
+        return row!
       },
       catch: cause => {
         if (
@@ -34,8 +34,12 @@ export class UserRepository {
   findById(id: string): Effect.Effect<typeof users.$inferSelect | null, RepositoryError> {
     return Effect.tryPromise({
       try: async () => {
-        const rows = await this.db.select().from(users).where(eq(users.id, id)).limit(1)
-        return rows[0] ?? null
+        const [userRow] = await this.db
+          .select()
+          .from(users)
+          .where(eq(users.id, id))
+          .limit(1)
+        return userRow ?? null
       },
       catch: cause => new ConnectionError(cause),
     })
@@ -63,19 +67,20 @@ export class UserRepository {
   ): Effect.Effect<typeof users.$inferSelect, RepositoryError> {
     return Effect.tryPromise({
       try: async () => {
-        const existing = await this.db
+        const [existing] = await this.db
           .select()
           .from(users)
           .where(eq(users.id, id))
           .limit(1)
-        if (!existing[0]) throw new NotFoundError("User", id)
 
-        const rows = await this.db
+        if (!existing) throw new NotFoundError("User", id)
+
+        const [row] = await this.db
           .update(users)
           .set(data)
           .where(eq(users.id, id))
           .returning()
-        return rows[0]!
+        return row!
       },
       catch: cause => {
         if (cause instanceof NotFoundError) return cause

@@ -19,7 +19,7 @@ export class EvidenceRepository {
   }): Effect.Effect<typeof evidence.$inferSelect, RepositoryError> {
     return Effect.tryPromise({
       try: async () => {
-        const rows = await this.db
+        const [row] = await this.db
           .insert(evidence)
           .values({
             source: data.source,
@@ -31,7 +31,7 @@ export class EvidenceRepository {
             publishedAt: data.publishedAt ?? null,
           })
           .returning()
-        return rows[0]!
+        return row!
       },
       catch: cause => {
         if (
@@ -52,12 +52,12 @@ export class EvidenceRepository {
   ): Effect.Effect<typeof evidence.$inferSelect | null, RepositoryError> {
     return Effect.tryPromise({
       try: async () => {
-        const rows = await this.db
+        const [row] = await this.db
           .select()
           .from(evidence)
           .where(eq(evidence.id, id))
           .limit(1)
-        return rows[0] ?? null
+        return row ?? null
       },
       catch: cause => new ConnectionError(cause),
     })
@@ -68,12 +68,12 @@ export class EvidenceRepository {
   ): Effect.Effect<typeof evidence.$inferSelect | null, RepositoryError> {
     return Effect.tryPromise({
       try: async () => {
-        const rows = await this.db
+        const [row] = await this.db
           .select()
           .from(evidence)
           .where(eq(evidence.url, url))
           .limit(1)
-        return rows[0] ?? null
+        return row ?? null
       },
       catch: cause => new ConnectionError(cause),
     })
@@ -118,7 +118,10 @@ export class EvidenceRepository {
           this.db.select({ count: sql<number>`count(*)` }).from(evidence),
         ])
 
-        return { data, total: Number(countResult[0]?.count ?? 0) }
+        return {
+          data,
+          total: Number(countResult[0]?.count ?? 0),
+        }
       },
       catch: cause => new ConnectionError(cause),
     })

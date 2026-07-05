@@ -15,7 +15,7 @@ export class EntityRepository {
   }): Effect.Effect<typeof entities.$inferSelect, RepositoryError> {
     return Effect.tryPromise({
       try: async () => {
-        const rows = await this.db
+        const [row] = await this.db
           .insert(entities)
           .values({
             name: data.name,
@@ -23,7 +23,7 @@ export class EntityRepository {
             aliases: (data.aliases ?? []) as unknown as Record<string, unknown>,
           })
           .returning()
-        return rows[0]!
+        return row!
       },
       catch: cause => new ConnectionError(cause),
     })
@@ -34,12 +34,12 @@ export class EntityRepository {
   ): Effect.Effect<typeof entities.$inferSelect | null, RepositoryError> {
     return Effect.tryPromise({
       try: async () => {
-        const rows = await this.db
+        const [row] = await this.db
           .select()
           .from(entities)
           .where(eq(entities.name, name))
           .limit(1)
-        return rows[0] ?? null
+        return row ?? null
       },
       catch: cause => new ConnectionError(cause),
     })
@@ -49,7 +49,9 @@ export class EntityRepository {
     type: string
   ): Effect.Effect<(typeof entities.$inferSelect)[], RepositoryError> {
     return Effect.tryPromise({
-      try: async () => this.db.select().from(entities).where(eq(entities.type, type)),
+      try: async () => {
+        return await this.db.select().from(entities).where(eq(entities.type, type))
+      },
       catch: cause => new ConnectionError(cause),
     })
   }
@@ -57,7 +59,10 @@ export class EntityRepository {
   linkToStory(storyId: string, entityId: string): Effect.Effect<void, RepositoryError> {
     return Effect.tryPromise({
       try: async () => {
-        await this.db.insert(storyEntities).values({ storyId, entityId })
+        await this.db.insert(storyEntities).values({
+          storyId,
+          entityId,
+        })
       },
       catch: cause => new ConnectionError(cause),
     })
