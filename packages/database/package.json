@@ -12,6 +12,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@weric/config": "workspace:*",
     "@weric/contracts": "workspace:*",
     "@weric/shared": "workspace:*",
     "drizzle-orm": "^0.40.0",

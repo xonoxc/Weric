@@ -11,6 +11,10 @@
     "test": "echo 'no tests yet'",
     "test:watch": "vitest"
   },
+  "dependencies": {
+    "effect": "^3.21.4",
+    "pino": "^9.0.0"
+  },
   "devDependencies": {
     "typescript": "5.9.2"
   }

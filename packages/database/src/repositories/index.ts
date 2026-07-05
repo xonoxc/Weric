@@ -10,3 +10,15 @@ export { BookmarkRepository } from "./bookmark.repository.ts"
 export { JobRepository } from "./job.repository.ts"
 export { NotFoundError, ConflictError, ConnectionError } from "./errors.ts"
 export type { RepositoryError } from "./errors.ts"
+export {
+  StoryRepo,
+  EvidenceRepo,
+  EntityRepo,
+  RelationshipRepo,
+  UserRepo,
+  InteractionRepo,
+  BookmarkRepo,
+  JobRepo,
+  RepositoryLiveLayer,
+  RepositoryTestLayer,
+} from "./layer.ts"
