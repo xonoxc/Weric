@@ -16,7 +16,11 @@ export function createStoriesRoutes(db: Db) {
     const status = c.req.query("status") || undefined
 
     const { data, total } = await Effect.runPromise(
-      storyRepo.findManyWithEvidenceCount({ page, limit, status })
+      storyRepo.findManyWithEvidenceCount({
+        page,
+        limit,
+        status,
+      })
     )
 
     return c.json({

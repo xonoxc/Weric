@@ -1,1 +1,11 @@
-// @weric/recommendation — Ranking, personalization, feed generation
+export { RecommendationService } from "./service.ts"
+export type { FeedOptions } from "./service.ts"
+export { StoryScorer } from "./scorer.ts"
+export type { ScoredStory } from "./scorer.ts"
+export { FeedRanker } from "./ranker.ts"
+export type { RankedFeed } from "./ranker.ts"
+export { FeedDiversifier } from "./diversifier.ts"
+export { InterestLearner } from "./interest.ts"
+export type { TopicScore } from "./interest.ts"
+export { NoStoriesError, ScoringError } from "./errors.ts"
+export type { RecommendationError } from "./errors.ts"

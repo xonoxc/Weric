@@ -14,7 +14,8 @@
   "dependencies": {
     "@weric/contracts": "workspace:*",
     "@weric/database": "workspace:*",
-    "@weric/shared": "workspace:*"
+    "@weric/shared": "workspace:*",
+    "effect": "^3.21.4"
   },
   "devDependencies": {
     "typescript": "5.9.2"

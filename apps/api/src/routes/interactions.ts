@@ -1,12 +1,23 @@
 import { Hono } from "hono"
 import { Effect } from "effect"
-import { InteractionRepository } from "@weric/database"
+import { RecommendationService } from "@weric/recommendation"
+import {
+  InteractionRepository,
+  StoryRepository,
+  InterestRepository,
+} from "@weric/database"
 import type { Db } from "@weric/database"
 import type { ApiVariables } from "../index.ts"
 
 export function createInteractionsRoutes(db: Db) {
   const router = new Hono<{ Variables: ApiVariables }>()
   const interactionRepo = new InteractionRepository(db)
+
+  const recommendationService = new RecommendationService(
+    new StoryRepository(db),
+    new InterestRepository(db),
+    interactionRepo
+  )
 
   router.post("/", async c => {
     const user = c.get("user")
@@ -48,6 +59,10 @@ export function createInteractionsRoutes(db: Db) {
         interactionType: body.interactionType,
         duration: typeof body.duration === "number" ? body.duration : null,
       })
+    )
+
+    Effect.runPromise(
+      recommendationService.updateInterests(user.id, body.storyId, body.interactionType)
     )
 
     return c.json(
