@@ -28,6 +28,11 @@ app.use(
 app.on(["POST", "GET"], "/api/auth/*", c => auth.handler(c.req.raw))
 
 app.use("*", async (c, next) => {
+  if (c.req.path.startsWith("/api/auth")) {
+    await next()
+    return
+  }
+
   const session = await auth.api.getSession({
     headers: c.req.raw.headers,
   })
@@ -45,14 +50,5 @@ app.use("*", async (c, next) => {
 })
 
 app.get("/health", c => c.json({ status: "ok", version: "0.1.0" }))
-
-app.get("/session", c => {
-  const user = c.get("user")
-  const session = c.get("session")
-
-  if (!user) return c.body(null, 401)
-
-  return c.json({ user, session })
-})
 
 export default app
