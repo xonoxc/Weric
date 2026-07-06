@@ -1,7 +1,5 @@
-export { createDb } from "./connection.ts"
-export type { Db } from "./connection.ts"
-export { loadDatabaseConfig } from "./config.ts"
-export type { DatabaseConfig } from "./config.ts"
+export { createDb, type Db } from "./connection.ts"
+export { loadDatabaseConfig, type DatabaseConfig } from "./config.ts"
 export * as schema from "./schema/tables.ts"
 
 export { DrizzleDB, DatabaseLiveLayer, DatabaseTestLayer } from "./layer.ts"
@@ -14,6 +12,7 @@ export {
   InteractionRepository,
   BookmarkRepository,
   JobRepository,
+  InterestRepository,
   NotFoundError,
   ConflictError,
   ConnectionError,
@@ -25,11 +24,17 @@ export {
   InteractionRepo,
   BookmarkRepo,
   JobRepo,
+  InterestRepo,
   RepositoryLiveLayer,
   RepositoryTestLayer,
 } from "./repositories/index.ts"
 export type {
   StoryQueryOptions,
+  StoryWithEvidenceCount,
+  StoryDetail,
+  EvidenceSearchRow,
   InteractionAggregate,
+  BookmarkWithStory,
+  InterestRow,
   RepositoryError,
 } from "./repositories/index.ts"

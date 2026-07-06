@@ -1,9 +1,28 @@
 import { Effect } from "effect"
-import { and, eq } from "drizzle-orm"
+import { and, eq, sql } from "drizzle-orm"
 import type { Db } from "../connection.ts"
-import { bookmarks } from "../schema/tables.ts"
+import { bookmarks, stories, storyEvidence } from "../schema/tables.ts"
 import { NotFoundError, ConflictError, ConnectionError } from "./errors.ts"
 import type { RepositoryError } from "./errors.ts"
+
+const TSFMT = 'YYYY-MM-DD"T"HH24:MI:SS"Z"'
+
+export interface BookmarkWithStory {
+  id: string
+  storyId: string
+  createdAt: string
+  story: {
+    id: string
+    title: string
+    slug: string
+    summary: string | null
+    confidence: number | null
+    status: string
+    createdAt: string
+    updatedAt: string
+    evidenceCount: number
+  }
+}
 
 export class BookmarkRepository {
   constructor(private readonly db: Db) {}
@@ -44,6 +63,41 @@ export class BookmarkRepository {
           .from(bookmarks)
           .where(eq(bookmarks.userId, userId))
           .orderBy(bookmarks.createdAt),
+      catch: cause => new ConnectionError(cause),
+    })
+  }
+
+  findByUserWithStories(
+    userId: string
+  ): Effect.Effect<BookmarkWithStory[], RepositoryError> {
+    return Effect.tryPromise({
+      try: async () => {
+        const rows = await this.db
+          .select({
+            id: bookmarks.id,
+            storyId: bookmarks.storyId,
+            createdAt: sql<string>`to_char(${bookmarks.createdAt}, ${TSFMT})`,
+            story: {
+              id: stories.id,
+              title: stories.title,
+              slug: stories.slug,
+              summary: stories.summary,
+              confidence: stories.confidence,
+              status: stories.status,
+              createdAt: sql<string>`to_char(${stories.createdAt}, ${TSFMT})`,
+              updatedAt: sql<string>`to_char(${stories.updatedAt}, ${TSFMT})`,
+              evidenceCount: sql<number>`
+                (SELECT count(*)::int FROM ${storyEvidence} WHERE ${storyEvidence.storyId} = ${stories.id})
+              `,
+            },
+          })
+          .from(bookmarks)
+          .innerJoin(stories, eq(bookmarks.storyId, stories.id))
+          .where(eq(bookmarks.userId, userId))
+          .orderBy(bookmarks.createdAt)
+
+        return rows as BookmarkWithStory[]
+      },
       catch: cause => new ConnectionError(cause),
     })
   }

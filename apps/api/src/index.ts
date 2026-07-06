@@ -2,16 +2,26 @@ import { Hono } from "hono"
 import { cors } from "hono/cors"
 import { createDb } from "@weric/database"
 import { createAuth } from "@weric/auth"
+import type { AuthUser, AuthSession } from "@weric/auth"
+import { errorHandler } from "./middleware/error.ts"
+import { createStoriesRoutes } from "./routes/stories.ts"
+import { createFeedRoutes } from "./routes/feed.ts"
+import { createSearchRoutes } from "./routes/search.ts"
+import { createInteractionsRoutes } from "./routes/interactions.ts"
+import { createBookmarksRoutes } from "./routes/bookmarks.ts"
+import { createInterestsRoutes } from "./routes/interests.ts"
 
 const db = createDb()
 const auth = createAuth(db)
 
-const app = new Hono<{
-  Variables: {
-    user: typeof auth.$Infer.Session.user | null
-    session: typeof auth.$Infer.Session.session | null
-  }
-}>()
+export interface ApiVariables {
+  user: AuthUser | null
+  session: AuthSession | null
+}
+
+const app = new Hono<{ Variables: ApiVariables }>()
+
+app.onError(errorHandler)
 
 app.use(
   "/api/auth/*",
@@ -44,11 +54,20 @@ app.use("*", async (c, next) => {
     return
   }
 
-  c.set("user", session.user)
-  c.set("session", session.session)
+  c.set("user", session.user as AuthUser)
+  c.set("session", session.session as AuthSession)
   await next()
 })
 
-app.get("/health", c => c.json({ status: "ok", version: "0.1.0" }))
+app.get("/health", c =>
+  c.json({ status: "ok", version: "0.1.0", timestamp: new Date().toISOString() })
+)
+
+app.route("/api/stories", createStoriesRoutes(db))
+app.route("/api/feed", createFeedRoutes(db))
+app.route("/api/search", createSearchRoutes(db))
+app.route("/api/interactions", createInteractionsRoutes(db))
+app.route("/api/bookmarks", createBookmarksRoutes(db))
+app.route("/api/interests", createInterestsRoutes(db))
 
 export default app

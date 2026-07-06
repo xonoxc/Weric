@@ -23,6 +23,8 @@
     "@weric/shared": "workspace:*",
     "@weric/config": "workspace:*",
     "@weric/auth": "workspace:*",
+    "drizzle-orm": "^0.40.0",
+    "effect": "^3.21.4",
     "hono": "^4.7.0",
     "zod": "^3.24.0"
   },

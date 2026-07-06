@@ -8,6 +8,7 @@ import { UserRepository } from "./user.repository.ts"
 import { InteractionRepository } from "./interaction.repository.ts"
 import { BookmarkRepository } from "./bookmark.repository.ts"
 import { JobRepository } from "./job.repository.ts"
+import { InterestRepository } from "./interest.repository.ts"
 import type { Db } from "../connection.ts"
 
 export class StoryRepo extends Context.Tag("StoryRepo")<StoryRepo, StoryRepository>() {}
@@ -33,6 +34,10 @@ export class BookmarkRepo extends Context.Tag("BookmarkRepo")<
   BookmarkRepository
 >() {}
 export class JobRepo extends Context.Tag("JobRepo")<JobRepo, JobRepository>() {}
+export class InterestRepo extends Context.Tag("InterestRepo")<
+  InterestRepo,
+  InterestRepository
+>() {}
 
 const StoryRepoLive: Layer.Layer<StoryRepo, never, DrizzleDB> = Layer.effect(
   StoryRepo,
@@ -75,6 +80,11 @@ const JobRepoLive: Layer.Layer<JobRepo, never, DrizzleDB> = Layer.effect(
   Effect.map(DrizzleDB, (db: Db) => new JobRepository(db))
 )
 
+const InterestRepoLive: Layer.Layer<InterestRepo, never, DrizzleDB> = Layer.effect(
+  InterestRepo,
+  Effect.map(DrizzleDB, (db: Db) => new InterestRepository(db))
+)
+
 export const RepositoryLiveLayer: Layer.Layer<
   | StoryRepo
   | EvidenceRepo
@@ -83,7 +93,8 @@ export const RepositoryLiveLayer: Layer.Layer<
   | UserRepo
   | InteractionRepo
   | BookmarkRepo
-  | JobRepo,
+  | JobRepo
+  | InterestRepo,
   never,
   DrizzleDB
 > = Layer.mergeAll(
@@ -94,7 +105,8 @@ export const RepositoryLiveLayer: Layer.Layer<
   UserRepoLive,
   InteractionRepoLive,
   BookmarkRepoLive,
-  JobRepoLive
+  JobRepoLive,
+  InterestRepoLive
 )
 
 export const RepositoryTestLayer: Layer.Layer<
@@ -105,7 +117,8 @@ export const RepositoryTestLayer: Layer.Layer<
   | UserRepo
   | InteractionRepo
   | BookmarkRepo
-  | JobRepo,
+  | JobRepo
+  | InterestRepo,
   never,
   DrizzleDB
 > = RepositoryLiveLayer

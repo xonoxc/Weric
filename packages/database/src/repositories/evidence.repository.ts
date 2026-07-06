@@ -5,6 +5,19 @@ import { evidence } from "../schema/tables.ts"
 import { ConflictError, ConnectionError } from "./errors.ts"
 import type { RepositoryError } from "./errors.ts"
 
+const TSFMT = 'YYYY-MM-DD"T"HH24:MI:SS"Z"'
+
+export interface EvidenceSearchRow {
+  id: string
+  source: string
+  url: string
+  author: string | null
+  title: string
+  content: string
+  publishedAt: string | null
+  discoveredAt: string
+}
+
 export class EvidenceRepository {
   constructor(private readonly db: Db) {}
 
@@ -121,6 +134,50 @@ export class EvidenceRepository {
         return {
           data,
           total: Number(countResult[0]?.count ?? 0),
+        }
+      },
+      catch: cause => new ConnectionError(cause),
+    })
+  }
+
+  searchEvidence(
+    query: string,
+    options: { page?: number; limit?: number } = {}
+  ): Effect.Effect<{ data: EvidenceSearchRow[]; total: number }, RepositoryError> {
+    return Effect.tryPromise({
+      try: async () => {
+        const page = options.page ?? 1
+        const limit = Math.min(options.limit ?? 100, 100)
+        const offset = (page - 1) * limit
+        const pattern = `%${query}%`
+
+        const condition = sql`(${evidence.title} ILIKE ${pattern} OR ${evidence.content} ILIKE ${pattern})`
+
+        const rows = await this.db
+          .select({
+            id: evidence.id,
+            source: evidence.source,
+            url: evidence.url,
+            author: evidence.author,
+            title: evidence.title,
+            content: evidence.content,
+            publishedAt: sql<string | null>`to_char(${evidence.publishedAt}, ${TSFMT})`,
+            discoveredAt: sql<string>`to_char(${evidence.discoveredAt}, ${TSFMT})`,
+          })
+          .from(evidence)
+          .where(condition)
+          .orderBy(desc(evidence.discoveredAt))
+          .limit(limit)
+          .offset(offset)
+
+        const [totalResult] = await this.db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(evidence)
+          .where(condition)
+
+        return {
+          data: rows as EvidenceSearchRow[],
+          total: totalResult?.count ?? 0,
         }
       },
       catch: cause => new ConnectionError(cause),
