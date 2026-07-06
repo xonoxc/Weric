@@ -55,7 +55,10 @@ export class InteractionRepository {
   ): Effect.Effect<(typeof interactions.$inferSelect)[], RepositoryError> {
     return Effect.tryPromise({
       try: async () =>
-        this.db.select().from(interactions).where(eq(interactions.storyId, storyId)),
+        this.db
+          .select()
+          .from(interactions)
+          .where(eq(interactions.storyId, storyId)),
       catch: cause => new ConnectionError(cause),
     })
   }

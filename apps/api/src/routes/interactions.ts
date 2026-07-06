@@ -62,7 +62,11 @@ export function createInteractionsRoutes(db: Db) {
     )
 
     Effect.runPromise(
-      recommendationService.updateInterests(user.id, body.storyId, body.interactionType)
+      recommendationService.updateInterests(
+        user.id,
+        body.storyId,
+        body.interactionType
+      )
     )
 
     return c.json(

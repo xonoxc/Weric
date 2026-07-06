@@ -2,7 +2,7 @@
   "tabWidth": 2,
   "semi": false,
   "trailingComma": "es5",
-  "printWidth": 90,
+  "printWidth": 80,
   "bracketSpacing": true,
   "arrowParens": "avoid",
   "proseWrap": "preserve"

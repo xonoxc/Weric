@@ -102,19 +102,27 @@ export class BookmarkRepository {
     })
   }
 
-  delete(userId: string, storyId: string): Effect.Effect<void, RepositoryError> {
+  delete(
+    userId: string,
+    storyId: string
+  ): Effect.Effect<void, RepositoryError> {
     return Effect.tryPromise({
       try: async () => {
         const [existing] = await this.db
           .select()
           .from(bookmarks)
-          .where(and(eq(bookmarks.userId, userId), eq(bookmarks.storyId, storyId)))
+          .where(
+            and(eq(bookmarks.userId, userId), eq(bookmarks.storyId, storyId))
+          )
           .limit(1)
-        if (!existing) throw new NotFoundError("Bookmark", `${userId}:${storyId}`)
+        if (!existing)
+          throw new NotFoundError("Bookmark", `${userId}:${storyId}`)
 
         await this.db
           .delete(bookmarks)
-          .where(and(eq(bookmarks.userId, userId), eq(bookmarks.storyId, storyId)))
+          .where(
+            and(eq(bookmarks.userId, userId), eq(bookmarks.storyId, storyId))
+          )
       },
       catch: cause => {
         if (cause instanceof NotFoundError) return cause
@@ -123,13 +131,18 @@ export class BookmarkRepository {
     })
   }
 
-  exists(userId: string, storyId: string): Effect.Effect<boolean, RepositoryError> {
+  exists(
+    userId: string,
+    storyId: string
+  ): Effect.Effect<boolean, RepositoryError> {
     return Effect.tryPromise({
       try: async () => {
         const [row] = await this.db
           .select({ id: bookmarks.id })
           .from(bookmarks)
-          .where(and(eq(bookmarks.userId, userId), eq(bookmarks.storyId, storyId)))
+          .where(
+            and(eq(bookmarks.userId, userId), eq(bookmarks.storyId, storyId))
+          )
           .limit(1)
         return row !== undefined
       },

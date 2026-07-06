@@ -25,7 +25,9 @@ export const CreateInteractionInputSchema = z.object({
   interactionType: InteractionType,
   duration: z.number().int().nonnegative().optional(),
 })
-export type CreateInteractionInput = z.infer<typeof CreateInteractionInputSchema>
+export type CreateInteractionInput = z.infer<
+  typeof CreateInteractionInputSchema
+>
 
 export const InteractionAggregateSchema = z.object({
   interactionType: InteractionType,

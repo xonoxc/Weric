@@ -8,10 +8,23 @@ import type { RepositoryError } from "./errors.ts"
 export class UserRepository {
   constructor(private readonly db: Db) {}
 
-  findById(id: string): Effect.Effect<typeof users.$inferSelect | null, RepositoryError> {
+  findAll(): Effect.Effect<(typeof users.$inferSelect)[], RepositoryError> {
+    return Effect.tryPromise({
+      try: async () => this.db.select().from(users),
+      catch: cause => new ConnectionError(cause),
+    })
+  }
+
+  findById(
+    id: string
+  ): Effect.Effect<typeof users.$inferSelect | null, RepositoryError> {
     return Effect.tryPromise({
       try: async () => {
-        const [row] = await this.db.select().from(users).where(eq(users.id, id)).limit(1)
+        const [row] = await this.db
+          .select()
+          .from(users)
+          .where(eq(users.id, id))
+          .limit(1)
         return row ?? null
       },
       catch: cause => new ConnectionError(cause),

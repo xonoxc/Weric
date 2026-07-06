@@ -10,7 +10,9 @@ export const EvidenceSource = z.enum([
 ])
 export type EvidenceSource = z.infer<typeof EvidenceSource>
 
-export const EvidenceMetadataSchema = z.record(z.string(), z.unknown()).default({})
+export const EvidenceMetadataSchema = z
+  .record(z.string(), z.unknown())
+  .default({})
 export type EvidenceMetadata = z.infer<typeof EvidenceMetadataSchema>
 
 export const EvidenceSchema = z.object({

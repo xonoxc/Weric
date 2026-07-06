@@ -132,7 +132,10 @@ export class InterestLearner {
 
       for (const { topic, score } of topics) {
         const current = existingMap.get(topic) ?? 0
-        const updated = Math.max(0, Math.min(1, current * DECAY_FACTOR + score * boost))
+        const updated = Math.max(
+          0,
+          Math.min(1, current * DECAY_FACTOR + score * boost)
+        )
 
         yield* self.interestRepo
           .upsert(userId, topic, updated)

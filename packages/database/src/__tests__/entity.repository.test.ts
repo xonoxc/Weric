@@ -49,8 +49,12 @@ describe("EntityRepository", () => {
   })
 
   it("finds entities by type", async () => {
-    await Effect.runPromise(repo.create({ name: "Org A", type: "organization" }))
-    await Effect.runPromise(repo.create({ name: "Org B", type: "organization" }))
+    await Effect.runPromise(
+      repo.create({ name: "Org A", type: "organization" })
+    )
+    await Effect.runPromise(
+      repo.create({ name: "Org B", type: "organization" })
+    )
     await Effect.runPromise(repo.create({ name: "Person C", type: "person" }))
 
     const orgs = await Effect.runPromise(repo.findByType("organization"))

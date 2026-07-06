@@ -38,7 +38,9 @@ describe("StoryRepository", () => {
   })
 
   it("finds a story by id", async () => {
-    const created = await Effect.runPromise(repo.create({ title: "Test", slug: "test" }))
+    const created = await Effect.runPromise(
+      repo.create({ title: "Test", slug: "test" })
+    )
     const found = await Effect.runPromise(repo.findById(created.id))
     expect(found).not.toBeNull()
     expect(found!.id).toBe(created.id)
@@ -75,7 +77,9 @@ describe("StoryRepository", () => {
     const created = await Effect.runPromise(
       repo.create({ title: "Original", slug: "original" })
     )
-    const updated = await Effect.runPromise(repo.update(created.id, { title: "Updated" }))
+    const updated = await Effect.runPromise(
+      repo.update(created.id, { title: "Updated" })
+    )
     expect(updated.title).toBe("Updated")
   })
 
@@ -96,7 +100,9 @@ describe("StoryRepository", () => {
   })
 
   it("throws NotFoundError when deleting non-existent story", async () => {
-    const error = await Effect.runPromise(repo.delete(NON_EXISTENT_ID).pipe(Effect.flip))
+    const error = await Effect.runPromise(
+      repo.delete(NON_EXISTENT_ID).pipe(Effect.flip)
+    )
     expect(error._tag).toBe("NotFoundError")
   })
 })

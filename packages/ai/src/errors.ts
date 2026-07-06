@@ -19,7 +19,9 @@ export class TimeoutError extends Data.TaggedError("TimeoutError")<{
   readonly message: string
 }> {}
 
-export class UnsupportedFeatureError extends Data.TaggedError("UnsupportedFeatureError")<{
+export class UnsupportedFeatureError extends Data.TaggedError(
+  "UnsupportedFeatureError"
+)<{
   readonly feature: string
   readonly message: string
 }> {}

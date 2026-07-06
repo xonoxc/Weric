@@ -6,7 +6,11 @@ import {
   ClassificationSchema,
   ExtractedEntitiesSchema,
 } from "./validation.ts"
-import type { Summary, Classification, ExtractedEntities } from "./validation.ts"
+import type {
+  Summary,
+  Classification,
+  ExtractedEntities,
+} from "./validation.ts"
 import { ValidationError, UnsupportedFeatureError } from "./errors.ts"
 import type { AIError } from "./errors.ts"
 
@@ -90,7 +94,9 @@ export class AIService {
       Effect.catchAll(error =>
         Effect.fail(
           new ValidationError({
-            message: options?.validationMessage ?? "Failed to generate structured output",
+            message:
+              options?.validationMessage ??
+              "Failed to generate structured output",
             cause: error,
           })
         )

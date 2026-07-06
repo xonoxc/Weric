@@ -83,7 +83,9 @@ export const WericEventSchema = z.discriminatedUnion("type", [
 export type StoryCreatedEvent = z.infer<typeof StoryCreatedEventSchema>
 export type StoryUpdatedEvent = z.infer<typeof StoryUpdatedEventSchema>
 export type StoryMergedEvent = z.infer<typeof StoryMergedEventSchema>
-export type EvidenceDiscoveredEvent = z.infer<typeof EvidenceDiscoveredEventSchema>
+export type EvidenceDiscoveredEvent = z.infer<
+  typeof EvidenceDiscoveredEventSchema
+>
 export type UserBookmarkedEvent = z.infer<typeof UserBookmarkedEventSchema>
 export type UserReadStoryEvent = z.infer<typeof UserReadStoryEventSchema>
 export type UserIgnoredStoryEvent = z.infer<typeof UserIgnoredStoryEventSchema>

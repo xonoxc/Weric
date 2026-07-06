@@ -60,7 +60,11 @@ app.use("*", async (c, next) => {
 })
 
 app.get("/health", c =>
-  c.json({ status: "ok", version: "0.1.0", timestamp: new Date().toISOString() })
+  c.json({
+    status: "ok",
+    version: "0.1.0",
+    timestamp: new Date().toISOString(),
+  })
 )
 
 app.route("/api/stories", createStoriesRoutes(db))

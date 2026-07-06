@@ -20,7 +20,9 @@ export class TimelineBuilder {
         .findById(storyId)
         .pipe(
           Effect.catchAll(cause =>
-            Effect.fail(new ServiceError({ message: "Failed to fetch story", cause }))
+            Effect.fail(
+              new ServiceError({ message: "Failed to fetch story", cause })
+            )
           )
         )
 
@@ -32,15 +34,22 @@ export class TimelineBuilder {
 
       entries.push({
         date:
-          story.createdAt instanceof Date ? story.createdAt : new Date(story.createdAt),
+          story.createdAt instanceof Date
+            ? story.createdAt
+            : new Date(story.createdAt),
         type: "created",
         description: `Story "${story.title}" was created`,
       })
 
-      if (story.updatedAt && (!story.createdAt || story.updatedAt > story.createdAt)) {
+      if (
+        story.updatedAt &&
+        (!story.createdAt || story.updatedAt > story.createdAt)
+      ) {
         entries.push({
           date:
-            story.updatedAt instanceof Date ? story.updatedAt : new Date(story.updatedAt),
+            story.updatedAt instanceof Date
+              ? story.updatedAt
+              : new Date(story.updatedAt),
           type: "updated",
           description: `Story "${story.title}" was updated`,
         })

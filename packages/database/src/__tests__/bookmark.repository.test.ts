@@ -41,7 +41,9 @@ describe("BookmarkRepository", () => {
 
   it("throws ConflictError when bookmark already exists", async () => {
     await Effect.runPromise(repo.create(userId, storyId))
-    const error = await Effect.runPromise(repo.create(userId, storyId).pipe(Effect.flip))
+    const error = await Effect.runPromise(
+      repo.create(userId, storyId).pipe(Effect.flip)
+    )
     expect(error._tag).toBe("ConflictError")
   })
 
@@ -59,7 +61,9 @@ describe("BookmarkRepository", () => {
   })
 
   it("throws NotFoundError when deleting non-existent bookmark", async () => {
-    const error = await Effect.runPromise(repo.delete(userId, storyId).pipe(Effect.flip))
+    const error = await Effect.runPromise(
+      repo.delete(userId, storyId).pipe(Effect.flip)
+    )
     expect(error._tag).toBe("NotFoundError")
   })
 

@@ -44,7 +44,9 @@ describe("JobRepository", () => {
   })
 
   it("does not return running jobs as pending", async () => {
-    const job = await Effect.runPromise(repo.create({ type: "already-running" }))
+    const job = await Effect.runPromise(
+      repo.create({ type: "already-running" })
+    )
     await Effect.runPromise(repo.updateStatus(job.id, "running"))
 
     const pending = await Effect.runPromise(repo.findPending())

@@ -44,8 +44,10 @@ function createPinoLoggerInstance(): Logger {
       Effect.sync(() => instance.trace(context ?? {}, message)),
     debug: (message, context) =>
       Effect.sync(() => instance.debug(context ?? {}, message)),
-    info: (message, context) => Effect.sync(() => instance.info(context ?? {}, message)),
-    warn: (message, context) => Effect.sync(() => instance.warn(context ?? {}, message)),
+    info: (message, context) =>
+      Effect.sync(() => instance.info(context ?? {}, message)),
+    warn: (message, context) =>
+      Effect.sync(() => instance.warn(context ?? {}, message)),
     error: (message, context) =>
       Effect.sync(() => instance.error(context ?? {}, message)),
     fatal: (message, context) =>
@@ -60,8 +62,10 @@ function createPinoLoggerFrom(instance: pino.Logger): Logger {
       Effect.sync(() => instance.trace(context ?? {}, message)),
     debug: (message, context) =>
       Effect.sync(() => instance.debug(context ?? {}, message)),
-    info: (message, context) => Effect.sync(() => instance.info(context ?? {}, message)),
-    warn: (message, context) => Effect.sync(() => instance.warn(context ?? {}, message)),
+    info: (message, context) =>
+      Effect.sync(() => instance.info(context ?? {}, message)),
+    warn: (message, context) =>
+      Effect.sync(() => instance.warn(context ?? {}, message)),
     error: (message, context) =>
       Effect.sync(() => instance.error(context ?? {}, message)),
     fatal: (message, context) =>

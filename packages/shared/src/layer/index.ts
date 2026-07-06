@@ -9,6 +9,8 @@ export function mergeAllLayers<RI, E, RO>(
   )
 }
 
-export function createTestLayer<R, E>(layer: Layer.Layer<R, E>): Layer.Layer<R, E> {
+export function createTestLayer<R, E>(
+  layer: Layer.Layer<R, E>
+): Layer.Layer<R, E> {
   return layer
 }

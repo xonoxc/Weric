@@ -80,6 +80,7 @@
         "@weric/recommendation": "workspace:*",
         "@weric/shared": "workspace:*",
         "@weric/story-engine": "workspace:*",
+        "effect": "^3.21.4",
       },
       "devDependencies": {
         "@types/bun": "^1.2.0",
@@ -122,9 +123,11 @@
       "dependencies": {
         "@weric/contracts": "workspace:*",
         "@weric/shared": "workspace:*",
+        "effect": "^3.21.4",
         "zod": "^3.24.0",
       },
       "devDependencies": {
+        "@types/bun": "^1.2.0",
         "typescript": "5.9.2",
       },
     },
@@ -176,6 +179,7 @@
         "@weric/contracts": "workspace:*",
         "@weric/database": "workspace:*",
         "@weric/shared": "workspace:*",
+        "effect": "^3.21.4",
       },
       "devDependencies": {
         "typescript": "5.9.2",

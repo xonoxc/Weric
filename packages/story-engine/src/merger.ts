@@ -18,8 +18,12 @@ function mergeSummaries(
   if (!targetSummary) return sourceSummary ?? ""
   if (!sourceSummary) return targetSummary
 
-  const targetSentences = targetSummary.split(/[.!?]+/).filter(s => s.trim().length > 0)
-  const sourceSentences = sourceSummary.split(/[.!?]+/).filter(s => s.trim().length > 0)
+  const targetSentences = targetSummary
+    .split(/[.!?]+/)
+    .filter(s => s.trim().length > 0)
+  const sourceSentences = sourceSummary
+    .split(/[.!?]+/)
+    .filter(s => s.trim().length > 0)
 
   const merged = [...new Set([...targetSentences, ...sourceSentences])]
   return merged.join(". ").trim() + "."
@@ -28,7 +32,10 @@ function mergeSummaries(
 export class StoryMerger {
   constructor(private readonly storyRepo: StoryRepository) {}
 
-  merge(targetId: string, sourceId: string): Effect.Effect<MergeResult, StoryError> {
+  merge(
+    targetId: string,
+    sourceId: string
+  ): Effect.Effect<MergeResult, StoryError> {
     const storyRepo = this.storyRepo
 
     if (targetId === sourceId) {
@@ -70,7 +77,10 @@ export class StoryMerger {
         return yield* Effect.fail(new StoryNotFoundError({ storyId: sourceId }))
       }
 
-      const mergedSummary = mergeSummaries(target.summary ?? null, source.summary ?? null)
+      const mergedSummary = mergeSummaries(
+        target.summary ?? null,
+        source.summary ?? null
+      )
       const mergedConfidence = Math.min(
         ((target.confidence ?? 0) + (source.confidence ?? 0)) / 2 + 0.05,
         1.0

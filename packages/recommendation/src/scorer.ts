@@ -15,7 +15,9 @@ export class StoryScorer {
     interests: InterestRow[],
     interactedStoryIds: Set<string>
   ): ScoredStory[] {
-    return stories.map(story => this.scoreOne(story, interests, interactedStoryIds))
+    return stories.map(story =>
+      this.scoreOne(story, interests, interactedStoryIds)
+    )
   }
 
   scoreOne(

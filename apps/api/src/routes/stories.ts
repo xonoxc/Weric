@@ -32,11 +32,18 @@ export function createStoriesRoutes(db: Db) {
   router.get("/:slug", async c => {
     const slug = c.req.param("slug")
 
-    const detail = await Effect.runPromise(storyRepo.findBySlugWithDetails(slug))
+    const detail = await Effect.runPromise(
+      storyRepo.findBySlugWithDetails(slug)
+    )
 
     if (!detail) {
       return c.json(
-        { error: { code: "NOT_FOUND", message: `Story with slug '${slug}' not found` } },
+        {
+          error: {
+            code: "NOT_FOUND",
+            message: `Story with slug '${slug}' not found`,
+          },
+        },
         404
       )
     }

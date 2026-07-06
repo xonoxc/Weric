@@ -28,8 +28,10 @@ export function createSearchRoutes(db: Db) {
     const page = Math.max(1, Number(c.req.query("page") ?? 1))
     const limit = Math.min(100, Math.max(1, Number(c.req.query("limit") ?? 20)))
 
-    let storyResult: { data: StoryWithEvidenceCount[]; total: number } | null = null
-    let evidenceResult: { data: EvidenceSearchRow[]; total: number } | null = null
+    let storyResult: { data: StoryWithEvidenceCount[]; total: number } | null =
+      null
+    let evidenceResult: { data: EvidenceSearchRow[]; total: number } | null =
+      null
 
     if (type === "all" || type === "stories") {
       storyResult = await Effect.runPromise(

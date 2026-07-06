@@ -53,7 +53,9 @@ export class EvidenceRepository {
           "code" in cause &&
           (cause as { code: string }).code === "23505"
         ) {
-          return new ConflictError(`Evidence with url '${data.url}' already exists`)
+          return new ConflictError(
+            `Evidence with url '${data.url}' already exists`
+          )
         }
         return new ConnectionError(cause)
       },
@@ -143,7 +145,10 @@ export class EvidenceRepository {
   searchEvidence(
     query: string,
     options: { page?: number; limit?: number } = {}
-  ): Effect.Effect<{ data: EvidenceSearchRow[]; total: number }, RepositoryError> {
+  ): Effect.Effect<
+    { data: EvidenceSearchRow[]; total: number },
+    RepositoryError
+  > {
     return Effect.tryPromise({
       try: async () => {
         const page = options.page ?? 1
@@ -161,7 +166,9 @@ export class EvidenceRepository {
             author: evidence.author,
             title: evidence.title,
             content: evidence.content,
-            publishedAt: sql<string | null>`to_char(${evidence.publishedAt}, ${TSFMT})`,
+            publishedAt: sql<
+              string | null
+            >`to_char(${evidence.publishedAt}, ${TSFMT})`,
             discoveredAt: sql<string>`to_char(${evidence.discoveredAt}, ${TSFMT})`,
           })
           .from(evidence)

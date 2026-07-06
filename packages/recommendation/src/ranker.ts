@@ -12,7 +12,9 @@ export class FeedRanker {
   private diversifier = new FeedDiversifier()
 
   rank(scoredStories: ScoredStory[], limit: number): RankedFeed {
-    const sorted = [...scoredStories].sort((a, b) => b.finalScore - a.finalScore)
+    const sorted = [...scoredStories].sort(
+      (a, b) => b.finalScore - a.finalScore
+    )
     const diversified = this.diversifier.diversify(sorted, limit)
 
     const scores = new Map<string, number>()

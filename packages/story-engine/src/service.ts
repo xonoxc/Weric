@@ -87,7 +87,9 @@ export class StoryService {
         .create({ title: doc.title, slug, summary: doc.content.slice(0, 300) })
         .pipe(
           Effect.catchAll(cause =>
-            Effect.fail(new ServiceError({ message: "Failed to create story", cause }))
+            Effect.fail(
+              new ServiceError({ message: "Failed to create story", cause })
+            )
           )
         )
 
@@ -102,7 +104,9 @@ export class StoryService {
         })
         .pipe(
           Effect.catchAll(cause =>
-            Effect.fail(new ServiceError({ message: "Failed to create evidence", cause }))
+            Effect.fail(
+              new ServiceError({ message: "Failed to create evidence", cause })
+            )
           )
         )
 
@@ -116,7 +120,9 @@ export class StoryService {
           slug: story.slug,
           summary: story.summary ?? null,
           createdAt:
-            story.createdAt instanceof Date ? story.createdAt : new Date(story.createdAt),
+            story.createdAt instanceof Date
+              ? story.createdAt
+              : new Date(story.createdAt),
         },
         entities,
         timeline: entries,
@@ -145,21 +151,24 @@ export class StoryService {
         })
         .pipe(
           Effect.catchAll(cause =>
-            Effect.fail(new ServiceError({ message: "Failed to create evidence", cause }))
+            Effect.fail(
+              new ServiceError({ message: "Failed to create evidence", cause })
+            )
           )
         )
 
       const entities = yield* extractor.extract(doc, match.storyId)
 
-      const story = yield* storyRepo
-        .findById(match.storyId)
-        .pipe(
-          Effect.catchAll(cause =>
-            Effect.fail(
-              new ServiceError({ message: "Failed to fetch matched story", cause })
-            )
+      const story = yield* storyRepo.findById(match.storyId).pipe(
+        Effect.catchAll(cause =>
+          Effect.fail(
+            new ServiceError({
+              message: "Failed to fetch matched story",
+              cause,
+            })
           )
         )
+      )
 
       const entries = yield* timeline.buildTimeline(match.storyId)
 
@@ -193,7 +202,9 @@ export class StoryService {
         .update(storyId, data)
         .pipe(
           Effect.catchAll(cause =>
-            Effect.fail(new ServiceError({ message: "Failed to update story", cause }))
+            Effect.fail(
+              new ServiceError({ message: "Failed to update story", cause })
+            )
           )
         )
 
@@ -206,7 +217,9 @@ export class StoryService {
           slug: story.slug,
           summary: story.summary ?? null,
           createdAt:
-            story.createdAt instanceof Date ? story.createdAt : new Date(story.createdAt),
+            story.createdAt instanceof Date
+              ? story.createdAt
+              : new Date(story.createdAt),
         },
         entities: [],
         timeline: entries,
@@ -214,7 +227,10 @@ export class StoryService {
     })
   }
 
-  merge(targetId: string, sourceId: string): Effect.Effect<MergeResult, StoryError> {
+  merge(
+    targetId: string,
+    sourceId: string
+  ): Effect.Effect<MergeResult, StoryError> {
     return this.merger.merge(targetId, sourceId)
   }
 
@@ -234,15 +250,16 @@ function generateUniqueSlug(
     let attempt = 0
 
     while (true) {
-      const existing = yield* storyRepo
-        .findBySlug(slug)
-        .pipe(
-          Effect.catchAll(cause =>
-            Effect.fail(
-              new ServiceError({ message: "Failed to check slug uniqueness", cause })
-            )
+      const existing = yield* storyRepo.findBySlug(slug).pipe(
+        Effect.catchAll(cause =>
+          Effect.fail(
+            new ServiceError({
+              message: "Failed to check slug uniqueness",
+              cause,
+            })
           )
         )
+      )
 
       if (!existing) return slug
 

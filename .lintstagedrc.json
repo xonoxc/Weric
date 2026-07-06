@@ -1,4 +1,7 @@
 {
-  "*.{ts,tsx}": ["prettier --write", "bun run scripts/lint-staged-check-types.ts"],
+  "*.{ts,tsx}": [
+    "prettier --write",
+    "bun run scripts/lint-staged-check-types.ts"
+  ],
   "*.{md,json,yml,yaml}": ["prettier --write"]
 }

@@ -17,7 +17,9 @@ export function createBookmarksRoutes(db: Db) {
       )
     }
 
-    const data = await Effect.runPromise(bookmarkRepo.findByUserWithStories(user.id))
+    const data = await Effect.runPromise(
+      bookmarkRepo.findByUserWithStories(user.id)
+    )
 
     return c.json({ data })
   })
@@ -44,7 +46,9 @@ export function createBookmarksRoutes(db: Db) {
       )
     }
 
-    const result = await Effect.runPromise(bookmarkRepo.create(user.id, body.storyId))
+    const result = await Effect.runPromise(
+      bookmarkRepo.create(user.id, body.storyId)
+    )
 
     return c.json(
       {

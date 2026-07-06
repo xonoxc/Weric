@@ -11,7 +11,10 @@ import { JobRepository } from "./job.repository.ts"
 import { InterestRepository } from "./interest.repository.ts"
 import type { Db } from "../connection.ts"
 
-export class StoryRepo extends Context.Tag("StoryRepo")<StoryRepo, StoryRepository>() {}
+export class StoryRepo extends Context.Tag("StoryRepo")<
+  StoryRepo,
+  StoryRepository
+>() {}
 export class EvidenceRepo extends Context.Tag("EvidenceRepo")<
   EvidenceRepo,
   EvidenceRepository
@@ -24,7 +27,10 @@ export class RelationshipRepo extends Context.Tag("RelationshipRepo")<
   RelationshipRepo,
   RelationshipRepository
 >() {}
-export class UserRepo extends Context.Tag("UserRepo")<UserRepo, UserRepository>() {}
+export class UserRepo extends Context.Tag("UserRepo")<
+  UserRepo,
+  UserRepository
+>() {}
 export class InteractionRepo extends Context.Tag("InteractionRepo")<
   InteractionRepo,
   InteractionRepository
@@ -44,10 +50,11 @@ const StoryRepoLive: Layer.Layer<StoryRepo, never, DrizzleDB> = Layer.effect(
   Effect.map(DrizzleDB, (db: Db) => new StoryRepository(db))
 )
 
-const EvidenceRepoLive: Layer.Layer<EvidenceRepo, never, DrizzleDB> = Layer.effect(
-  EvidenceRepo,
-  Effect.map(DrizzleDB, (db: Db) => new EvidenceRepository(db))
-)
+const EvidenceRepoLive: Layer.Layer<EvidenceRepo, never, DrizzleDB> =
+  Layer.effect(
+    EvidenceRepo,
+    Effect.map(DrizzleDB, (db: Db) => new EvidenceRepository(db))
+  )
 
 const EntityRepoLive: Layer.Layer<EntityRepo, never, DrizzleDB> = Layer.effect(
   EntityRepo,
@@ -65,25 +72,28 @@ const UserRepoLive: Layer.Layer<UserRepo, never, DrizzleDB> = Layer.effect(
   Effect.map(DrizzleDB, (db: Db) => new UserRepository(db))
 )
 
-const InteractionRepoLive: Layer.Layer<InteractionRepo, never, DrizzleDB> = Layer.effect(
-  InteractionRepo,
-  Effect.map(DrizzleDB, (db: Db) => new InteractionRepository(db))
-)
+const InteractionRepoLive: Layer.Layer<InteractionRepo, never, DrizzleDB> =
+  Layer.effect(
+    InteractionRepo,
+    Effect.map(DrizzleDB, (db: Db) => new InteractionRepository(db))
+  )
 
-const BookmarkRepoLive: Layer.Layer<BookmarkRepo, never, DrizzleDB> = Layer.effect(
-  BookmarkRepo,
-  Effect.map(DrizzleDB, (db: Db) => new BookmarkRepository(db))
-)
+const BookmarkRepoLive: Layer.Layer<BookmarkRepo, never, DrizzleDB> =
+  Layer.effect(
+    BookmarkRepo,
+    Effect.map(DrizzleDB, (db: Db) => new BookmarkRepository(db))
+  )
 
 const JobRepoLive: Layer.Layer<JobRepo, never, DrizzleDB> = Layer.effect(
   JobRepo,
   Effect.map(DrizzleDB, (db: Db) => new JobRepository(db))
 )
 
-const InterestRepoLive: Layer.Layer<InterestRepo, never, DrizzleDB> = Layer.effect(
-  InterestRepo,
-  Effect.map(DrizzleDB, (db: Db) => new InterestRepository(db))
-)
+const InterestRepoLive: Layer.Layer<InterestRepo, never, DrizzleDB> =
+  Layer.effect(
+    InterestRepo,
+    Effect.map(DrizzleDB, (db: Db) => new InterestRepository(db))
+  )
 
 export const RepositoryLiveLayer: Layer.Layer<
   | StoryRepo

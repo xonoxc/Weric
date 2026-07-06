@@ -72,7 +72,11 @@ export {
   CreateInterestInputSchema,
   InterestUpdateSchema,
 } from "./interest.ts"
-export type { Interest, CreateInterestInput, InterestUpdate } from "./interest.ts"
+export type {
+  Interest,
+  CreateInterestInput,
+  InterestUpdate,
+} from "./interest.ts"
 
 export {
   InteractionSchema,

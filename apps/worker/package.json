@@ -21,7 +21,8 @@
     "@weric/browser": "workspace:*",
     "@weric/ai": "workspace:*",
     "@weric/shared": "workspace:*",
-    "@weric/config": "workspace:*"
+    "@weric/config": "workspace:*",
+    "effect": "^3.21.4"
   },
   "devDependencies": {
     "@types/bun": "^1.2.0",

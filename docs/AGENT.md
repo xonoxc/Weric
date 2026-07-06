@@ -57,15 +57,18 @@ Before writing code, ask:
 
 ```typescript
 // GOOD: Service depends on abstraction
-export class StoryService extends Effect.Service<StoryService>()("StoryService", {
-  effect: Effect.gen(function* () {
-    const repo = yield* StoryRepository
-    return {
-      ingest: (evidence: Evidence) => repo.create(evidence),
-    }
-  }),
-  dependencies: [StoryRepositoryLive],
-}) {}
+export class StoryService extends Effect.Service<StoryService>()(
+  "StoryService",
+  {
+    effect: Effect.gen(function* () {
+      const repo = yield* StoryRepository
+      return {
+        ingest: (evidence: Evidence) => repo.create(evidence),
+      }
+    }),
+    dependencies: [StoryRepositoryLive],
+  }
+) {}
 
 // BAD: Constructor injection or global singleton
 ```
@@ -147,7 +150,9 @@ Services expose use cases. They never know HTTP exists. They never know React ex
 ```typescript
 // Service signature
 interface StoryService {
-  readonly ingest: (evidence: RawEvidence) => Effect<Story, StoryError, StoryEngineDeps>
+  readonly ingest: (
+    evidence: RawEvidence
+  ) => Effect<Story, StoryError, StoryEngineDeps>
   readonly update: (
     id: string,
     data: StoryUpdate

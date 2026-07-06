@@ -5,7 +5,9 @@ export class NormalizationError extends Data.TaggedError("NormalizationError")<{
   readonly cause?: unknown
 }> {}
 
-export class DuplicateEvidenceError extends Data.TaggedError("DuplicateEvidenceError")<{
+export class DuplicateEvidenceError extends Data.TaggedError(
+  "DuplicateEvidenceError"
+)<{
   readonly url: string
 }> {}
 

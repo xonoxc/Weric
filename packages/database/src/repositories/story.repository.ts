@@ -65,7 +65,13 @@ export class StoryRepository {
     summary?: string
     evidenceIds?: string[]
   }): Effect.Effect<
-    { id: string; title: string; slug: string; summary: string | null; createdAt: Date },
+    {
+      id: string
+      title: string
+      slug: string
+      summary: string | null
+      createdAt: Date
+    },
     RepositoryError
   > {
     return Effect.tryPromise({
@@ -91,6 +97,18 @@ export class StoryRepository {
         }
 
         return story
+      },
+      catch: cause => new ConnectionError(cause),
+    })
+  }
+
+  addEvidence(
+    storyId: string,
+    evidenceId: string
+  ): Effect.Effect<void, RepositoryError> {
+    return Effect.tryPromise({
+      try: async () => {
+        await this.db.insert(storyEvidence).values({ storyId, evidenceId })
       },
       catch: cause => new ConnectionError(cause),
     })
@@ -143,7 +161,10 @@ export class StoryRepository {
         const conditions = []
         if (options.status) {
           conditions.push(
-            eq(stories.status, options.status as "draft" | "published" | "archived")
+            eq(
+              stories.status,
+              options.status as "draft" | "published" | "archived"
+            )
           )
         }
 
@@ -174,7 +195,10 @@ export class StoryRepository {
 
   findManyWithEvidenceCount(
     options: StoryQueryOptions = {}
-  ): Effect.Effect<{ data: StoryWithEvidenceCount[]; total: number }, RepositoryError> {
+  ): Effect.Effect<
+    { data: StoryWithEvidenceCount[]; total: number },
+    RepositoryError
+  > {
     return Effect.tryPromise({
       try: async () => {
         const page = options.page ?? 1
@@ -184,7 +208,10 @@ export class StoryRepository {
         const conditions: ReturnType<typeof eq>[] = []
         if (options.status) {
           conditions.push(
-            eq(stories.status, options.status as "draft" | "published" | "archived")
+            eq(
+              stories.status,
+              options.status as "draft" | "published" | "archived"
+            )
           )
         }
         const where = conditions.length > 0 ? and(...conditions) : undefined
@@ -252,7 +279,9 @@ export class StoryRepository {
             url: evidence.url,
             author: evidence.author,
             title: evidence.title,
-            publishedAt: sql<string | null>`to_char(${evidence.publishedAt}, ${TSFMT})`,
+            publishedAt: sql<
+              string | null
+            >`to_char(${evidence.publishedAt}, ${TSFMT})`,
           })
           .from(storyEvidence)
           .innerJoin(evidence, eq(storyEvidence.evidenceId, evidence.id))
@@ -288,7 +317,10 @@ export class StoryRepository {
   searchStories(
     query: string,
     options: { page?: number; limit?: number } = {}
-  ): Effect.Effect<{ data: StoryWithEvidenceCount[]; total: number }, RepositoryError> {
+  ): Effect.Effect<
+    { data: StoryWithEvidenceCount[]; total: number },
+    RepositoryError
+  > {
     return Effect.tryPromise({
       try: async () => {
         const page = options.page ?? 1
@@ -334,7 +366,10 @@ export class StoryRepository {
 
   findPublishedFeed(
     options: { page?: number; limit?: number } = {}
-  ): Effect.Effect<{ data: StoryWithEvidenceCount[]; total: number }, RepositoryError> {
+  ): Effect.Effect<
+    { data: StoryWithEvidenceCount[]; total: number },
+    RepositoryError
+  > {
     return Effect.tryPromise({
       try: async () => {
         const page = options.page ?? 1

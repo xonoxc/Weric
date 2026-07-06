@@ -40,15 +40,15 @@ export class StoryNormalizer {
         )
       }
 
-      const existing = yield* evidenceRepo
-        .findByUrl(raw.url)
-        .pipe(
-          Effect.catchAll(() =>
-            Effect.fail(
-              new NormalizationError({ message: "Failed to check for duplicate URL" })
-            )
+      const existing = yield* evidenceRepo.findByUrl(raw.url).pipe(
+        Effect.catchAll(() =>
+          Effect.fail(
+            new NormalizationError({
+              message: "Failed to check for duplicate URL",
+            })
           )
         )
+      )
 
       if (existing) {
         return yield* Effect.fail(new DuplicateEvidenceError({ url: raw.url }))
@@ -68,7 +68,9 @@ export class StoryNormalizer {
     })
   }
 
-  normalizeBatch(raws: RawDocument[]): Effect.Effect<NormalizedDocument[], StoryError> {
+  normalizeBatch(
+    raws: RawDocument[]
+  ): Effect.Effect<NormalizedDocument[], StoryError> {
     return Effect.forEach(raws, raw => this.normalize(raw), { concurrency: 3 })
   }
 }

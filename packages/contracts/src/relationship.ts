@@ -29,4 +29,6 @@ export const CreateRelationshipInputSchema = z.object({
   targetEntity: z.string().uuid(),
   relationType: RelationType,
 })
-export type CreateRelationshipInput = z.infer<typeof CreateRelationshipInputSchema>
+export type CreateRelationshipInput = z.infer<
+  typeof CreateRelationshipInputSchema
+>

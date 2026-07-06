@@ -58,7 +58,10 @@ export class InterestRepository {
     })
   }
 
-  deleteByTopic(userId: string, topic: string): Effect.Effect<void, RepositoryError> {
+  deleteByTopic(
+    userId: string,
+    topic: string
+  ): Effect.Effect<void, RepositoryError> {
     return Effect.tryPromise({
       try: async () => {
         await this.db

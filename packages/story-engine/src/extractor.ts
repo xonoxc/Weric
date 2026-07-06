@@ -69,7 +69,10 @@ function extractCandidates(text: string): string[] {
         continue
       }
 
-      if (clean[0] === clean[0]?.toUpperCase() && clean[0]?.toLowerCase() !== clean[0]) {
+      if (
+        clean[0] === clean[0]?.toUpperCase() &&
+        clean[0]?.toLowerCase() !== clean[0]
+      ) {
         const lower = clean.toLowerCase()
         if (!COMMON_WORDS.has(lower)) {
           currentPhrase.push(clean)
@@ -94,7 +97,11 @@ function extractCandidates(text: string): string[] {
 function classifyEntity(name: string): string {
   const lower = name.toLowerCase()
 
-  if (/^(mr|mrs|ms|dr|prof|president|ceo|cto|cfo|founder|chairman)\.?\s/i.test(name)) {
+  if (
+    /^(mr|mrs|ms|dr|prof|president|ceo|cto|cfo|founder|chairman)\.?\s/i.test(
+      name
+    )
+  ) {
     return "person"
   }
   if (
@@ -138,15 +145,15 @@ export class EntityExtractor {
       Effect.gen(function* () {
         const type = classifyEntity(name)
 
-        const existing = yield* entityRepo
-          .findByName(name)
-          .pipe(
-            Effect.catchAll(() =>
-              Effect.fail(
-                new ExtractionError({ message: `Failed to check entity '${name}'` })
-              )
+        const existing = yield* entityRepo.findByName(name).pipe(
+          Effect.catchAll(() =>
+            Effect.fail(
+              new ExtractionError({
+                message: `Failed to check entity '${name}'`,
+              })
             )
           )
+        )
 
         let entityId: string
         if (existing) {
@@ -157,7 +164,9 @@ export class EntityExtractor {
             .pipe(
               Effect.catchAll(() =>
                 Effect.fail(
-                  new ExtractionError({ message: `Failed to create entity '${name}'` })
+                  new ExtractionError({
+                    message: `Failed to create entity '${name}'`,
+                  })
                 )
               )
             )

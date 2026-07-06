@@ -26,7 +26,10 @@ function jaccardSimilarity(a: Set<string>, b: Set<string>): number {
   return intersection.size / union.size
 }
 
-function titleSimilarity(evidence: NormalizedDocument, storyTitle: string): number {
+function titleSimilarity(
+  evidence: NormalizedDocument,
+  storyTitle: string
+): number {
   const evTitle = tokenize(evidence.title)
   const stTitle = tokenize(storyTitle)
   return jaccardSimilarity(evTitle, stTitle)
@@ -36,7 +39,9 @@ function contentSimilarity(
   evidence: NormalizedDocument,
   storySummary: string | null
 ): number {
-  const evContent = tokenize(evidence.title + " " + evidence.content.slice(0, 1000))
+  const evContent = tokenize(
+    evidence.title + " " + evidence.content.slice(0, 1000)
+  )
   const stContent = tokenize(storySummary ?? "")
   return jaccardSimilarity(evContent, stContent)
 }
@@ -47,7 +52,9 @@ const MIN_CONTENT_SIMILARITY = 0.1
 export class StoryMatcher {
   constructor(private readonly storyRepo: StoryRepository) {}
 
-  findMatches(evidence: NormalizedDocument): Effect.Effect<MatchResult[], StoryError> {
+  findMatches(
+    evidence: NormalizedDocument
+  ): Effect.Effect<MatchResult[], StoryError> {
     const storyRepo = this.storyRepo
 
     return storyRepo.findMany({ page: 1, limit: 100, sort: "latest" }).pipe(
@@ -59,7 +66,10 @@ export class StoryMatcher {
           if (titleSim < MIN_TITLE_SIMILARITY) continue
 
           const contentSim = contentSimilarity(evidence, story.summary ?? null)
-          if (titleSim + contentSim < MIN_TITLE_SIMILARITY + MIN_CONTENT_SIMILARITY)
+          if (
+            titleSim + contentSim <
+            MIN_TITLE_SIMILARITY + MIN_CONTENT_SIMILARITY
+          )
             continue
 
           const confidence = Math.min(titleSim * 0.7 + contentSim * 0.3, 1.0)
@@ -74,7 +84,9 @@ export class StoryMatcher {
         return matches.sort((a, b) => b.confidence - a.confidence)
       }),
       Effect.catchAll(cause =>
-        Effect.fail(new MatchError({ message: "Failed to fetch stories", cause }))
+        Effect.fail(
+          new MatchError({ message: "Failed to fetch stories", cause })
+        )
       )
     )
   }

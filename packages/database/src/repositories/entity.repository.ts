@@ -50,13 +50,19 @@ export class EntityRepository {
   ): Effect.Effect<(typeof entities.$inferSelect)[], RepositoryError> {
     return Effect.tryPromise({
       try: async () => {
-        return await this.db.select().from(entities).where(eq(entities.type, type))
+        return await this.db
+          .select()
+          .from(entities)
+          .where(eq(entities.type, type))
       },
       catch: cause => new ConnectionError(cause),
     })
   }
 
-  linkToStory(storyId: string, entityId: string): Effect.Effect<void, RepositoryError> {
+  linkToStory(
+    storyId: string,
+    entityId: string
+  ): Effect.Effect<void, RepositoryError> {
     return Effect.tryPromise({
       try: async () => {
         await this.db.insert(storyEntities).values({

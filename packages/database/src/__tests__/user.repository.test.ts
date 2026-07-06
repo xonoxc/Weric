@@ -17,7 +17,9 @@ describe("UserRepository", () => {
     repo = new UserRepository(db)
   })
 
-  async function createTestUser(overrides: Partial<typeof users.$inferInsert> = {}) {
+  async function createTestUser(
+    overrides: Partial<typeof users.$inferInsert> = {}
+  ) {
     const [row] = await db
       .insert(users)
       .values({
@@ -45,7 +47,9 @@ describe("UserRepository", () => {
 
   it("finds user by email", async () => {
     await createTestUser({ email: "byemail@example.com", username: "byemail" })
-    const found = await Effect.runPromise(repo.findByEmail("byemail@example.com"))
+    const found = await Effect.runPromise(
+      repo.findByEmail("byemail@example.com")
+    )
     expect(found).not.toBeNull()
     expect(found!.email).toBe("byemail@example.com")
   })

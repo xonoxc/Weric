@@ -28,7 +28,9 @@ export class RecommendationService {
     private readonly storyRepo: StoryRepository,
     private readonly interestRepo: InterestRepository,
     private readonly interactionRepo: InteractionRepository,
-    public readonly interestLearner: InterestLearner = new InterestLearner(interestRepo)
+    public readonly interestLearner: InterestLearner = new InterestLearner(
+      interestRepo
+    )
   ) {}
 
   generateFeed(
@@ -41,8 +43,13 @@ export class RecommendationService {
 
     return Effect.gen(function* () {
       const { data: stories, total } = yield* self.storyRepo
-        .findPublishedFeed({ page: 1, limit: 100 })
-        .pipe(Effect.catchAll(toScoringError("Failed to fetch published stories")))
+        .findPublishedFeed({
+          page: 1,
+          limit: 100,
+        })
+        .pipe(
+          Effect.catchAll(toScoringError("Failed to fetch published stories"))
+        )
 
       if (stories.length === 0) {
         return {
@@ -57,13 +64,21 @@ export class RecommendationService {
 
       const interactions = yield* self.interactionRepo
         .findByUser(userId)
-        .pipe(Effect.catchAll(toScoringError("Failed to fetch user interactions")))
+        .pipe(
+          Effect.catchAll(toScoringError("Failed to fetch user interactions"))
+        )
 
       const interactedStoryIds = new Set(
-        interactions.filter(i => i.interactionType !== "hide").map(i => i.storyId)
+        interactions
+          .filter(i => i.interactionType !== "hide")
+          .map(i => i.storyId)
       )
 
-      const scored = self.scorer.scoreMany(stories, interests, interactedStoryIds)
+      const scored = self.scorer.scoreMany(
+        stories,
+        interests,
+        interactedStoryIds
+      )
 
       const scoredFiltered = scored.filter(
         s =>
@@ -162,7 +177,11 @@ export class RecommendationService {
         evidenceCount: 0,
       }
 
-      yield* self.interestLearner.updateFromInteraction(userId, st, interactionType)
+      yield* self.interestLearner.updateFromInteraction(
+        userId,
+        st,
+        interactionType
+      )
     })
   }
 }
