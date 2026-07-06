@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from "react"
 import { Canvas, StoryCard, CommandBar, TopBar } from "@weric/ui"
 import type { StoryCardData } from "@weric/ui"
 import { fetchFeed, searchStories } from "../lib/api-client.ts"
+import { useSession, signOut } from "../lib/auth-client.ts"
+import { useNavigate } from "react-router-dom"
 
 interface PositionedStory extends StoryCardData {
   x: number
@@ -74,10 +76,13 @@ const dot: React.CSSProperties = {
 }
 
 export default function Home() {
+  const navigate = useNavigate()
+  const { data: session } = useSession()
   const [stories, setStories] = useState<PositionedStory[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [hasSearched, setHasSearched] = useState(false)
+  const [showUserMenu, setShowUserMenu] = useState(false)
 
   const loadFeed = useCallback(async () => {
     setLoading(true)
@@ -121,6 +126,110 @@ export default function Home() {
     console.log(`Bookmark toggle ${id}`)
   }, [])
 
+  const handleSignOut = useCallback(async () => {
+    await signOut()
+    navigate("/login", { replace: true })
+  }, [navigate])
+
+  const userName = session?.user?.name ?? session?.user?.email ?? "User"
+  const userInitial = userName.charAt(0).toUpperCase()
+
+  const topBarActions = (
+    <div style={{ position: "relative" }}>
+      <button
+        style={{
+          width: 32,
+          height: 32,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: "var(--radius-sm)",
+          color: "var(--color-text-secondary)",
+          fontSize: 13,
+          fontWeight: 600,
+          cursor: "pointer",
+          background: "var(--color-surface)",
+          border: "1px solid var(--color-border)",
+          transition: "all var(--transition-fast)",
+        }}
+        onClick={() => setShowUserMenu(prev => !prev)}
+        onMouseEnter={e => {
+          e.currentTarget.style.borderColor = "var(--color-border-hover)"
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.borderColor = "var(--color-border)"
+        }}
+        title={userName}
+      >
+        {userInitial}
+      </button>
+      {showUserMenu && (
+        <>
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 49,
+            }}
+            onClick={() => setShowUserMenu(false)}
+          />
+          <div
+            style={{
+              position: "absolute",
+              top: "100%",
+              right: 0,
+              marginTop: 6,
+              minWidth: 180,
+              background: "var(--color-surface)",
+              border: "1px solid var(--color-border)",
+              borderRadius: "var(--radius-md)",
+              boxShadow: "var(--shadow-lg)",
+              padding: 4,
+              zIndex: 50,
+            }}
+          >
+            <div
+              style={{
+                padding: "8px 12px",
+                fontSize: 13,
+                color: "var(--color-text-secondary)",
+                borderBottom: "1px solid var(--color-border)",
+                marginBottom: 4,
+              }}
+            >
+              {userName}
+            </div>
+            <button
+              style={{
+                width: "100%",
+                padding: "8px 12px",
+                fontSize: 13,
+                color: "var(--color-text-secondary)",
+                borderRadius: "var(--radius-xs)",
+                cursor: "pointer",
+                background: "transparent",
+                border: "none",
+                textAlign: "left",
+                transition: "all var(--transition-fast)",
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = "var(--color-surface-hover)"
+                e.currentTarget.style.color = "var(--color-text-primary)"
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = "transparent"
+                e.currentTarget.style.color = "var(--color-text-secondary)"
+              }}
+              onClick={handleSignOut}
+            >
+              Sign out
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  )
+
   if (loading && stories.length === 0) {
     return (
       <div style={loadingContainer}>
@@ -153,7 +262,7 @@ export default function Home() {
 
   return (
     <>
-      <TopBar />
+      <TopBar actions={topBarActions} />
       <Canvas initialScale={0.85}>
         {stories.map(s => (
           <StoryCard

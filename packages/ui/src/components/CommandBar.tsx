@@ -96,6 +96,7 @@ const suggestionsContainer: React.CSSProperties = {
   padding: "var(--space-xs)",
   boxShadow: "var(--shadow-lg)",
   backdropFilter: "blur(20px)",
+  order: -1,
 }
 
 const suggestionItem: React.CSSProperties = {

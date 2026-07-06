@@ -20,9 +20,7 @@ export const WericConfigSchema = z.object({
       .default("info"),
   }),
   ai: z.object({
-    openaiApiKey: z.string().default(""),
-    geminiApiKey: z.string().default(""),
-    anthropicApiKey: z.string().default(""),
+    groqApiKey: z.string().default(""),
   }),
 })
 
@@ -44,13 +42,7 @@ const configFromEnv = Effect.gen(function* () {
   const logLevel = yield* Config.string("LOG_LEVEL").pipe(
     Config.withDefault("info")
   )
-  const openaiApiKey = yield* Config.string("OPENAI_API_KEY").pipe(
-    Config.withDefault("")
-  )
-  const geminiApiKey = yield* Config.string("GEMINI_API_KEY").pipe(
-    Config.withDefault("")
-  )
-  const anthropicApiKey = yield* Config.string("ANTHROPIC_API_KEY").pipe(
+  const groqApiKey = yield* Config.string("GROQ_API_KEY").pipe(
     Config.withDefault("")
   )
 
@@ -60,9 +52,7 @@ const configFromEnv = Effect.gen(function* () {
     api: { port },
     logging: { level: logLevel },
     ai: {
-      openaiApiKey,
-      geminiApiKey,
-      anthropicApiKey,
+      groqApiKey,
     },
   })
 })
