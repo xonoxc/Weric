@@ -1,0 +1,17 @@
+---
+interface Props {
+  label: string
+  title: string
+  highlight: string
+}
+
+const { label, title, highlight } = Astro.props
+---
+
+<div class="max-w-3xl mx-auto text-center">
+  <p class="text-sm font-medium text-text-tertiary uppercase tracking-widest mb-4">{label}</p>
+  <h2 class="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight leading-tight">
+    {title}<br />
+    <span class="text-text-secondary">{highlight}</span>
+  </h2>
+</div>

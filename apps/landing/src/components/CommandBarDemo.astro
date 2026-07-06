@@ -1,0 +1,37 @@
+---
+---
+
+<section class="section-padding">
+  <div class="container-main">
+    <div class="max-w-3xl mx-auto text-center">
+      <p class="text-sm font-medium text-text-tertiary uppercase tracking-widest mb-4">Command Bar</p>
+      <h2 class="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight leading-tight">
+        The primary interaction.<br />
+        <span class="text-text-secondary">Ask Weric anything.</span>
+      </h2>
+    </div>
+
+    <div class="mt-12 max-w-xl mx-auto">
+      <div class="flex items-center gap-3 px-5 py-4 rounded-2xl bg-surface border border-border shadow-xl">
+        <svg class="w-5 h-5 text-text-tertiary shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8" />
+          <path d="m21 21-4.3-4.3" />
+        </svg>
+        <span class="text-text-tertiary text-base">Ask Weric anything...</span>
+        <span class="ml-auto text-xs text-text-tertiary bg-bg-tertiary px-2 py-1 rounded">⌘K</span>
+      </div>
+
+      <div class="mt-6 grid gap-2">
+        {["Explain Model Context Protocol", "Summarize today's AI news", "Show Rust ecosystem updates", "Compare Claude and GPT-5", "Continue yesterday's research"].map((q, i) => (
+          <div class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-surface-hover transition-colors duration-200 cursor-default">
+            <svg class="w-3.5 h-3.5 text-text-tertiary shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.3-4.3" />
+            </svg>
+            <span class="text-sm text-text-secondary">{q}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+</section>

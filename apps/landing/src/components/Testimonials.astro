@@ -1,0 +1,33 @@
+---
+---
+
+<section class="section-padding bg-bg-secondary">
+  <div class="container-main">
+    <div class="max-w-3xl mx-auto text-center">
+      <p class="text-sm font-medium text-text-tertiary uppercase tracking-widest mb-4">Testimonials</p>
+      <h2 class="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight leading-tight">
+        Early access feedback.<br />
+        <span class="text-text-secondary">Coming soon.</span>
+      </h2>
+    </div>
+
+    <div class="mt-16 grid md:grid-cols-3 gap-4 max-w-4xl mx-auto">
+      {[1, 2, 3].map(i => (
+        <div class="p-6 rounded-xl border border-border bg-surface">
+          <div class="flex items-center gap-1 mb-4">
+            {[1, 2, 3, 4, 5].map(s => (
+              <svg class="w-4 h-4 text-accent" viewBox="0 0 24 24" fill="currentColor">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+              </svg>
+            ))}
+          </div>
+          <div class="h-16 bg-bg-tertiary rounded animate-pulse" />
+          <div class="flex items-center gap-3 mt-4">
+            <div class="w-8 h-8 rounded-full bg-bg-tertiary animate-pulse" />
+            <div class="flex-1 h-4 bg-bg-tertiary rounded animate-pulse" />
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>

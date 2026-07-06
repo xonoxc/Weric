@@ -1,15 +1,34 @@
 ---
-// Weric Landing Page
+import BaseLayout from "../layouts/BaseLayout.astro"
+import Navbar from "../components/Navbar.astro"
+import Hero from "../components/Hero.astro"
+import Problem from "../components/Problem.astro"
+import Solution from "../components/Solution.astro"
+import InteractiveDemo from "../components/InteractiveDemo.astro"
+import FeatureGrid from "../components/FeatureGrid.astro"
+import KnowledgeGraph from "../components/KnowledgeGraph.astro"
+import CommandBarDemo from "../components/CommandBarDemo.astro"
+import Architecture from "../components/Architecture.astro"
+import Philosophy from "../components/Philosophy.astro"
+import Testimonials from "../components/Testimonials.astro"
+import CTA from "../components/CTA.astro"
+import Footer from "../components/Footer.astro"
 ---
 
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Weric — Internet Defragmentation Platform</title>
-  </head>
-  <body>
-    <h1>Weric</h1>
-    <p>Defragment the Internet.</p>
-  </body>
-</html>
+<BaseLayout>
+  <Navbar />
+  <main>
+    <Hero />
+    <Problem />
+    <Solution />
+    <InteractiveDemo />
+    <FeatureGrid />
+    <KnowledgeGraph />
+    <CommandBarDemo />
+    <Architecture />
+    <Philosophy />
+    <Testimonials />
+    <CTA />
+  </main>
+  <Footer />
+</BaseLayout>

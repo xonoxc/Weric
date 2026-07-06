@@ -1,0 +1,21 @@
+---
+import GraphVisualization from "./GraphVisualization.tsx"
+---
+
+<section class="section-padding">
+  <div class="container-main">
+    <div class="max-w-3xl mx-auto text-center">
+      <p class="text-sm font-medium text-text-tertiary uppercase tracking-widest mb-4">Knowledge Graph</p>
+      <h2 class="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight leading-tight">
+        Stories connect naturally.<br />
+        <span class="text-text-secondary">Sources form a graph.</span>
+      </h2>
+    </div>
+
+    <div class="mt-16 max-w-2xl mx-auto">
+      <div class="relative rounded-xl border border-border bg-surface p-8 md:p-12 overflow-hidden">
+        <GraphVisualization client:visible />
+      </div>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,34 @@
+---
+const features = [
+  { title: "AI Search", description: "Natural language queries across the entire internet. Weric finds relevant sources and connects them into coherent stories." },
+  { title: "Knowledge Graph", description: "Every story becomes a node. Sources, evidence, and related stories form an explorable graph of understanding." },
+  { title: "Story Engine", description: "Fragments from Reddit, GitHub, docs, and blogs merge into unified narratives with source attribution." },
+  { title: "Multi-Source Summaries", description: "Summaries synthesized from multiple perspectives. Never a single source of truth — always many." },
+  { title: "Infinite Canvas", description: "Zoom. Pan. Explore. Stories arranged spatially. The canvas remembers where you left off." },
+  { title: "Recommendations", description: "Personalized to your interests. Weric learns what matters to you and surfaces relevant stories." },
+  { title: "Timeline View", description: "Watch stories evolve over time. See how understanding changes as new sources emerge." },
+  { title: "Explainability", description: "Every story shows its sources. Every claim links to evidence. Transparency is built into the foundation." },
+  { title: "Bookmarks", description: "Save stories. Organize knowledge. Build your own library of connected understanding." },
+]
+---
+
+<section class="section-padding bg-bg-secondary">
+  <div class="container-main">
+    <div class="max-w-3xl mx-auto text-center">
+      <p class="text-sm font-medium text-text-tertiary uppercase tracking-widest mb-4">Features</p>
+      <h2 class="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight leading-tight">
+        Everything you need<br />
+        <span class="text-text-secondary">to understand the internet.</span>
+      </h2>
+    </div>
+
+    <div class="mt-16 grid sm:grid-cols-2 lg:grid-cols-3 gap-px bg-border rounded-xl overflow-hidden">
+      {features.map(f => (
+        <div class="p-6 lg:p-8 bg-surface">
+          <h3 class="text-base font-semibold text-text-primary tracking-tight">{f.title}</h3>
+          <p class="mt-2 text-sm text-text-secondary leading-relaxed">{f.description}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
