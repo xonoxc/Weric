@@ -57,14 +57,14 @@ export {
   CreateUserInputSchema,
   UpdateUserInputSchema,
   LoginInputSchema,
-  AuthTokenSchema,
+  AuthSessionSchema,
 } from "./user.ts"
 export type {
   User,
   CreateUserInput,
   UpdateUserInput,
   LoginInput,
-  AuthToken,
+  AuthSession,
 } from "./user.ts"
 
 export {

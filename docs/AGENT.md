@@ -76,6 +76,7 @@ export class StoryService extends Effect.Service<StoryService>()("StoryService",
 - Repository methods return domain types from `contracts`.
 - Repository methods never expose `drizzle-orm` types.
 - Business logic never imports from `drizzle-orm`.
+- Always use a proper name as per context for migrations (e.g. `0000_better_auth.sql`).
 
 ### Logging
 

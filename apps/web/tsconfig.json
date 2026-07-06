@@ -5,7 +5,10 @@
     "outDir": "dist",
     "rootDir": "src",
     "lib": ["es2023", "dom", "dom.iterable"],
-    "noEmit": true
+    "noEmit": true,
+    "types": ["vite/client"],
+    "declaration": false,
+    "declarationMap": false
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist"]

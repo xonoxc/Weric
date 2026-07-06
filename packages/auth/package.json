@@ -12,9 +12,11 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@better-auth/drizzle-adapter": "^1.6.23",
     "@weric/contracts": "workspace:*",
     "@weric/database": "workspace:*",
-    "@weric/shared": "workspace:*"
+    "@weric/shared": "workspace:*",
+    "better-auth": "^1.6.23"
   },
   "devDependencies": {
     "typescript": "5.9.2"

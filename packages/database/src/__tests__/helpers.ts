@@ -20,7 +20,8 @@ export async function cleanDatabase(): Promise<void> {
     TRUNCATE TABLE
       bookmarks, story_entities, story_evidence,
       interactions, interests, relationships,
-      evidence, entities, stories, users, jobs
+      evidence, entities, stories, users, sessions,
+      accounts, verifications, jobs
     CASCADE
   `)
 }

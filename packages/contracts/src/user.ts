@@ -1,23 +1,29 @@
 import { z } from "zod"
 
 export const UserSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string(),
+  name: z.string(),
   email: z.string().email(),
-  username: z.string().min(2).max(50),
+  emailVerified: z.boolean(),
+  image: z.string().nullable(),
+  username: z.string().nullable(),
+  displayUsername: z.string().nullable(),
   createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
 })
 export type User = z.infer<typeof UserSchema>
 
 export const CreateUserInputSchema = z.object({
+  name: z.string().min(1).max(100),
   email: z.string().email(),
-  username: z.string().min(2).max(50),
   password: z.string().min(8).max(128),
+  username: z.string().min(3).max(30).optional(),
 })
 export type CreateUserInput = z.infer<typeof CreateUserInputSchema>
 
 export const UpdateUserInputSchema = z.object({
-  username: z.string().min(2).max(50).optional(),
-  email: z.string().email().optional(),
+  name: z.string().min(1).max(100).optional(),
+  username: z.string().min(3).max(30).optional(),
 })
 export type UpdateUserInput = z.infer<typeof UpdateUserInputSchema>
 
@@ -27,8 +33,17 @@ export const LoginInputSchema = z.object({
 })
 export type LoginInput = z.infer<typeof LoginInputSchema>
 
-export const AuthTokenSchema = z.object({
-  token: z.string(),
+export const AuthSessionSchema = z.object({
   user: UserSchema,
+  session: z.object({
+    id: z.string(),
+    userId: z.string(),
+    token: z.string(),
+    expiresAt: z.string().datetime(),
+    ipAddress: z.string().nullable(),
+    userAgent: z.string().nullable(),
+    createdAt: z.string().datetime(),
+    updatedAt: z.string().datetime(),
+  }),
 })
-export type AuthToken = z.infer<typeof AuthTokenSchema>
+export type AuthSession = z.infer<typeof AuthSessionSchema>

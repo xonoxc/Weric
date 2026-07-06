@@ -2,8 +2,8 @@ import { describe, expect, it, beforeEach } from "vitest"
 import { Effect } from "effect"
 import { BookmarkRepository } from "~/repositories/bookmark.repository.ts"
 import { StoryRepository } from "~/repositories/story.repository.ts"
-import { UserRepository } from "~/repositories/user.repository.ts"
 import { getTestDb, cleanDatabase } from "~/__tests__/helpers.ts"
+import { users } from "~/schema/tables.ts"
 import type { Db } from "~/connection.ts"
 
 describe("BookmarkRepository", () => {
@@ -16,12 +16,16 @@ describe("BookmarkRepository", () => {
     const db: Db = getTestDb()
     repo = new BookmarkRepository(db)
     const storyRepo = new StoryRepository(db)
-    const userRepo = new UserRepository(db)
 
-    const user = await Effect.runPromise(
-      userRepo.create({ email: "bm@test.com", username: "bmuser" })
-    )
-    userId = user.id
+    const [user] = await db
+      .insert(users)
+      .values({
+        name: "BM User",
+        email: "bm@test.com",
+        username: "bmuser",
+      })
+      .returning()
+    userId = user!.id
 
     const story = await Effect.runPromise(
       storyRepo.create({ title: "BM Story", slug: "bm-story" })
