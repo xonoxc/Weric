@@ -6,7 +6,10 @@ import { username } from "better-auth/plugins"
 import type { Db } from "@weric/database"
 
 export function createAuth(db: Db) {
+  const webUrl = process.env.WEB_URL ?? "http://localhost:5173"
+
   return betterAuth({
+    baseURL: process.env.BETTER_AUTH_URL ?? "http://localhost:3000",
     database: drizzleAdapter(db, {
       provider: "pg",
       usePlural: true,
@@ -25,6 +28,7 @@ export function createAuth(db: Db) {
       },
     },
     plugins: [username()],
+    trustedOrigins: [webUrl],
     advanced: {
       database: {
         generateId: false,

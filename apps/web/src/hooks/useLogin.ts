@@ -44,7 +44,7 @@ export function useLogin() {
     setSocialLoading(provider)
 
     const result = await attempt(() =>
-      signIn.social({ provider, callbackURL: "/" })
+      signIn.social({ provider, callbackURL: `${window.location.origin}/` })
     )
 
     if (!result.ok) {

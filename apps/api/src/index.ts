@@ -10,6 +10,9 @@ import { createSearchRoutes } from "./routes/search.ts"
 import { createInteractionsRoutes } from "./routes/interactions.ts"
 import { createBookmarksRoutes } from "./routes/bookmarks.ts"
 import { createInterestsRoutes } from "./routes/interests.ts"
+import { validateEnv } from "./lib/validateEnv.ts"
+
+validateEnv()
 
 const db = createDb()
 const auth = createAuth(db)
