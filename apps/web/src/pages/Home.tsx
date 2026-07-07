@@ -1,27 +1,5 @@
-import { useState, useEffect, useCallback } from "react"
+import { useHome } from "../hooks/useHome.ts"
 import { Canvas, StoryCard, CommandBar, TopBar } from "@weric/ui"
-import type { StoryCardData } from "@weric/ui"
-import { fetchFeed, searchStories } from "../lib/api-client.ts"
-import { useSession, signOut } from "../lib/auth-client.ts"
-import { useNavigate } from "react-router-dom"
-
-interface PositionedStory extends StoryCardData {
-  x: number
-  y: number
-}
-
-function layoutStories(stories: StoryCardData[]): PositionedStory[] {
-  const spacing = 320
-  const cols = Math.ceil(Math.sqrt(stories.length))
-  return stories.map((story, i) => {
-    const col = i % cols
-    const row = Math.floor(i / cols)
-    const offsetX =
-      (col - (cols - 1) / 2) * spacing + (row % 2 === 0 ? 0 : spacing * 0.5)
-    const offsetY = (row - (stories.length / cols - 1) / 2) * spacing
-    return { ...story, x: offsetX, y: offsetY }
-  })
-}
 
 const loadingContainer: React.CSSProperties = {
   position: "fixed",
@@ -76,63 +54,20 @@ const dot: React.CSSProperties = {
 }
 
 export default function Home() {
-  const navigate = useNavigate()
-  const { data: session } = useSession()
-  const [stories, setStories] = useState<PositionedStory[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [hasSearched, setHasSearched] = useState(false)
-  const [showUserMenu, setShowUserMenu] = useState(false)
-
-  const loadFeed = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    setHasSearched(false)
-    try {
-      const items = await fetchFeed()
-      setStories(layoutStories(items))
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load feed")
-      setStories([])
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    loadFeed()
-  }, [loadFeed])
-
-  const handleSearch = useCallback(async (query: string) => {
-    setLoading(true)
-    setError(null)
-    setHasSearched(true)
-    try {
-      const items = await searchStories(query)
-      setStories(layoutStories(items))
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Search failed")
-      setStories([])
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  const handleExpand = useCallback((id: string) => {
-    console.log(`Expand story ${id}`)
-  }, [])
-
-  const handleBookmark = useCallback((id: string) => {
-    console.log(`Bookmark toggle ${id}`)
-  }, [])
-
-  const handleSignOut = useCallback(async () => {
-    await signOut()
-    navigate("/login", { replace: true })
-  }, [navigate])
-
-  const userName = session?.user?.name ?? session?.user?.email ?? "User"
-  const userInitial = userName.charAt(0).toUpperCase()
+  const {
+    stories,
+    loading,
+    error,
+    hasSearched,
+    showUserMenu,
+    setShowUserMenu,
+    userName,
+    userInitial,
+    handleSearch,
+    handleExpand,
+    handleBookmark,
+    handleSignOut,
+  } = useHome()
 
   const topBarActions = (
     <div style={{ position: "relative" }}>

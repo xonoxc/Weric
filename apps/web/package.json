@@ -16,6 +16,7 @@
     "@weric/contracts": "workspace:*",
     "@weric/shared": "workspace:*",
     "@weric/ui": "workspace:*",
+    "axios": "^1.18.1",
     "better-auth": "^1.6.23",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

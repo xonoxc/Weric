@@ -1,6 +1,5 @@
-import { useState, type FormEvent } from "react"
-import { Link, Navigate, useNavigate } from "react-router-dom"
-import { signUp, useSession } from "../lib/auth-client.ts"
+import { Link, Navigate } from "react-router-dom"
+import { useSignup } from "../hooks/useSignup.ts"
 
 const pageStyle: React.CSSProperties = {
   position: "fixed",
@@ -66,38 +65,22 @@ const btnDisabled: React.CSSProperties = {
 }
 
 export default function SignupPage() {
-  const navigate = useNavigate()
-  const { data: session, isPending: sessionLoading } = useSession()
-  const [name, setName] = useState("")
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [error, setError] = useState("")
-  const [loading, setLoading] = useState(false)
+  const {
+    name,
+    setName,
+    email,
+    setEmail,
+    password,
+    setPassword,
+    error,
+    loading,
+    session,
+    sessionLoading,
+    handleSubmit,
+  } = useSignup()
 
   if (sessionLoading) return null
   if (session) return <Navigate to="/onboarding" replace />
-
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault()
-    setError("")
-    setLoading(true)
-    try {
-      const result = await signUp.email({ name, email, password })
-      if (result.error) {
-        setError(
-          result.error.message ??
-            result.error.statusText ??
-            "Registration failed"
-        )
-        return
-      }
-      navigate("/onboarding", { replace: true })
-    } catch {
-      setError("Connection failed. Check that the API server is running.")
-    } finally {
-      setLoading(false)
-    }
-  }
 
   return (
     <div style={pageStyle}>
