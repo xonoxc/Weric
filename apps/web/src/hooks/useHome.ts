@@ -87,6 +87,7 @@ export function useHome() {
 
   const userName = session?.user?.name ?? session?.user?.email ?? "User"
   const userInitial = userName.charAt(0).toUpperCase()
+  const userImage = session?.user?.image ?? null
 
   return {
     stories,
@@ -97,6 +98,7 @@ export function useHome() {
     setShowUserMenu,
     userName,
     userInitial,
+    userImage,
     handleSearch,
     handleExpand,
     handleBookmark,
