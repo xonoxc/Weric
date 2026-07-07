@@ -20,11 +20,54 @@ interface FeedItemRaw {
 }
 
 interface FeedResponse {
-  data: FeedItemRaw[]
+  data: Array<{
+    story: {
+      id: string
+      title: string
+      slug: string
+      summary: string | null
+      confidence: number
+      status: string
+      evidenceCount: number
+      createdAt: string
+      updatedAt: string
+    }
+    score: number
+    reason?: string
+  }>
   meta: {
     page: number
     limit: number
     total: number
+  }
+}
+
+interface SearchResponse {
+  stories: Array<{
+    id: string
+    title: string
+    slug: string
+    summary: string | null
+    confidence: number
+    status: string
+    evidenceCount: number
+    createdAt: string
+    updatedAt: string
+  }>
+  evidence: Array<{
+    id: string
+    storyId: string
+    content: string
+    source: string
+    url: string | null
+    publishedAt: string
+    createdAt: string
+  }>
+  meta: {
+    page: number
+    limit: number
+    storyTotal: number
+    evidenceTotal: number
   }
 }
 
@@ -153,17 +196,16 @@ export async function searchStories(query: string): Promise<StoryCardData[]> {
         s.summary?.toLowerCase().includes(q)
     )
   }
-  const data = await request<FeedResponse>(
+  const data = await request<SearchResponse>(
     `/search?q=${encodeURIComponent(query)}`
   )
-  return data.data.map(item => ({
-    id: item.story.id,
-    title: item.story.title,
-    summary: item.story.summary ?? undefined,
-    confidence: item.story.confidence,
-    evidenceCount: item.story.evidenceCount,
-    updatedAt: item.story.updatedAt,
-    reason: item.reason,
+  return data.stories.map(s => ({
+    id: s.id,
+    title: s.title,
+    summary: s.summary ?? undefined,
+    confidence: s.confidence,
+    evidenceCount: s.evidenceCount,
+    updatedAt: s.updatedAt,
   }))
 }
 

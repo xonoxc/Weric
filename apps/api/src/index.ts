@@ -1,5 +1,6 @@
 import { Hono } from "hono"
 import { cors } from "hono/cors"
+import { logger } from "hono/logger"
 import { createDb } from "@weric/database"
 import { createAuth } from "@weric/auth"
 import type { AuthUser, AuthSession } from "@weric/auth"
@@ -25,6 +26,8 @@ export interface ApiVariables {
 const app = new Hono<{ Variables: ApiVariables }>()
 
 app.onError(errorHandler)
+
+app.use("*", logger())
 
 app.use(
   "/api/auth/*",

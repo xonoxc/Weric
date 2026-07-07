@@ -317,7 +317,7 @@ export default function Home() {
       {error && (
         <div style={emptyContainer}>
           <div style={{ ...emptyTitle, color: "var(--color-danger)" }}>
-            Connection issue
+            Something went wrong
           </div>
           <div style={emptySubtitle}>{error}</div>
         </div>
