@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useCallback } from "react"
 import { useNavigate } from "react-router-dom"
+import { useQuery, useMutation } from "@tanstack/react-query"
 import type { StoryCardData } from "@weric/ui"
 import { fetchFeed, searchStories } from "../lib/api-client.ts"
 import { useSession, signOut } from "../lib/auth-client.ts"
-import { attempt } from "../lib/result.ts"
 
 interface PositionedStory extends StoryCardData {
   x: number
@@ -26,51 +26,33 @@ function layoutStories(stories: StoryCardData[]): PositionedStory[] {
 export function useHome() {
   const navigate = useNavigate()
   const { data: session } = useSession()
-  const [stories, setStories] = useState<PositionedStory[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [hasSearched, setHasSearched] = useState(false)
+  const [searchQuery, setSearchQuery] = useState<string | null>(null)
   const [showUserMenu, setShowUserMenu] = useState(false)
 
-  const loadFeed = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    setHasSearched(false)
+  const feedQuery = useQuery({
+    queryKey: ["feed"],
+    queryFn: () => fetchFeed(),
+  })
 
-    const result = await attempt(() => fetchFeed())
-    if (!result.ok) {
-      setError(
-        result.error instanceof Error
-          ? result.error.message
-          : "Failed to load feed"
-      )
-      setStories([])
-    } else {
-      setStories(layoutStories(result.data))
-    }
-    setLoading(false)
-  }, [])
+  const searchMutation = useMutation({
+    mutationFn: (q: string) => searchStories(q),
+  })
 
-  useEffect(() => {
-    loadFeed()
-  }, [loadFeed])
+  const handleSearch = useCallback(
+    (query: string) => {
+      setSearchQuery(query)
+      searchMutation.mutate(query)
+    },
+    [searchMutation]
+  )
 
-  const handleSearch = useCallback(async (query: string) => {
-    setLoading(true)
-    setError(null)
-    setHasSearched(true)
-
-    const result = await attempt(() => searchStories(query))
-    if (!result.ok) {
-      setError(
-        result.error instanceof Error ? result.error.message : "Search failed"
-      )
-      setStories([])
-    } else {
-      setStories(layoutStories(result.data))
-    }
-    setLoading(false)
-  }, [])
+  const stories =
+    searchMutation.isSuccess && searchMutation.data
+      ? layoutStories(searchMutation.data)
+      : layoutStories(feedQuery.data ?? [])
+  const loading = feedQuery.isLoading || searchMutation.isPending
+  const error = feedQuery.error ?? searchMutation.error
+  const hasSearched = searchQuery !== null
 
   const handleExpand = useCallback((id: string) => {
     console.log(`Expand story ${id}`)
@@ -92,7 +74,11 @@ export function useHome() {
   return {
     stories,
     loading,
-    error,
+    error: error
+      ? error instanceof Error
+        ? error.message
+        : "Something went wrong"
+      : null,
     hasSearched,
     showUserMenu,
     setShowUserMenu,
