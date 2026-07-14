@@ -1,5 +1,5 @@
 import { useHome } from "../hooks/useHome.ts"
-import { Canvas, StoryCard, CommandBar, TopBar } from "@weric/ui"
+import { Canvas, StoryCard, CommandBar, TopBar, JobStatusCard } from "@weric/ui"
 
 const loadingContainer: React.CSSProperties = {
   position: "fixed",
@@ -68,6 +68,9 @@ export default function Home() {
     handleExpand,
     handleBookmark,
     handleSignOut,
+    jobStatus,
+    showJobCard,
+    handleDismissJobCard,
   } = useHome()
 
   const topBarActions = (
@@ -322,6 +325,14 @@ export default function Home() {
           <div style={emptySubtitle}>{error}</div>
         </div>
       )}
+      <JobStatusCard
+        visible={showJobCard}
+        progress={jobStatus.progress}
+        message={jobStatus.message}
+        stories={jobStatus.stories}
+        status={jobStatus.status}
+        onDismiss={handleDismissJobCard}
+      />
       <CommandBar onSearch={handleSearch} />
     </>
   )

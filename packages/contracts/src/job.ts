@@ -2,6 +2,7 @@ import { z } from "zod"
 
 export const JobType = z.enum([
   "discover_stories",
+  "search_discover",
   "refresh_story",
   "rebuild_recommendations",
   "cleanup_evidence",

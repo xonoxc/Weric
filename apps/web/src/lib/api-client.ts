@@ -1,4 +1,4 @@
-import type { StoryCardData } from "@weric/ui"
+import type { StoryCardData, SseDiscoveredStory } from "@weric/ui"
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "/api"
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true"
@@ -69,6 +69,23 @@ interface SearchResponse {
     storyTotal: number
     evidenceTotal: number
   }
+  jobId: string | null
+}
+
+export interface SseProgressEvent {
+  progress: number
+  message: string
+  stories?: SseDiscoveredStory[]
+}
+
+export interface SseStatusEvent {
+  status: "pending" | "running" | "completed" | "failed"
+}
+
+export type SseEventCallback = {
+  onProgress: (data: SseProgressEvent) => void
+  onStatus: (data: SseStatusEvent) => void
+  onError: (error: string) => void
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -172,11 +189,16 @@ export async function fetchFeed(
   _page = 1,
   _limit = 20
 ): Promise<StoryCardData[]> {
-  if (USE_MOCK) return mockStories()
+  console.log("[api] fetchFeed called", { _page, _limit, USE_MOCK })
+  if (USE_MOCK) {
+    const data = mockStories()
+    console.log("[api] fetchFeed mock result", data.length, "stories")
+    return data
+  }
   const data = await request<FeedResponse>(
     `/feed?page=${_page}&limit=${_limit}`
   )
-  return data.data.map(item => ({
+  const mapped = data.data.map(item => ({
     id: item.story.id,
     title: item.story.title,
     summary: item.story.summary ?? undefined,
@@ -185,21 +207,28 @@ export async function fetchFeed(
     updatedAt: item.story.updatedAt,
     reason: item.reason,
   }))
+  console.log("[api] fetchFeed result", mapped.length, "stories")
+  return mapped
 }
 
-export async function searchStories(query: string): Promise<StoryCardData[]> {
+export async function searchStories(
+  query: string
+): Promise<{ stories: StoryCardData[]; jobId: string | null }> {
+  console.log("[api] searchStories called", { query, USE_MOCK })
   if (USE_MOCK) {
     const q = query.toLowerCase()
-    return mockStories().filter(
+    const results = mockStories().filter(
       s =>
         s.title.toLowerCase().includes(q) ||
         s.summary?.toLowerCase().includes(q)
     )
+    console.log("[api] searchStories mock result", results.length, "stories")
+    return { stories: results, jobId: null }
   }
   const data = await request<SearchResponse>(
     `/search?q=${encodeURIComponent(query)}`
   )
-  return data.stories.map(s => ({
+  const mapped = data.stories.map(s => ({
     id: s.id,
     title: s.title,
     summary: s.summary ?? undefined,
@@ -207,6 +236,32 @@ export async function searchStories(query: string): Promise<StoryCardData[]> {
     evidenceCount: s.evidenceCount,
     updatedAt: s.updatedAt,
   }))
+  console.log("[api] searchStories result", mapped.length, "stories", data.meta)
+  return { stories: mapped, jobId: data.jobId }
+}
+
+export function listenForJobEvents(
+  jobId: string,
+  callbacks: SseEventCallback
+): () => void {
+  const es = new EventSource(`${BASE_URL}/events?jobId=${jobId}`)
+
+  es.addEventListener("progress", (e: MessageEvent) => {
+    const data: SseProgressEvent = JSON.parse(e.data)
+    callbacks.onProgress(data)
+  })
+
+  es.addEventListener("status", (e: MessageEvent) => {
+    const data: SseStatusEvent = JSON.parse(e.data)
+    callbacks.onStatus(data)
+  })
+
+  es.addEventListener("error", () => {
+    callbacks.onError("SSE connection lost")
+    es.close()
+  })
+
+  return () => es.close()
 }
 
 export async function createInteraction(storyId: string, type: string) {

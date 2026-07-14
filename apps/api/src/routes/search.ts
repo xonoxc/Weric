@@ -1,14 +1,20 @@
 import { Hono } from "hono"
 import { Effect } from "effect"
-import { StoryRepository, EvidenceRepository } from "@weric/database"
+import {
+  StoryRepository,
+  EvidenceRepository,
+  JobRepository,
+} from "@weric/database"
 import type { StoryWithEvidenceCount, EvidenceSearchRow } from "@weric/database"
 import type { Db } from "@weric/database"
 import type { ApiVariables } from "../index.ts"
+import { jobBus } from "../lib/job-bus.ts"
 
 export function createSearchRoutes(db: Db) {
   const router = new Hono<{ Variables: ApiVariables }>()
   const storyRepo = new StoryRepository(db)
   const evidenceRepo = new EvidenceRepository(db)
+  const jobRepo = new JobRepository(db)
 
   router.get("/", async c => {
     const query = c.req.query("q")
@@ -45,6 +51,26 @@ export function createSearchRoutes(db: Db) {
       )
     }
 
+    let jobId: string | null = null
+
+    try {
+      const job = await Effect.runPromise(
+        jobRepo.create({
+          type: "search_discover",
+          payload: { query: query.trim() },
+        })
+      )
+      jobId = job.id
+
+      jobBus.sendJobToWorker({
+        id: job.id,
+        type: job.type,
+        payload: job.payload,
+      })
+    } catch {
+      // Job creation failure is non-fatal — results still return
+    }
+
     return c.json({
       stories: storyResult?.data ?? [],
       evidence: (evidenceResult?.data ?? []).map(e => ({
@@ -57,6 +83,7 @@ export function createSearchRoutes(db: Db) {
         storyTotal: storyResult?.total ?? 0,
         evidenceTotal: evidenceResult?.total ?? 0,
       },
+      jobId,
     })
   })
 

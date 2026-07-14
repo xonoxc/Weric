@@ -72,10 +72,45 @@ export class BrowserService {
     })
   }
 
-  searchWeb(_query: string): Effect.Effect<SearchResult[], BrowserError> {
-    // TODO: Implement search via SerpAPI, Google Custom Search, or Bing API
-    // Requires API key configuration in @weric/config
-    return Effect.succeed([])
+  searchWeb(query: string): Effect.Effect<SearchResult[], BrowserError> {
+    return Effect.tryPromise({
+      try: async () => {
+        const url = `https://hn.algolia.com/api/v1/search?query=${encodeURIComponent(query)}&hitsPerPage=10&tags=story`
+        const res = await fetch(url, {
+          headers: {
+            "User-Agent":
+              this.options.userAgent ??
+              "Mozilla/5.0 (compatible; Weric/0.1; +https://weric.ai)",
+          },
+        })
+        if (!res.ok) {
+          throw new Error(`HN search returned ${res.status}`)
+        }
+        const body = (await res.json()) as {
+          hits: Array<{
+            title: string
+            url: string | null
+            story_url: string | null
+            objectID: string
+          }>
+        }
+        return body.hits
+          .filter(h => h.title)
+          .map(h => ({
+            title: h.title,
+            url:
+              h.url ??
+              h.story_url ??
+              `https://news.ycombinator.com/item?id=${h.objectID}`,
+            snippet: h.title,
+          }))
+      },
+      catch: cause =>
+        new FetchError({
+          url: `hn.algolia.com/search?q=${query}`,
+          message: cause instanceof Error ? cause.message : String(cause),
+        }),
+    })
   }
 
   extractContent(

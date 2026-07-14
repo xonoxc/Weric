@@ -75,4 +75,37 @@ export class JobRepository {
       catch: cause => new ConnectionError(cause),
     })
   }
+
+  findById(
+    id: string
+  ): Effect.Effect<typeof jobs.$inferSelect | null, RepositoryError> {
+    return Effect.tryPromise({
+      try: async () => {
+        const [row] = await this.db
+          .select()
+          .from(jobs)
+          .where(eq(jobs.id, id))
+          .limit(1)
+        return row ?? null
+      },
+      catch: cause => new ConnectionError(cause),
+    })
+  }
+
+  updatePayload(
+    id: string,
+    payload: Record<string, unknown>
+  ): Effect.Effect<void, RepositoryError> {
+    return Effect.tryPromise({
+      try: async () => {
+        await this.db
+          .update(jobs)
+          .set({
+            payload: sql`${jobs.payload}::jsonb || ${JSON.stringify(payload)}::jsonb`,
+          })
+          .where(eq(jobs.id, id))
+      },
+      catch: cause => new ConnectionError(cause),
+    })
+  }
 }

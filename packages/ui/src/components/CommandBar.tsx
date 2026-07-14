@@ -132,6 +132,7 @@ export function CommandBar({
       const text = q ?? query
       const value = [tagStr, text].filter(Boolean).join(" ")
       if (value.trim()) {
+        console.log("[CommandBar] submit", value.trim())
         onSearch?.(value.trim())
         setQuery("")
         setTags([])
