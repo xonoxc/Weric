@@ -70,6 +70,53 @@ interface SearchResponse {
     evidenceTotal: number
   }
   jobId: string | null
+  chatId: string | null
+}
+
+export interface ChatListRow {
+  id: string
+  title: string
+  query: string | null
+  storyCount: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ChatDetail {
+  id: string
+  title: string
+  query: string | null
+  createdAt: string
+  updatedAt: string
+  stories: StoryCardData[]
+}
+
+export interface StoryDetailEvidence {
+  id: string
+  source: string
+  url: string
+  author: string | null
+  title: string
+  publishedAt: string | null
+}
+
+export interface StoryDetailEntity {
+  id: string
+  name: string
+  type: string
+}
+
+export interface StoryDetail {
+  id: string
+  title: string
+  slug: string
+  summary: string | null
+  confidence: number | null
+  status: string
+  createdAt: string
+  updatedAt: string
+  evidence: StoryDetailEvidence[]
+  entities: StoryDetailEntity[]
 }
 
 export interface SseProgressEvent {
@@ -198,6 +245,7 @@ export async function fetchFeed(
   const mapped = data.data.map(item => ({
     id: item.story.id,
     title: item.story.title,
+    slug: item.story.slug,
     summary: item.story.summary ?? undefined,
     confidence: item.story.confidence,
     evidenceCount: item.story.evidenceCount,
@@ -209,7 +257,11 @@ export async function fetchFeed(
 
 export async function searchStories(
   query: string
-): Promise<{ stories: StoryCardData[]; jobId: string | null }> {
+): Promise<{
+  stories: StoryCardData[]
+  jobId: string | null
+  chatId: string | null
+}> {
   if (USE_MOCK) {
     const q = query.toLowerCase()
     const results = mockStories().filter(
@@ -217,7 +269,7 @@ export async function searchStories(
         s.title.toLowerCase().includes(q) ||
         s.summary?.toLowerCase().includes(q)
     )
-    return { stories: results, jobId: null }
+    return { stories: results, jobId: null, chatId: null }
   }
   const data = await request<SearchResponse>(
     `/search?q=${encodeURIComponent(query)}`
@@ -225,12 +277,55 @@ export async function searchStories(
   const mapped = data.stories.map(s => ({
     id: s.id,
     title: s.title,
+    slug: s.slug,
     summary: s.summary ?? undefined,
     confidence: s.confidence,
     evidenceCount: s.evidenceCount,
     updatedAt: s.updatedAt,
   }))
-  return { stories: mapped, jobId: data.jobId }
+  return { stories: mapped, jobId: data.jobId, chatId: data.chatId }
+}
+
+export async function fetchChats(): Promise<ChatListRow[]> {
+  if (USE_MOCK) return []
+  const data = await request<{ data: ChatListRow[] }>(`/chats`)
+  return data.data
+}
+
+export async function fetchChatDetail(chatId: string): Promise<ChatDetail> {
+  if (USE_MOCK)
+    return {
+      id: chatId,
+      title: "Chat",
+      query: null,
+      createdAt: "",
+      updatedAt: "",
+      stories: [],
+    }
+  return request<ChatDetail>(`/chats/${encodeURIComponent(chatId)}`)
+}
+
+export async function deleteChat(chatId: string): Promise<void> {
+  await request(`/chats/${encodeURIComponent(chatId)}`, { method: "DELETE" })
+}
+
+export async function fetchStoryDetail(slug: string): Promise<StoryDetail> {
+  if (USE_MOCK) {
+    const story = mockStories().find(s => s.slug === slug)
+    return {
+      id: story?.id ?? slug,
+      title: story?.title ?? "Story",
+      slug,
+      summary: story?.summary ?? null,
+      confidence: story?.confidence ?? 0,
+      status: "draft",
+      createdAt: "",
+      updatedAt: story?.updatedAt ?? "",
+      evidence: [],
+      entities: [],
+    }
+  }
+  return request<StoryDetail>(`/stories/${encodeURIComponent(slug)}`)
 }
 
 export async function fetchJobStatus(

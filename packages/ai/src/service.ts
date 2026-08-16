@@ -20,7 +20,9 @@ export class AIService {
 
   summarize(
     content: string,
-    options?: TextGenerationOptions & { maxLength?: number }
+    options?: TextGenerationOptions & {
+      maxLength?: number
+    }
   ): Effect.Effect<Summary, AIError> {
     const lengthInstruction = options?.maxLength
       ? `Keep the summary under ${options.maxLength} characters.`

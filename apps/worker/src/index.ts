@@ -6,6 +6,7 @@ import {
   InteractionRepository,
   UserRepository,
   JobRepository,
+  ChatRepository,
 } from "@weric/database"
 import { BrowserService } from "@weric/browser"
 import { AIService, groqProvider } from "@weric/ai"
@@ -27,6 +28,7 @@ function buildRuntime(db: Db) {
   const interactionRepo = new InteractionRepository(db)
   const userRepo = new UserRepository(db)
   const jobRepo = new JobRepository(db)
+  const chatRepo = new ChatRepository(db)
   const browser = new BrowserService()
   const ai = new AIService(groqProvider)
   const apiUrl = process.env.API_URL ?? "http://localhost:3000"
@@ -47,7 +49,14 @@ function buildRuntime(db: Db) {
         userRepo
       ),
       createDiscoverStoriesHandler(storyRepo, evidenceRepo, browser, ai),
-      createSearchDiscoverHandler(storyRepo, evidenceRepo, browser, ai, apiUrl),
+      createSearchDiscoverHandler(
+        storyRepo,
+        evidenceRepo,
+        chatRepo,
+        browser,
+        ai,
+        apiUrl
+      ),
       createRefreshStoryHandler(storyRepo, evidenceRepo, browser),
       createRecomputeScoresHandler(
         storyRepo,

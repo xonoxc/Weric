@@ -1,5 +1,9 @@
 import { Effect } from "effect"
-import { StoryRepository, EvidenceRepository } from "@weric/database"
+import {
+  StoryRepository,
+  EvidenceRepository,
+  ChatRepository,
+} from "@weric/database"
 import { BrowserService } from "@weric/browser"
 import { AIService } from "@weric/ai"
 
@@ -25,6 +29,7 @@ function describeError(error: unknown): string {
 export function createSearchDiscoverHandler(
   storyRepo: StoryRepository,
   evidenceRepo: EvidenceRepository,
+  chatRepo: ChatRepository,
   browser: BrowserService,
   ai: AIService,
   apiUrl: string
@@ -50,6 +55,8 @@ export function createSearchDiscoverHandler(
           new Error("search_discover requires a 'query' in payload")
         )
       }
+
+      const chatId = payload.chatId as string | undefined
 
       postProgress(jobId, {
         progress: 0.05,
@@ -137,12 +144,16 @@ export function createSearchDiscoverHandler(
               publishedAt: null,
             })
             .pipe(
-              Effect.catchAll(error => {
-                failures.push(
-                  `create evidence ${result.url}: ${describeError(error)}`
+              Effect.catchAll(error =>
+                evidenceRepo.findByUrl(result.url).pipe(
+                  Effect.catchAll(() => {
+                    failures.push(
+                      `create evidence ${result.url}: ${describeError(error)}`
+                    )
+                    return Effect.succeed(null)
+                  })
                 )
-                return Effect.succeed(null)
-              })
+              )
             )
 
           if (!evidence) continue
@@ -163,6 +174,17 @@ export function createSearchDiscoverHandler(
                 return Effect.void
               })
             )
+
+            if (chatId) {
+              yield* chatRepo.addStory(chatId, existing.id).pipe(
+                Effect.catchAll(error => {
+                  failures.push(
+                    `link chat ${chatId} to story "${slug}": ${describeError(error)}`
+                  )
+                  return Effect.void
+                })
+              )
+            }
 
             succeeded++
             postProgress(jobId, {
@@ -187,6 +209,17 @@ export function createSearchDiscoverHandler(
               )
 
             if (created) {
+              if (chatId) {
+                yield* chatRepo.addStory(chatId, created.id).pipe(
+                  Effect.catchAll(error => {
+                    failures.push(
+                      `link chat ${chatId} to story "${slug}": ${describeError(error)}`
+                    )
+                    return Effect.void
+                  })
+                )
+              }
+
               succeeded++
               postProgress(jobId, {
                 progress: stepProgress,

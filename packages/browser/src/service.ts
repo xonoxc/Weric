@@ -25,52 +25,66 @@ export class BrowserService {
   ) {}
 
   fetchUrl(url: string): Effect.Effect<FetchedPage, BrowserError> {
-    return Effect.tryPromise({
-      try: async () => {
+    return Effect.acquireUseRelease(
+      Effect.sync(() => {
         const controller = new AbortController()
+
         const timeout = setTimeout(
           () => controller.abort(),
           this.options.timeout ?? 15_000
         )
 
-        try {
-          const res = await fetch(url, {
-            signal: controller.signal,
-            headers: {
-              "User-Agent":
-                this.options.userAgent ??
-                "Mozilla/5.0 (compatible; Weric/0.1; +https://weric.ai)",
-            },
-          })
-
-          if (!res.ok) {
-            throw new FetchError({
-              url,
-              status: res.status,
-              message: `HTTP ${res.status}: ${res.statusText}`,
+        return { controller, timeout }
+      }),
+      ({ controller }) =>
+        Effect.tryPromise({
+          try: async () => {
+            const res = await fetch(url, {
+              signal: controller.signal,
+              headers: {
+                "User-Agent":
+                  this.options.userAgent ??
+                  "Mozilla/5.0 (compatible; Weric/0.1; +https://weric.ai)",
+              },
             })
-          }
 
-          const html = await res.text()
-          const title = this.extractTitle(html)
-          const text = this.extractText(html)
+            if (!res.ok) {
+              throw new FetchError({
+                url,
+                status: res.status,
+                message: `HTTP ${res.status}: ${res.statusText}`,
+              })
+            }
 
-          return { url, title, text, html }
-        } finally {
-          clearTimeout(timeout)
-        }
-      },
-      catch: cause => {
-        if (cause instanceof FetchError) return cause
-        if (cause instanceof Error && cause.name === "AbortError") {
-          return new FetchError({ url, message: "Request timed out" })
-        }
-        return new FetchError({
-          url,
-          message: cause instanceof Error ? cause.message : String(cause),
-        })
-      },
-    })
+            const html = await res.text()
+
+            return {
+              url,
+              title: this.extractTitle(html),
+              text: this.extractText(html),
+              html,
+            }
+          },
+
+          catch: cause => {
+            if (cause instanceof FetchError) return cause
+
+            if (cause instanceof Error && cause.name === "AbortError") {
+              return new FetchError({
+                url,
+                message: "Request timed out",
+              })
+            }
+
+            return new FetchError({
+              url,
+              message: cause instanceof Error ? cause.message : String(cause),
+            })
+          },
+        }),
+
+      ({ timeout }) => Effect.sync(() => clearTimeout(timeout))
+    )
   }
 
   searchWeb(query: string): Effect.Effect<SearchResult[], BrowserError> {

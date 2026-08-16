@@ -9,6 +9,7 @@ import { createHealthRoutes } from "./routes/health.ts"
 import { createStoriesRoutes } from "./routes/stories.ts"
 import { createFeedRoutes } from "./routes/feed.ts"
 import { createSearchRoutes } from "./routes/search.ts"
+import { createChatRoutes } from "./routes/chats.ts"
 import { createInteractionsRoutes } from "./routes/interactions.ts"
 import { createBookmarksRoutes } from "./routes/bookmarks.ts"
 import { createInterestsRoutes } from "./routes/interests.ts"
@@ -40,6 +41,7 @@ app.route("/health", createHealthRoutes())
 app.route("/api/stories", createStoriesRoutes(db))
 app.route("/api/feed", createFeedRoutes(db))
 app.route("/api/search", createSearchRoutes(db))
+app.route("/api/chats", createChatRoutes(db))
 app.route("/api/interactions", createInteractionsRoutes(db))
 app.route("/api/bookmarks", createBookmarksRoutes(db))
 app.route("/api/interests", createInterestsRoutes(db))

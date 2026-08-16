@@ -16,7 +16,12 @@ export function createCleanupEvidenceHandler(
       return Effect.gen(function* () {
         const { data: allEvidence } = yield* Effect.tryPromise({
           try: () =>
-            Effect.runPromise(evidenceRepo.findMany({ page: 1, limit: 1000 })),
+            Effect.runPromise(
+              evidenceRepo.findMany({
+                page: 1,
+                limit: 1000,
+              })
+            ),
           catch: (cause: unknown) =>
             new Error(`Failed to fetch evidence: ${cause}`),
         })

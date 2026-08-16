@@ -3,6 +3,7 @@ import { useState, useCallback } from "react"
 export interface StoryCardData {
   id: string
   title: string
+  slug?: string
   summary?: string
   confidence: number
   evidenceCount: number
@@ -14,7 +15,7 @@ export interface StoryCardData {
 interface StoryCardProps {
   story: StoryCardData
   style?: React.CSSProperties
-  onExpand?: (id: string) => void
+  onExpand?: (story: StoryCardData) => void
   onBookmark?: (id: string) => Promise<boolean | void>
   isBookmarked?: boolean
 }
@@ -136,8 +137,8 @@ export function StoryCard({
   const [isBookmarked, setIsBookmarked] = useState(initialBookmarked)
 
   const handleClick = useCallback(() => {
-    onExpand?.(story.id)
-  }, [story.id, onExpand])
+    onExpand?.(story)
+  }, [story, onExpand])
 
   const handleBookmark = useCallback(
     (e: React.MouseEvent) => {

@@ -4,10 +4,12 @@ import {
   StoryRepository,
   EvidenceRepository,
   JobRepository,
+  ChatRepository,
 } from "@weric/database"
 import { z } from "zod"
 import { jobBus } from "~api/lib/job-bus.ts"
 import { PaginationQuery } from "~api/lib/validation.ts"
+import { defaultChatTitle } from "./chats.ts"
 
 import type { StoryWithEvidenceCount, EvidenceSearchRow } from "@weric/database"
 import type { Db } from "@weric/database"
@@ -16,6 +18,7 @@ import type { ApiVariables } from "~api/app.ts"
 const SearchQuery = PaginationQuery(100).extend({
   q: z.string().trim().min(1, "Query parameter 'q' is required"),
   type: z.enum(["all", "stories", "evidence"]).default("all"),
+  chatId: z.string().optional(),
 })
 
 const SearchResponse = z.object({
@@ -28,6 +31,7 @@ const SearchResponse = z.object({
     evidenceTotal: z.number().default(0),
   }),
   jobId: z.string().nullable().default(null),
+  chatId: z.string().nullable().default(null),
 })
 
 export function createSearchRoutes(db: Db) {
@@ -35,9 +39,10 @@ export function createSearchRoutes(db: Db) {
   const storyRepo = new StoryRepository(db)
   const evidenceRepo = new EvidenceRepository(db)
   const jobRepo = new JobRepository(db)
+  const chatRepo = new ChatRepository(db)
 
   router.get("/", async c => {
-    const { q, type, page, limit } = SearchQuery.parse(c.req.query())
+    const { q, type, page, limit, chatId } = SearchQuery.parse(c.req.query())
 
     let storyResult: { data: StoryWithEvidenceCount[]; total: number } | null =
       null
@@ -56,13 +61,36 @@ export function createSearchRoutes(db: Db) {
       )
     }
 
+    const user = c.get("user")
+
+    // Resolve the chat this search belongs to. A search always happens inside
+    // a chat (session) so results persist and can be revisited later.
+    let resolvedChatId: string | null = null
+    try {
+      if (chatId) {
+        const chat = await Effect.runPromise(chatRepo.findById(chatId))
+        if (chat) resolvedChatId = chat.id
+      } else {
+        const chat = await Effect.runPromise(
+          chatRepo.create({
+            title: defaultChatTitle(),
+            query: q,
+            userId: user?.id ?? null,
+          })
+        )
+        resolvedChatId = chat.id
+      }
+    } catch {
+      // Chat resolution is non-fatal — results still return
+    }
+
     let jobId: string | null = null
 
     try {
       const job = await Effect.runPromise(
         jobRepo.create({
           type: "search_discover",
-          payload: { query: q },
+          payload: { query: q, chatId: resolvedChatId },
         })
       )
       jobId = job.id
@@ -90,6 +118,7 @@ export function createSearchRoutes(db: Db) {
           evidenceTotal: evidenceResult?.total,
         },
         jobId,
+        chatId: resolvedChatId,
       })
     )
   })

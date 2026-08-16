@@ -26,7 +26,10 @@ export function createFeedRoutes(db: Db) {
     const { page, limit } = FeedQuery.parse(c.req.query())
 
     const feed = await Effect.runPromise(
-      recommendationService.generateFeed(user.id, { page, limit })
+      recommendationService.generateFeed(user.id, {
+        page,
+        limit,
+      })
     )
 
     return c.json(feed)

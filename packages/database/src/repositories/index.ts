@@ -16,6 +16,8 @@ export type { BookmarkWithStory } from "./bookmark.repository.ts"
 export { JobRepository } from "./job.repository.ts"
 export { InterestRepository } from "./interest.repository.ts"
 export type { InterestRow } from "./interest.repository.ts"
+export { ChatRepository } from "./chat.repository.ts"
+export type { ChatListRow, ChatDetail } from "./chat.repository.ts"
 export { NotFoundError, ConflictError, ConnectionError } from "./errors.ts"
 export type { RepositoryError } from "./errors.ts"
 export {

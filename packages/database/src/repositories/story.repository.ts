@@ -109,7 +109,10 @@ export class StoryRepository {
   ): Effect.Effect<void, RepositoryError> {
     return Effect.tryPromise({
       try: async () => {
-        await this.db.insert(storyEvidence).values({ storyId, evidenceId })
+        await this.db
+          .insert(storyEvidence)
+          .values({ storyId, evidenceId })
+          .onConflictDoNothing()
       },
       catch: cause => new ConnectionError(cause),
     })

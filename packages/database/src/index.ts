@@ -16,6 +16,7 @@ export {
   NotFoundError,
   ConflictError,
   ConnectionError,
+  ChatRepository,
   StoryRepo,
   EvidenceRepo,
   EntityRepo,
@@ -36,5 +37,7 @@ export type {
   InteractionAggregate,
   BookmarkWithStory,
   InterestRow,
+  ChatListRow,
+  ChatDetail,
   RepositoryError,
 } from "./repositories/index.ts"

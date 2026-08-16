@@ -305,3 +305,40 @@ export const jobs = pgTable(
     index("idx_jobs_scheduled_at").on(table.scheduledAt),
   ]
 )
+
+export const chats = pgTable(
+  "chats",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    title: text("title").notNull(),
+    query: text("query"),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  table => [
+    index("idx_chats_user_id").on(table.userId),
+    index("idx_chats_updated_at").on(table.updatedAt),
+  ]
+)
+
+export const chatStories = pgTable(
+  "chat_stories",
+  {
+    chatId: uuid("chat_id")
+      .notNull()
+      .references(() => chats.id, { onDelete: "cascade" }),
+    storyId: uuid("story_id")
+      .notNull()
+      .references(() => stories.id, { onDelete: "cascade" }),
+  },
+  table => [
+    primaryKey({ columns: [table.chatId, table.storyId] }),
+    index("idx_chat_stories_chat_id").on(table.chatId),
+    index("idx_chat_stories_story_id").on(table.storyId),
+  ]
+)

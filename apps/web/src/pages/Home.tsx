@@ -1,5 +1,7 @@
 import { useHome } from "~web/hooks/useHome.ts"
 import { Canvas, StoryCard, CommandBar, TopBar, JobStatusCard } from "@weric/ui"
+import { ChatSidebar } from "~web/components/ChatSidebar.tsx"
+import { StoryDetailPanel } from "~web/components/StoryDetailPanel.tsx"
 
 const loadingContainer: React.CSSProperties = {
   position: "fixed",
@@ -71,6 +73,13 @@ export default function Home() {
     jobStatus,
     showJobCard,
     handleDismissJobCard,
+    chats,
+    selectedChatId,
+    handleSelectChat,
+    handleNewChat,
+    handleDeleteChat,
+    selectedStory,
+    handleCloseDetail,
   } = useHome()
 
   const topBarActions = (
@@ -332,8 +341,16 @@ export default function Home() {
         stories={jobStatus.stories}
         status={jobStatus.status}
         onDismiss={handleDismissJobCard}
-        onStoryClick={s => handleExpand(s.id)}
+        onStoryClick={s => handleExpand(s)}
       />
+      <ChatSidebar
+        chats={chats}
+        selectedId={selectedChatId}
+        onSelect={handleSelectChat}
+        onNewChat={handleNewChat}
+        onDelete={handleDeleteChat}
+      />
+      <StoryDetailPanel story={selectedStory} onClose={handleCloseDetail} />
       <CommandBar onSearch={handleSearch} />
     </>
   )
