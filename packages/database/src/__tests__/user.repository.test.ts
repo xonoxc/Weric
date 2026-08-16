@@ -1,6 +1,9 @@
 import { describe, expect, it, beforeEach } from "vitest"
 import { Effect } from "effect"
-import { UserRepository } from "~db/repositories/user.repository.ts"
+import {
+  UserRepository,
+  UserRepositoryLive,
+} from "~db/repositories/user.repository.ts"
 import { getTestDb, cleanDatabase } from "~db/__tests__/helpers.ts"
 import { users } from "~db/schema/tables.ts"
 
@@ -15,7 +18,11 @@ describe("UserRepository", () => {
   beforeEach(async () => {
     await cleanDatabase()
     db = getTestDb()
-    repo = new UserRepository(db)
+    repo = Effect.runSync(
+      Effect.gen(function* () {
+        return yield* UserRepository
+      }).pipe(Effect.provide(UserRepositoryLive(db)))
+    )
   })
 
   async function createTestUser(

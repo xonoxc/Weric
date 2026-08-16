@@ -5,14 +5,18 @@ export * as schema from "./schema/tables.ts"
 export { DrizzleDB, DatabaseLiveLayer, DatabaseTestLayer } from "./layer.ts"
 export {
   StoryRepository,
+  StoryRepositoryLive,
   EvidenceRepository,
   EntityRepository,
   RelationshipRepository,
   UserRepository,
+  UserRepositoryLive,
   InteractionRepository,
+  InteractionRepositoryLive,
   BookmarkRepository,
   JobRepository,
   InterestRepository,
+  InterestRepositoryLive,
   NotFoundError,
   ConflictError,
   ConnectionError,

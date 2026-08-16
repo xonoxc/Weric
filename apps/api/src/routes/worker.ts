@@ -45,7 +45,11 @@ export function createWorkerRoutes(jobRepo: JobRepository) {
       if (pendingJobs.length > 0) {
         writer.send(
           "init",
-          pendingJobs.map(j => ({ id: j.id, type: j.type, payload: j.payload }))
+          pendingJobs.map(j => ({
+            id: j.id,
+            type: j.type,
+            payload: j.payload,
+          }))
         )
       }
 

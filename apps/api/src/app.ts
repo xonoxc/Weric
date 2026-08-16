@@ -13,6 +13,7 @@ import { createChatRoutes } from "./routes/chats.ts"
 import { createInteractionsRoutes } from "./routes/interactions.ts"
 import { createBookmarksRoutes } from "./routes/bookmarks.ts"
 import { createInterestsRoutes } from "./routes/interests.ts"
+import { createProfileRoutes } from "./routes/profile.ts"
 import { createEventsRoutes } from "./routes/events.ts"
 import { createWorkerRoutes } from "./routes/worker.ts"
 
@@ -45,6 +46,7 @@ app.route("/api/chats", createChatRoutes(db))
 app.route("/api/interactions", createInteractionsRoutes(db))
 app.route("/api/bookmarks", createBookmarksRoutes(db))
 app.route("/api/interests", createInterestsRoutes(db))
+app.route("/api/profile", createProfileRoutes(db))
 app.route("/api", createEventsRoutes(new JobRepository(db)))
 app.route("/internal", createWorkerRoutes(new JobRepository(db)))
 

@@ -1,6 +1,8 @@
-import { describe, expect, it } from "vitest"
-import { StoryScorer } from "~rec/scorer.ts"
+import { describe, expect, it, beforeAll } from "vitest"
+import { Effect } from "effect"
+import { StoryScorer, StoryScorerLive } from "~rec/scorer.ts"
 
+import type { StoryScorer as StoryScorerType } from "~rec/scorer.ts"
 import type { StoryWithEvidenceCount, InterestRow } from "@weric/database"
 
 function makeStory(
@@ -31,7 +33,15 @@ function makeInterest(topic: string, score = 0.8): InterestRow {
 }
 
 describe("StoryScorer", () => {
-  const scorer = new StoryScorer()
+  let scorer: StoryScorerType
+
+  beforeAll(async () => {
+    scorer = (await Effect.runPromise(
+      Effect.gen(function* () {
+        return yield* StoryScorer
+      }).pipe(Effect.provide(StoryScorerLive))
+    )) as never
+  })
 
   describe("computeFreshness", () => {
     it("gives max freshness for story created moments ago", () => {

@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "idx_interests_user_topic" ON "interests" USING btree ("user_id","topic");

@@ -6,7 +6,7 @@ export interface JobHandler {
   handle: (
     payload: Record<string, unknown>,
     jobId: string
-  ) => Effect.Effect<void, Error>
+  ) => Effect.Effect<void, unknown>
 }
 
 interface PendingJob {

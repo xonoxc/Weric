@@ -66,7 +66,7 @@ export function createSearchDiscoverHandler(
       return Effect.gen(function* () {
         postProgress(jobId, {
           progress: 0.1,
-          message: "Searching Hacker News...",
+          message: "Searching the web...",
         })
 
         const results = yield* browser
@@ -125,7 +125,7 @@ export function createSearchDiscoverHandler(
             })
           )
 
-          if (!summary) continue
+          const storySummary = summary?.summary ?? page.text.slice(0, 500)
 
           const slug = page.title
             .toLowerCase()
@@ -196,7 +196,7 @@ export function createSearchDiscoverHandler(
               .create({
                 title: page.title,
                 slug,
-                summary: summary?.summary ?? page.text.slice(0, 500),
+                summary: storySummary,
                 evidenceIds: [evidence.id],
               })
               .pipe(

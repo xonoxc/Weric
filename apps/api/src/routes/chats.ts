@@ -33,7 +33,9 @@ export function createChatRoutes(db: Db) {
 
     return c.json({
       data,
-      meta: { total: data.length },
+      meta: {
+        total: data.length,
+      },
     })
   })
 
@@ -59,7 +61,12 @@ export function createChatRoutes(db: Db) {
     const chat = await Effect.runPromise(chatRepo.findById(id))
     if (!chat || chat.userId !== user.id) {
       return c.json(
-        { error: { code: "NOT_FOUND", message: "Chat not found" } },
+        {
+          error: {
+            code: "NOT_FOUND",
+            message: "Chat not found",
+          },
+        },
         404
       )
     }
@@ -75,7 +82,12 @@ export function createChatRoutes(db: Db) {
     const chat = await Effect.runPromise(chatRepo.findById(id))
     if (!chat || chat.userId !== user.id) {
       return c.json(
-        { error: { code: "NOT_FOUND", message: "Chat not found" } },
+        {
+          error: {
+            code: "NOT_FOUND",
+            message: "Chat not found",
+          },
+        },
         404
       )
     }

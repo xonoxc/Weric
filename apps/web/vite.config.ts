@@ -8,7 +8,13 @@ export default defineConfig({
       "~web": resolve(__dirname, "src"),
     },
   },
-  plugins: [react()],
+  plugins: [
+    react({
+      babel: {
+        plugins: [["babel-plugin-react-compiler", {}]],
+      },
+    }),
+  ],
   server: {
     proxy: {
       "/api": {

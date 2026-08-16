@@ -1,24 +1,30 @@
-import { Effect } from "effect"
+import { Effect, Layer } from "effect"
 import {
-  StoryRepository,
-  InterestRepository,
+  StoryRepositoryLive,
+  InterestRepositoryLive,
   InteractionRepository,
+  InteractionRepositoryLive,
   UserRepository,
+  UserRepositoryLive,
 } from "@weric/database"
-import { RecommendationService } from "@weric/recommendation"
+import {
+  RecommendationService,
+  RecommendationAuto,
+  InterestLearner,
+} from "@weric/recommendation"
 
+import type { Db } from "@weric/database"
 import type { JobHandler } from "~worker/runtime.ts"
 
-export function createLearnInterestsHandler(
-  storyRepo: StoryRepository,
-  interestRepo: InterestRepository,
-  interactionRepo: InteractionRepository,
-  userRepo: UserRepository
-): JobHandler {
-  const recommendationService = new RecommendationService(
-    storyRepo,
-    interestRepo,
-    interactionRepo
+export function createLearnInterestsHandler(db: Db): JobHandler {
+  const RecommendationLayer = Layer.provide(
+    RecommendationAuto,
+    Layer.mergeAll(
+      StoryRepositoryLive(db),
+      InterestRepositoryLive(db),
+      InteractionRepositoryLive(db),
+      UserRepositoryLive(db)
+    )
   )
 
   return {
@@ -27,20 +33,17 @@ export function createLearnInterestsHandler(
     handle(
       _payload: Record<string, unknown>,
       _jobId: string
-    ): Effect.Effect<void, Error> {
+    ): Effect.Effect<void, unknown> {
       return Effect.gen(function* () {
-        const users = yield* Effect.tryPromise({
-          try: () => Effect.runPromise(userRepo.findAll()),
-          catch: (cause: unknown) =>
-            new Error(`Failed to fetch users: ${String(cause)}`),
-        })
+        const interactionRepo = yield* InteractionRepository
+        const recommendationService = yield* RecommendationService
+        const interestLearner = yield* InterestLearner
+        const userRepo = yield* UserRepository
+
+        const users = yield* userRepo.findAll()
 
         for (const user of users) {
-          const interactions = yield* Effect.tryPromise({
-            try: () => Effect.runPromise(interactionRepo.findByUser(user.id)),
-            catch: (cause: unknown) =>
-              new Error(`Failed to fetch interactions: ${String(cause)}`),
-          })
+          const interactions = yield* interactionRepo.findByUser(user.id)
 
           const recentInteractions = interactions.filter(
             (i: { createdAt: Date }) => {
@@ -66,9 +69,9 @@ export function createLearnInterestsHandler(
             }
           }
 
-          yield* recommendationService.interestLearner.decayAll(user.id)
+          yield* interestLearner.decayAll(user.id)
         }
-      })
+      }).pipe(Effect.provide(RecommendationLayer)) as never
     },
   }
 }

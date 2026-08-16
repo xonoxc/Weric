@@ -1,10 +1,13 @@
 import { Hono } from "hono"
-import { Effect } from "effect"
-import { RecommendationService } from "@weric/recommendation"
+import { Effect, Layer } from "effect"
 import {
-  StoryRepository,
-  InterestRepository,
-  InteractionRepository,
+  RecommendationService,
+  RecommendationAuto,
+} from "@weric/recommendation"
+import {
+  StoryRepositoryLive,
+  InterestRepositoryLive,
+  InteractionRepositoryLive,
 } from "@weric/database"
 import { PaginationQuery, requireUser } from "~api/lib/validation.ts"
 
@@ -15,10 +18,14 @@ const FeedQuery = PaginationQuery(50)
 
 export function createFeedRoutes(db: Db) {
   const router = new Hono<{ Variables: ApiVariables }>()
-  const recommendationService = new RecommendationService(
-    new StoryRepository(db),
-    new InterestRepository(db),
-    new InteractionRepository(db)
+
+  const RecommendationLayer = Layer.provide(
+    RecommendationAuto,
+    Layer.mergeAll(
+      StoryRepositoryLive(db),
+      InterestRepositoryLive(db),
+      InteractionRepositoryLive(db)
+    )
   )
 
   router.get("/", async c => {
@@ -26,10 +33,13 @@ export function createFeedRoutes(db: Db) {
     const { page, limit } = FeedQuery.parse(c.req.query())
 
     const feed = await Effect.runPromise(
-      recommendationService.generateFeed(user.id, {
-        page,
-        limit,
-      })
+      Effect.gen(function* () {
+        const recommendationService = yield* RecommendationService
+        return yield* recommendationService.generateFeed(user.id, {
+          page,
+          limit,
+        })
+      }).pipe(Effect.provide(RecommendationLayer))
     )
 
     return c.json(feed)

@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from "react"
+import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import {
@@ -118,23 +118,20 @@ export function useHome() {
     }
   }, [jobStatus.status, selectedChatId, queryClient])
 
-  const handleSearch = useCallback(
-    (query: string) => {
-      setSearchQuery(query)
-      setJobId(null)
-      setJobCardDismissed(false)
-      setSelectedStory(null)
-      setActiveSearchChatId(null)
-      searchMutation.mutate(query)
-    },
-    [searchMutation]
-  )
+  const handleSearch = (query: string) => {
+    setSearchQuery(query)
+    setJobId(null)
+    setJobCardDismissed(false)
+    setSelectedStory(null)
+    setActiveSearchChatId(null)
+    searchMutation.mutate(query)
+  }
 
-  const handleSelectChat = useCallback((id: string) => {
+  const handleSelectChat = (id: string) => {
     setSelectedChatId(id)
     setJobCardDismissed(true)
     setSelectedStory(null)
-  }, [])
+  }
 
   useEffect(() => {
     if (selectedChatId && chatDetailQuery.isError) {
@@ -142,22 +139,19 @@ export function useHome() {
     }
   }, [selectedChatId, chatDetailQuery.isError])
 
-  const handleNewChat = useCallback(() => {
+  const handleNewChat = () => {
     setSelectedChatId(null)
     setActiveSearchChatId(null)
     setSearchQuery(null)
     setJobId(null)
     setSelectedStory(null)
-  }, [])
+  }
 
-  const handleDeleteChat = useCallback(
-    (id: string) => {
-      deleteChatMutation.mutate(id)
-    },
-    [deleteChatMutation]
-  )
+  const handleDeleteChat = (id: string) => {
+    deleteChatMutation.mutate(id)
+  }
 
-  const stories = useMemo(() => {
+  const stories = (() => {
     const all: StoryCardData[] = []
     const seen = new Set<string>()
 
@@ -206,18 +200,11 @@ export function useHome() {
     }
 
     return layoutStories(all)
-  }, [
-    selectedChatId,
-    activeSearchChatId,
-    chatDetailQuery.data,
-    searchMutation.data,
-    searchMutation.isSuccess,
-    jobStatus.stories,
-    feedQuery.data,
-  ])
+  })()
 
   const loading =
-    feedQuery.isLoading || chatDetailQuery.isLoading || searchMutation.isPending
+    (feedQuery.isLoading || chatDetailQuery.isLoading) &&
+    !searchMutation.isPending
   const error = feedQuery.error ?? chatDetailQuery.error ?? searchMutation.error
   const hasSearched = searchQuery !== null
   const showJobCard =
@@ -225,39 +212,36 @@ export function useHome() {
     !jobCardDismissed &&
     (jobStatus.active || jobStatus.status !== "idle")
 
-  const handleExpand = useCallback((story: ExpandableStory) => {
+  const handleExpand = (story: ExpandableStory) => {
     setSelectedStory(story)
     setJobCardDismissed(true)
-  }, [])
+  }
 
-  const handleCloseDetail = useCallback(() => {
+  const handleCloseDetail = () => {
     setSelectedStory(null)
-  }, [])
+  }
 
-  const handleBookmark = useCallback(
-    async (id: string) => {
-      if (!session) {
-        navigate("/login", { replace: true })
-        return
-      }
-      try {
-        await toggleBookmark(id)
-        return true
-      } catch {
-        return false
-      }
-    },
-    [session, navigate]
-  )
+  const handleBookmark = async (id: string) => {
+    if (!session) {
+      navigate("/login", { replace: true })
+      return
+    }
+    try {
+      await toggleBookmark(id)
+      return true
+    } catch {
+      return false
+    }
+  }
 
-  const handleSignOut = useCallback(async () => {
+  const handleSignOut = async () => {
     await signOut()
     navigate("/login", { replace: true })
-  }, [navigate])
+  }
 
-  const handleDismissJobCard = useCallback(() => {
+  const handleDismissJobCard = () => {
     setJobCardDismissed(true)
-  }, [])
+  }
 
   const userName = session?.user?.name ?? session?.user?.email ?? "User"
   const userInitial = userName.charAt(0).toUpperCase()

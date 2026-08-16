@@ -1,11 +1,6 @@
-import {
-  createContext,
-  useContext,
-  useCallback,
-  useEffect,
-  useState,
-} from "react"
-import type { ReactNode, CSSProperties, ReactElement } from "react"
+import * as React from "react"
+import { createContext, useContext, useEffect, useState } from "react"
+import type { ReactNode, CSSProperties } from "react"
 
 const SIDEBAR_WIDTH = 260
 const SIDEBAR_WIDTH_ICON = 56
@@ -47,17 +42,14 @@ export function SidebarProvider({
 
   const open = controlledOpen ?? internalOpen
 
-  const setOpen = useCallback(
-    (next: boolean) => {
-      setInternalOpen(next)
-      onOpenChange?.(next)
-    },
-    [onOpenChange]
-  )
+  const setOpen = (next: boolean) => {
+    setInternalOpen(next)
+    onOpenChange?.(next)
+  }
 
-  const toggleSidebar = useCallback(() => {
+  const toggleSidebar = () => {
     setOpen(!open)
-  }, [open, setOpen])
+  }
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -201,6 +193,15 @@ export function SidebarGroupLabel({ children }: { children: ReactNode }) {
   return <div style={groupLabelStyle}>{children}</div>
 }
 
+const groupContentStyle: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+}
+
+export function SidebarGroupContent({ children }: { children: ReactNode }) {
+  return <div style={groupContentStyle}>{children}</div>
+}
+
 const menuStyle: CSSProperties = {
   display: "flex",
   flexDirection: "column",
@@ -229,41 +230,54 @@ interface SidebarMenuButtonProps {
   children: ReactNode
   isActive?: boolean
   onClick?: () => void
+  /** Render children directly (e.g. an <a>) instead of wrapping in a button. */
+  asChild?: boolean
 }
 
 export function SidebarMenuButton({
   children,
   isActive = false,
   onClick,
+  asChild = false,
 }: SidebarMenuButtonProps) {
   const { state } = useSidebar()
   const collapsed = state === "collapsed"
+
+  const style: CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    gap: "var(--space-sm)",
+    width: "100%",
+    padding: collapsed ? "8px" : "8px var(--space-sm)",
+    borderRadius: "var(--radius-md)",
+    background: isActive ? "var(--color-surface-active)" : "transparent",
+    color: isActive
+      ? "var(--color-text-primary)"
+      : "var(--color-text-secondary)",
+    border: "1px solid",
+    borderColor: isActive ? "var(--color-border-active)" : "transparent",
+    cursor: "pointer",
+    fontSize: "var(--font-size-sm)",
+    fontWeight: "var(--font-weight-medium)",
+    textAlign: "left",
+    whiteSpace: "nowrap",
+    justifyContent: collapsed ? "center" : "flex-start",
+    transition: "all var(--transition-fast)",
+    textDecoration: "none",
+  }
+
+  if (asChild && React.isValidElement(children)) {
+    return React.cloneElement(
+      children as React.ReactElement<{ style?: CSSProperties }>,
+      { style }
+    )
+  }
 
   return (
     <button
       onClick={onClick}
       title={collapsed && typeof children === "string" ? children : undefined}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "var(--space-sm)",
-        width: "100%",
-        padding: collapsed ? "8px" : "8px var(--space-sm)",
-        borderRadius: "var(--radius-md)",
-        background: isActive ? "var(--color-surface-active)" : "transparent",
-        color: isActive
-          ? "var(--color-text-primary)"
-          : "var(--color-text-secondary)",
-        border: "1px solid",
-        borderColor: isActive ? "var(--color-border-active)" : "transparent",
-        cursor: "pointer",
-        fontSize: "var(--font-size-sm)",
-        fontWeight: "var(--font-weight-medium)",
-        textAlign: "left",
-        whiteSpace: "nowrap",
-        justifyContent: collapsed ? "center" : "flex-start",
-        transition: "all var(--transition-fast)",
-      }}
+      style={style}
       onMouseEnter={e => {
         if (!isActive)
           e.currentTarget.style.background = "var(--color-surface-hover)"

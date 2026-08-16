@@ -1,4 +1,4 @@
-import { Effect } from "effect"
+import { Context, Effect, Layer } from "effect"
 import { eq } from "drizzle-orm"
 import { users } from "~db/schema/tables.ts"
 import { NotFoundError, ConnectionError } from "./errors.ts"
@@ -6,89 +6,120 @@ import { NotFoundError, ConnectionError } from "./errors.ts"
 import type { Db } from "~db/connection.ts"
 import type { RepositoryError } from "./errors.ts"
 
-export class UserRepository {
-  constructor(private readonly db: Db) {}
+export interface UserRepository {
+  readonly findAll: () => Effect.Effect<
+    (typeof users.$inferSelect)[],
+    RepositoryError
+  >
 
-  findAll(): Effect.Effect<(typeof users.$inferSelect)[], RepositoryError> {
-    return Effect.tryPromise({
-      try: async () => this.db.select().from(users),
-      catch: cause => new ConnectionError(cause),
-    })
-  }
-
-  findById(
+  readonly findById: (
     id: string
-  ): Effect.Effect<typeof users.$inferSelect | null, RepositoryError> {
-    return Effect.tryPromise({
-      try: async () => {
-        const [row] = await this.db
-          .select()
-          .from(users)
-          .where(eq(users.id, id))
-          .limit(1)
-        return row ?? null
-      },
-      catch: cause => new ConnectionError(cause),
-    })
-  }
+  ) => Effect.Effect<typeof users.$inferSelect | null, RepositoryError>
 
-  findByEmail(
+  readonly findByEmail: (
     email: string
-  ): Effect.Effect<typeof users.$inferSelect | null, RepositoryError> {
-    return Effect.tryPromise({
-      try: async () => {
-        const rows = await this.db
-          .select()
-          .from(users)
-          .where(eq(users.email, email))
-          .limit(1)
-        return rows[0] ?? null
-      },
-      catch: cause => new ConnectionError(cause),
-    })
-  }
+  ) => Effect.Effect<typeof users.$inferSelect | null, RepositoryError>
 
-  findByUsername(
+  readonly findByUsername: (
     username: string
-  ): Effect.Effect<typeof users.$inferSelect | null, RepositoryError> {
-    return Effect.tryPromise({
-      try: async () => {
-        const rows = await this.db
-          .select()
-          .from(users)
-          .where(eq(users.username, username))
-          .limit(1)
-        return rows[0] ?? null
-      },
-      catch: cause => new ConnectionError(cause),
-    })
-  }
+  ) => Effect.Effect<typeof users.$inferSelect | null, RepositoryError>
 
-  update(
+  readonly update: (
     id: string,
-    data: { name?: string; username?: string; image?: string }
-  ): Effect.Effect<typeof users.$inferSelect, RepositoryError> {
-    return Effect.tryPromise({
-      try: async () => {
-        const [existing] = await this.db
-          .select()
-          .from(users)
-          .where(eq(users.id, id))
-          .limit(1)
-
-        if (!existing) throw new NotFoundError("User", id)
-
-        const [row] = await this.db
-          .update(users)
-          .set(data)
-          .where(eq(users.id, id))
-          .returning()
-        return row!
-      },
-      catch: cause => {
-        if (cause instanceof NotFoundError) return cause
-        return new ConnectionError(cause)
-      },
-    })
-  }
+    data: {
+      name?: string
+      username?: string
+      image?: string
+    }
+  ) => Effect.Effect<typeof users.$inferSelect, RepositoryError>
 }
+
+export const UserRepository =
+  Context.GenericTag<UserRepository>("UserRepository")
+
+export const UserRepositoryLive = (db: Db) =>
+  Layer.succeed(UserRepository, {
+    findAll() {
+      return Effect.tryPromise({
+        try: () => db.select().from(users),
+        catch: cause => new ConnectionError(cause),
+      })
+    },
+
+    findById(id) {
+      return Effect.tryPromise({
+        try: async () => {
+          const [row] = await db
+            .select()
+            .from(users)
+            .where(eq(users.id, id))
+            .limit(1)
+
+          return row ?? null
+        },
+        catch: cause => new ConnectionError(cause),
+      })
+    },
+
+    findByEmail(email) {
+      return Effect.tryPromise({
+        try: async () => {
+          const [row] = await db
+            .select()
+            .from(users)
+            .where(eq(users.email, email))
+            .limit(1)
+
+          return row ?? null
+        },
+        catch: cause => new ConnectionError(cause),
+      })
+    },
+
+    findByUsername(username) {
+      return Effect.tryPromise({
+        try: async () => {
+          const [row] = await db
+            .select()
+            .from(users)
+            .where(eq(users.username, username))
+            .limit(1)
+
+          return row ?? null
+        },
+        catch: cause => new ConnectionError(cause),
+      })
+    },
+
+    update(id, data) {
+      return Effect.tryPromise({
+        try: async () => {
+          const [existing] = await db
+            .select()
+            .from(users)
+            .where(eq(users.id, id))
+            .limit(1)
+
+          if (!existing) {
+            throw new NotFoundError("User", id)
+          }
+
+          const [row] = await db
+            .update(users)
+            .set(data)
+            .where(eq(users.id, id))
+            .returning()
+
+          return row!
+        },
+
+        catch: cause => {
+          if (cause instanceof NotFoundError) {
+            return cause
+          }
+
+          return new ConnectionError(cause)
+        },
+      })
+    },
+  })

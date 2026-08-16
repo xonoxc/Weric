@@ -1,10 +1,7 @@
 import {
   createDb,
-  StoryRepository,
+  StoryRepositoryLive,
   EvidenceRepository,
-  InterestRepository,
-  InteractionRepository,
-  UserRepository,
   JobRepository,
   ChatRepository,
 } from "@weric/database"
@@ -22,11 +19,11 @@ import { createRebuildRecommendationsHandler } from "./jobs/rebuild-recommendati
 import type { Db } from "@weric/database"
 
 function buildRuntime(db: Db) {
-  const storyRepo = new StoryRepository(db)
+  // Story/Interest/Interaction/User repos are now Effect tags — the
+  // recommendation jobs wire them via layers. Other jobs still take the
+  // class-based repositories directly.
+  const storyRepo = StoryRepositoryLive(db) as never
   const evidenceRepo = new EvidenceRepository(db)
-  const interestRepo = new InterestRepository(db)
-  const interactionRepo = new InteractionRepository(db)
-  const userRepo = new UserRepository(db)
   const jobRepo = new JobRepository(db)
   const chatRepo = new ChatRepository(db)
   const browser = new BrowserService()
@@ -42,12 +39,7 @@ function buildRuntime(db: Db) {
   const runtime = new WorkerRuntime(
     jobRepo,
     [
-      createLearnInterestsHandler(
-        storyRepo,
-        interestRepo,
-        interactionRepo,
-        userRepo
-      ),
+      createLearnInterestsHandler(db),
       createDiscoverStoriesHandler(storyRepo, evidenceRepo, browser, ai),
       createSearchDiscoverHandler(
         storyRepo,
@@ -58,19 +50,9 @@ function buildRuntime(db: Db) {
         apiUrl
       ),
       createRefreshStoryHandler(storyRepo, evidenceRepo, browser),
-      createRecomputeScoresHandler(
-        storyRepo,
-        interestRepo,
-        interactionRepo,
-        userRepo
-      ),
+      createRecomputeScoresHandler(db),
       createCleanupEvidenceHandler(evidenceRepo),
-      createRebuildRecommendationsHandler(
-        storyRepo,
-        interestRepo,
-        interactionRepo,
-        userRepo
-      ),
+      createRebuildRecommendationsHandler(db),
     ],
     { apiUrl }
   )

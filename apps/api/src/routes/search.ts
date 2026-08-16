@@ -2,10 +2,12 @@ import { Hono } from "hono"
 import { Effect } from "effect"
 import {
   StoryRepository,
+  StoryRepositoryLive,
   EvidenceRepository,
   JobRepository,
   ChatRepository,
 } from "@weric/database"
+import { serviceFromLayer } from "~api/lib/layers.ts"
 import { z } from "zod"
 import { jobBus } from "~api/lib/job-bus.ts"
 import { PaginationQuery } from "~api/lib/validation.ts"
@@ -36,7 +38,7 @@ const SearchResponse = z.object({
 
 export function createSearchRoutes(db: Db) {
   const router = new Hono<{ Variables: ApiVariables }>()
-  const storyRepo = new StoryRepository(db)
+  const storyRepo = serviceFromLayer(StoryRepository, StoryRepositoryLive(db))
   const evidenceRepo = new EvidenceRepository(db)
   const jobRepo = new JobRepository(db)
   const chatRepo = new ChatRepository(db)
@@ -80,9 +82,7 @@ export function createSearchRoutes(db: Db) {
         )
         resolvedChatId = chat.id
       }
-    } catch {
-      // Chat resolution is non-fatal — results still return
-    }
+    } catch {}
 
     let jobId: string | null = null
 
@@ -100,9 +100,7 @@ export function createSearchRoutes(db: Db) {
         type: job.type,
         payload: job.payload,
       })
-    } catch {
-      // Job creation failure is non-fatal — results still return
-    }
+    } catch {}
 
     return c.json(
       SearchResponse.parse({

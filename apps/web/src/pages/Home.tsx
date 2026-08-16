@@ -1,6 +1,7 @@
+import { useNavigate } from "react-router-dom"
 import { useHome } from "~web/hooks/useHome.ts"
 import { Canvas, StoryCard, CommandBar, TopBar, JobStatusCard } from "@weric/ui"
-import { ChatSidebar } from "~web/components/ChatSidebar.tsx"
+import { AppSidebar } from "~web/components/app-sidebar.tsx"
 import { StoryDetailPanel } from "~web/components/StoryDetailPanel.tsx"
 
 const loadingContainer: React.CSSProperties = {
@@ -56,6 +57,7 @@ const dot: React.CSSProperties = {
 }
 
 export default function Home() {
+  const navigate = useNavigate()
   const {
     stories,
     loading,
@@ -161,7 +163,7 @@ export default function Home() {
               {
                 label: "Profile",
                 icon: "user",
-                onClick: () => setShowUserMenu(false),
+                onClick: () => navigate("/profile"),
               },
               {
                 label: "Settings",
@@ -343,13 +345,7 @@ export default function Home() {
         onDismiss={handleDismissJobCard}
         onStoryClick={s => handleExpand(s)}
       />
-      <ChatSidebar
-        chats={chats}
-        selectedId={selectedChatId}
-        onSelect={handleSelectChat}
-        onNewChat={handleNewChat}
-        onDelete={handleDeleteChat}
-      />
+      <AppSidebar onSearch={handleSearch} />
       <StoryDetailPanel story={selectedStory} onClose={handleCloseDetail} />
       <CommandBar onSearch={handleSearch} />
     </>

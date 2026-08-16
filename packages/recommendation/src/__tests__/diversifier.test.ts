@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest"
-import { FeedDiversifier } from "~rec/diversifier.ts"
+import { describe, expect, it, beforeAll } from "vitest"
+import { Effect } from "effect"
+import { FeedDiversifier, FeedDiversifierLive } from "~rec/diversifier.ts"
 
 import type { ScoredStory } from "~rec/scorer.ts"
 import type { StoryWithEvidenceCount } from "@weric/database"
@@ -27,7 +28,15 @@ function makeScored(title: string, score = 0.5): ScoredStory {
 }
 
 describe("FeedDiversifier", () => {
-  const diversifier = new FeedDiversifier()
+  let diversifier: import("~rec/diversifier.ts").FeedDiversifier
+
+  beforeAll(async () => {
+    diversifier = (await Effect.runPromise(
+      Effect.gen(function* () {
+        return yield* FeedDiversifier
+      }).pipe(Effect.provide(FeedDiversifierLive))
+    )) as never
+  })
 
   it("returns all items when fewer than requested count", () => {
     const items = [makeScored("AI Research"), makeScored("Sports")]

@@ -1,4 +1,4 @@
-import { Effect } from "effect"
+import { Context, Effect, Layer } from "effect"
 import { and, eq, sql } from "drizzle-orm"
 import { interests } from "~db/schema/tables.ts"
 import { ConnectionError } from "./errors.ts"
@@ -16,60 +16,84 @@ export interface InterestRow {
   updatedAt: string
 }
 
-export class InterestRepository {
-  constructor(private readonly db: Db) {}
+export interface InterestRepository {
+  readonly findByUserId: (
+    userId: string
+  ) => Effect.Effect<InterestRow[], RepositoryError>
 
-  findByUserId(userId: string): Effect.Effect<InterestRow[], RepositoryError> {
-    return Effect.tryPromise({
-      try: async () => {
-        const rows = await this.db
-          .select({
-            id: interests.id,
-            userId: interests.userId,
-            topic: interests.topic,
-            score: interests.score,
-            updatedAt: sql<string>`to_char(${interests.updatedAt}, ${TSFMT})`,
-          })
-          .from(interests)
-          .where(eq(interests.userId, userId))
-          .orderBy(interests.updatedAt)
-
-        return rows as InterestRow[]
-      },
-      catch: cause => new ConnectionError(cause),
-    })
-  }
-
-  upsert(
+  readonly upsert: (
     userId: string,
     topic: string,
     score: number
-  ): Effect.Effect<void, RepositoryError> {
-    return Effect.tryPromise({
-      try: async () => {
-        await this.db
-          .insert(interests)
-          .values({ userId, topic, score })
-          .onConflictDoUpdate({
-            target: [interests.userId, interests.topic],
-            set: { score, updatedAt: sql`now()` },
-          })
-      },
-      catch: cause => new ConnectionError(cause),
-    })
-  }
+  ) => Effect.Effect<void, RepositoryError>
 
-  deleteByTopic(
+  readonly deleteByTopic: (
     userId: string,
     topic: string
-  ): Effect.Effect<void, RepositoryError> {
-    return Effect.tryPromise({
-      try: async () => {
-        await this.db
-          .delete(interests)
-          .where(and(eq(interests.userId, userId), eq(interests.topic, topic)))
-      },
-      catch: cause => new ConnectionError(cause),
-    })
-  }
+  ) => Effect.Effect<void, RepositoryError>
 }
+
+export const InterestRepository =
+  Context.GenericTag<InterestRepository>("InterestRepository")
+
+export const InterestRepositoryLive = (db: Db) =>
+  Layer.succeed(InterestRepository, {
+    findByUserId(userId) {
+      return Effect.tryPromise({
+        try: async () => {
+          const rows = await db
+            .select({
+              id: interests.id,
+              userId: interests.userId,
+              topic: interests.topic,
+              score: interests.score,
+              updatedAt: sql<string>`to_char(${interests.updatedAt}, ${TSFMT})`,
+            })
+            .from(interests)
+            .where(eq(interests.userId, userId))
+            .orderBy(interests.updatedAt)
+
+          return rows as InterestRow[]
+        },
+
+        catch: cause => new ConnectionError(cause),
+      })
+    },
+
+    upsert(userId, topic, score) {
+      return Effect.tryPromise({
+        try: async () => {
+          await db
+            .insert(interests)
+            .values({
+              userId,
+              topic,
+              score,
+            })
+            .onConflictDoUpdate({
+              target: [interests.userId, interests.topic],
+              set: {
+                score,
+                updatedAt: sql`now()`,
+              },
+            })
+        },
+
+        catch: cause => new ConnectionError(cause),
+      })
+    },
+
+    deleteByTopic(userId, topic) {
+      return Effect.tryPromise({
+        try: async () => {
+          await db
+            .delete(interests)
+            .where(
+              and(eq(interests.userId, userId), eq(interests.topic, topic))
+            )
+        },
+
+        catch: cause => new ConnectionError(cause),
+      })
+    },
+  })

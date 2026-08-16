@@ -129,6 +129,76 @@ export interface SseStatusEvent {
   status: "pending" | "running" | "completed" | "failed"
 }
 
+export interface ProfileInterest {
+  id: string
+  topic: string
+  score: number
+  updatedAt: string
+}
+
+export interface ProfileBookmarkStory {
+  id: string
+  title: string
+  slug: string
+  summary: string | null
+  confidence: number | null
+  status: string
+  evidenceCount: number
+  updatedAt: string
+}
+
+export interface ProfileBookmark {
+  id: string
+  storyId: string
+  createdAt: string
+  story: ProfileBookmarkStory
+}
+
+export interface ProfileChat {
+  id: string
+  title: string
+  query: string | null
+  storyCount: number
+  updatedAt: string
+}
+
+export interface ProfileActivityItem {
+  id: string
+  interactionType: string
+  createdAt: string
+  story: {
+    id: string
+    title: string
+    slug: string
+  }
+}
+
+export interface ProfileStats {
+  chats: number
+  stories: number
+  bookmarks: number
+  interests: number
+  interactions: number
+  interactionsByType: Array<{ interactionType: string; count: number }>
+}
+
+export interface Profile {
+  user: {
+    id: string
+    name: string
+    email: string
+    username: string | null
+    displayUsername: string | null
+    image: string | null
+    createdAt: string
+  }
+  stats: ProfileStats
+  interests: ProfileInterest[]
+  bookmarks: ProfileBookmark[]
+  recentChats: ProfileChat[]
+  activity: ProfileActivityItem[]
+}
+
 export type SseEventCallback = {
   onProgress: (data: SseProgressEvent) => void
   onStatus: (data: SseStatusEvent) => void
@@ -255,9 +325,7 @@ export async function fetchFeed(
   return mapped
 }
 
-export async function searchStories(
-  query: string
-): Promise<{
+export async function searchStories(query: string): Promise<{
   stories: StoryCardData[]
   jobId: string | null
   chatId: string | null
@@ -387,4 +455,113 @@ export async function toggleBookmark(storyId: string) {
     method: "POST",
     body: JSON.stringify({ storyId }),
   })
+}
+
+export async function fetchProfile(): Promise<Profile> {
+  if (USE_MOCK) {
+    return {
+      user: {
+        id: "user-1",
+        name: "Ada Lovelace",
+        email: "ada@example.com",
+        username: "ada",
+        displayUsername: "@ada",
+        image: null,
+        createdAt: new Date(Date.now() - 120 * 86400000).toISOString(),
+      },
+      stats: {
+        chats: 14,
+        stories: 89,
+        bookmarks: 12,
+        interests: 6,
+        interactions: 234,
+        interactionsByType: [
+          { interactionType: "view", count: 140 },
+          { interactionType: "read", count: 61 },
+          { interactionType: "bookmark", count: 12 },
+          { interactionType: "share", count: 21 },
+        ],
+      },
+      interests: [
+        { id: "i1", topic: "AI", score: 0.94, updatedAt: "" },
+        { id: "i2", topic: "PostgreSQL", score: 0.81, updatedAt: "" },
+        { id: "i3", topic: "Rust", score: 0.77, updatedAt: "" },
+        { id: "i4", topic: "Startups", score: 0.62, updatedAt: "" },
+        { id: "i5", topic: "Systems", score: 0.58, updatedAt: "" },
+      ],
+      bookmarks: mockStories()
+        .slice(0, 4)
+        .map((s, i) => ({
+          id: `bm-${i}`,
+          storyId: s.id,
+          createdAt: new Date(Date.now() - i * 86400000).toISOString(),
+          story: {
+            id: s.id,
+            title: s.title,
+            slug: s.slug ?? s.title.toLowerCase().replace(/\s+/g, "-"),
+            summary: s.summary ?? null,
+            confidence: s.confidence,
+            status: "published",
+            evidenceCount: s.evidenceCount,
+            updatedAt: s.updatedAt,
+          },
+        })),
+      recentChats: [
+        {
+          id: "c1",
+          title: "Aug 12, 02:15 PM",
+          query: "MCP adoption",
+          storyCount: 5,
+          updatedAt: "",
+        },
+        {
+          id: "c2",
+          title: "Aug 11, 09:40 AM",
+          query: "Rust 2026",
+          storyCount: 3,
+          updatedAt: "",
+        },
+        {
+          id: "c3",
+          title: "Aug 10, 06:05 PM",
+          query: "WebAssembly GC",
+          storyCount: 7,
+          updatedAt: "",
+        },
+      ],
+      activity: [
+        {
+          id: "a1",
+          interactionType: "bookmark",
+          createdAt: new Date().toISOString(),
+          story: {
+            id: "1",
+            title: "LangGraph v2 Released with Native Streaming",
+            slug: "langgraph-v2",
+          },
+        },
+        {
+          id: "a2",
+          interactionType: "view",
+          createdAt: new Date(Date.now() - 3600000).toISOString(),
+          story: {
+            id: "2",
+            title: "Model Context Protocol Gains Traction",
+            slug: "mcp-gains-traction",
+          },
+        },
+        {
+          id: "a3",
+          interactionType: "read",
+          createdAt: new Date(Date.now() - 7200000).toISOString(),
+          story: {
+            id: "4",
+            title: "Linux Kernel 7.0 Brings Major Scheduler Overhaul",
+            slug: "linux-7-0",
+          },
+        },
+      ],
+    }
+  }
+  return request<Profile>(`/profile`)
 }

@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react"
+import { useState, useRef, useEffect } from "react"
 
 import type { KeyboardEvent as ReactKeyboardEvent } from "react"
 
@@ -110,72 +110,63 @@ export function CommandBar({
     return () => window.removeEventListener("keydown", handler)
   }, [])
 
-  const autoResize = useCallback(() => {
+  const autoResize = () => {
     const el = textareaRef.current
     if (el) {
       el.style.height = "auto"
       el.style.height = `${Math.min(el.scrollHeight, 160)}px`
     }
-  }, [])
+  }
 
   useEffect(() => {
     autoResize()
   }, [query, autoResize])
 
-  const handleSubmit = useCallback(
-    (q?: string) => {
-      const tagStr = tags.map(t => `[${t}]`).join(" ")
-      const text = q ?? query
-      const value = [tagStr, text].filter(Boolean).join(" ")
-      if (value.trim()) {
-        console.log("[CommandBar] submit", value.trim())
-        onSearch?.(value.trim())
-        setQuery("")
-        setTags([])
-        setSelectedIndex(-1)
-        textareaRef.current?.blur()
-      }
-    },
-    [query, tags, onSearch]
-  )
+  const handleSubmit = (q?: string) => {
+    const tagStr = tags.map(t => `[${t}]`).join(" ")
+    const text = q ?? query
+    const value = [tagStr, text].filter(Boolean).join(" ")
+    if (value.trim()) {
+      console.log("[CommandBar] submit", value.trim())
+      onSearch?.(value.trim())
+      setQuery("")
+      setTags([])
+      setSelectedIndex(-1)
+      textareaRef.current?.blur()
+    }
+  }
 
-  const handleRemoveTag = useCallback((tag: string) => {
+  const handleRemoveTag = (tag: string) => {
     setTags(prev => prev.filter(t => t !== tag))
-  }, [])
+  }
 
-  const handleAddTag = useCallback((tag: string) => {
+  const handleAddTag = (tag: string) => {
     setTags(prev => (prev.includes(tag) ? prev : [...prev, tag]))
     textareaRef.current?.focus()
-  }, [])
+  }
 
-  const handleSuggestionClick = useCallback(
-    (s: Suggestion) => {
-      setQuery(s.query)
-      handleSubmit(s.query)
-    },
-    [handleSubmit]
-  )
+  const handleSuggestionClick = (s: Suggestion) => {
+    setQuery(s.query)
+    handleSubmit(s.query)
+  }
 
-  const handleKeyDown = useCallback(
-    (e: ReactKeyboardEvent<HTMLTextAreaElement>) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault()
-        handleSubmit()
-        return
-      }
-      if (e.key === "ArrowDown") {
-        e.preventDefault()
-        setSelectedIndex(prev => (prev < suggestions.length - 1 ? prev + 1 : 0))
-        return
-      }
-      if (e.key === "ArrowUp") {
-        e.preventDefault()
-        setSelectedIndex(prev => (prev > 0 ? prev - 1 : suggestions.length - 1))
-        return
-      }
-    },
-    [handleSubmit, suggestions.length]
-  )
+  const handleKeyDown = (e: ReactKeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault()
+      handleSubmit()
+      return
+    }
+    if (e.key === "ArrowDown") {
+      e.preventDefault()
+      setSelectedIndex(prev => (prev < suggestions.length - 1 ? prev + 1 : 0))
+      return
+    }
+    if (e.key === "ArrowUp") {
+      e.preventDefault()
+      setSelectedIndex(prev => (prev > 0 ? prev - 1 : suggestions.length - 1))
+      return
+    }
+  }
 
   const hasContent = query.length > 0 || tags.length > 0
   const showPanel = focused

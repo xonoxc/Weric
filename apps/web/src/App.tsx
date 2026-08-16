@@ -4,6 +4,7 @@ import LoginPage from "./pages/LoginPage.tsx"
 import SignupPage from "./pages/SignupPage.tsx"
 import OnboardingPage from "./pages/OnboardingPage.tsx"
 import Home from "./pages/Home.tsx"
+import ProfilePage from "./pages/ProfilePage.tsx"
 
 export default function App() {
   return (
@@ -16,6 +17,14 @@ export default function App() {
           element={
             <AuthGuard>
               <OnboardingPage />
+            </AuthGuard>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <AuthGuard>
+              <ProfilePage />
             </AuthGuard>
           }
         />

@@ -1,9 +1,15 @@
-import { Effect } from "effect"
+import { Data, Effect, Schedule } from "effect"
 import { StoryRepository, EvidenceRepository } from "@weric/database"
 import { BrowserService } from "@weric/browser"
 import { AIService } from "@weric/ai"
 
 import type { JobHandler } from "~worker/runtime.ts"
+
+export class DiscoverStoriesError extends Data.TaggedError(
+  "DiscoverStoriesError"
+)<{
+  cause: unknown
+}> {}
 
 export function createDiscoverStoriesHandler(
   storyRepo: StoryRepository,
@@ -17,25 +23,26 @@ export function createDiscoverStoriesHandler(
     handle(
       payload: Record<string, unknown>,
       _jobId: string
-    ): Effect.Effect<void, Error> {
+    ): Effect.Effect<void, DiscoverStoriesError> {
       const url = payload.url as string | undefined
       if (!url) {
         return Effect.fail(
-          new Error("discover_stories requires a 'url' in payload")
+          createDiscoverStoriesError(new Error("Missing url in payload"))
         )
       }
 
       return Effect.gen(function* () {
-        const page = yield* Effect.tryPromise({
-          try: () => Effect.runPromise(browser.fetchUrl(url)),
-          catch: (cause: unknown) => new Error(`Failed to fetch URL: ${cause}`),
-        })
+        const page = yield* browser
+          .fetchUrl(url)
+          .pipe(Effect.mapError(createDiscoverStoriesError))
 
-        const summary = yield* Effect.tryPromise({
-          try: () => Effect.runPromise(ai.summarize(page.text)),
-          catch: (cause: unknown) =>
-            new Error(`AI summarization failed: ${cause}`),
-        }).pipe(
+        const summary = yield* ai.summarize(page.text).pipe(
+          Effect.retry({
+            schedule: Schedule.exponential("1 second").pipe(
+              Schedule.jittered,
+              Schedule.compose(Schedule.recurs(2))
+            ),
+          }),
           Effect.catchAll(() =>
             Effect.succeed({
               summary: page.text.slice(0, 500),
@@ -50,54 +57,41 @@ export function createDiscoverStoriesHandler(
           .replace(/^-|-$/g, "")
           .slice(0, 200)
 
-        const evidence = yield* Effect.tryPromise({
-          try: () =>
-            Effect.runPromise(
-              evidenceRepo.create({
-                source: "discovery",
-                url,
-                author: null,
-                title: page.title,
-                content: page.text.slice(0, 10_000),
-                metadata: { discoveredBy: "worker" },
-                publishedAt: null,
-              })
-            ),
-          catch: (cause: unknown) =>
-            new Error(`Failed to create evidence: ${cause}`),
-        })
-
-        const existing = yield* Effect.tryPromise({
-          try: () => Effect.runPromise(storyRepo.findBySlug(slug)),
-          catch: (cause: unknown) =>
-            new Error(`Failed to find by slug: ${cause}`),
-        }).pipe(Effect.catchAll(() => Effect.succeed(null)))
-
-        if (existing) {
-          yield* Effect.tryPromise({
-            try: () =>
-              Effect.runPromise(
-                storyRepo.addEvidence(existing.id, evidence.id)
-              ),
-            catch: (cause: unknown) =>
-              new Error(`Failed to link evidence: ${cause}`),
+        const evidence = yield* evidenceRepo
+          .create({
+            source: "discovery",
+            url,
+            author: null,
+            title: page.title,
+            content: page.text.slice(0, 10_000),
+            metadata: { discoveredBy: "worker" },
+            publishedAt: null,
           })
-        } else {
-          yield* Effect.tryPromise({
-            try: () =>
-              Effect.runPromise(
-                storyRepo.create({
-                  title: page.title,
-                  slug,
-                  summary: summary.summary ?? page.text.slice(0, 500),
-                  evidenceIds: [evidence.id],
-                })
-              ),
-            catch: (cause: unknown) =>
-              new Error(`Failed to create story: ${cause}`),
-          })
+          .pipe(Effect.mapError(createDiscoverStoriesError))
+
+        const existing = yield* storyRepo
+          .findBySlug(slug)
+          .pipe(Effect.catchAll(() => Effect.succeed(null)))
+
+        if (!existing) {
+          return yield* storyRepo
+            .create({
+              title: page.title,
+              slug,
+              summary: summary.summary ?? page.text.slice(0, 500),
+              evidenceIds: [evidence.id],
+            })
+            .pipe(Effect.mapError(createDiscoverStoriesError))
         }
+
+        yield* storyRepo
+          .addEvidence(existing.id, evidence.id)
+          .pipe(Effect.mapError(createDiscoverStoriesError))
       })
     },
   }
+}
+
+function createDiscoverStoriesError(cause: unknown): DiscoverStoriesError {
+  return new DiscoverStoriesError({ cause })
 }

@@ -237,6 +237,7 @@ export const interests = pgTable(
   table => [
     index("idx_interests_user_id").on(table.userId),
     index("idx_interests_topic").on(table.topic),
+    uniqueIndex("idx_interests_user_topic").on(table.userId, table.topic),
   ]
 )
 

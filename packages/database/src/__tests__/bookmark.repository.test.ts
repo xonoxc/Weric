@@ -1,7 +1,10 @@
 import { describe, expect, it, beforeEach } from "vitest"
 import { Effect } from "effect"
 import { BookmarkRepository } from "~db/repositories/bookmark.repository.ts"
-import { StoryRepository } from "~db/repositories/story.repository.ts"
+import {
+  StoryRepository,
+  StoryRepositoryLive,
+} from "~db/repositories/story.repository.ts"
 import { getTestDb, cleanDatabase } from "~db/__tests__/helpers.ts"
 import { users } from "~db/schema/tables.ts"
 
@@ -16,7 +19,11 @@ describe("BookmarkRepository", () => {
     await cleanDatabase()
     const db: Db = getTestDb()
     repo = new BookmarkRepository(db)
-    const storyRepo = new StoryRepository(db)
+    const storyRepo = Effect.runSync(
+      Effect.gen(function* () {
+        return yield* StoryRepository
+      }).pipe(Effect.provide(StoryRepositoryLive(db)))
+    )
 
     const [user] = await db
       .insert(users)

@@ -1,5 +1,7 @@
-import { describe, expect, it } from "vitest"
-import { FeedRanker } from "~rec/ranker.ts"
+import { describe, expect, it, beforeAll } from "vitest"
+import { Effect } from "effect"
+import { FeedRanker, FeedRankerLive } from "~rec/ranker.ts"
+import { FeedDiversifierLive } from "~rec/diversifier.ts"
 
 import type { ScoredStory } from "~rec/scorer.ts"
 import type { StoryWithEvidenceCount } from "@weric/database"
@@ -32,7 +34,18 @@ function makeScored(
 }
 
 describe("FeedRanker", () => {
-  const ranker = new FeedRanker()
+  let ranker: import("~rec/ranker.ts").FeedRanker
+
+  beforeAll(async () => {
+    ranker = (await Effect.runPromise(
+      Effect.gen(function* () {
+        return yield* FeedRanker
+      }).pipe(
+        Effect.provide(FeedRankerLive),
+        Effect.provide(FeedDiversifierLive)
+      )
+    )) as never
+  })
 
   it("returns empty items when given no stories", () => {
     const result = ranker.rank([], 10)

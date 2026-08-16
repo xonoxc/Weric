@@ -88,44 +88,80 @@ export class BrowserService {
   }
 
   searchWeb(query: string): Effect.Effect<SearchResult[], BrowserError> {
-    return Effect.tryPromise({
-      try: async () => {
-        const url = `https://hn.algolia.com/api/v1/search?query=${encodeURIComponent(query)}&hitsPerPage=10&tags=story`
-        const res = await fetch(url, {
-          headers: {
-            "User-Agent":
-              this.options.userAgent ??
-              "Mozilla/5.0 (compatible; Weric/0.1; +https://weric.ai)",
+    return Effect.acquireUseRelease(
+      Effect.sync(() => {
+        const controller = new AbortController()
+
+        const timeout = setTimeout(
+          () => controller.abort(),
+          this.options.timeout ?? 15_000
+        )
+
+        return { controller, timeout }
+      }),
+      ({ controller }) =>
+        Effect.tryPromise({
+          try: async () => {
+            const apiKey =
+              process.env.EXA_SEARCH_API_KEY ?? process.env.EXA_API_KEY
+            if (!apiKey) {
+              throw new Error(
+                "Exa search requires EXA_SEARCH_API_KEY or EXA_API_KEY in the environment"
+              )
+            }
+
+            const res = await fetch("https://api.exa.ai/search", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${apiKey}`,
+              },
+              body: JSON.stringify({
+                query,
+                type: "auto",
+                numResults: 10,
+                contents: { highlights: true },
+              }),
+              signal: controller.signal,
+            })
+
+            if (!res.ok) {
+              const bodyText = await res.text().catch(() => "")
+              throw new Error(
+                `Exa search returned ${res.status}: ${bodyText.slice(0, 200)}`
+              )
+            }
+
+            const body = (await res.json()) as {
+              results?: Array<{
+                title?: string | null
+                url?: string | null
+                highlights?: string[] | null
+                text?: string | null
+              }>
+            }
+
+            return (body.results ?? [])
+              .filter(r => r.url && r.title)
+              .map(r => ({
+                title: r.title ?? "",
+                url: r.url ?? "",
+                snippet: (r.highlights && r.highlights[0]) || r.title || "",
+              }))
           },
-        })
-        if (!res.ok) {
-          throw new Error(`HN search returned ${res.status}`)
-        }
-        const body = (await res.json()) as {
-          hits: Array<{
-            title: string
-            url: string | null
-            story_url: string | null
-            objectID: string
-          }>
-        }
-        return body.hits
-          .filter(h => h.title)
-          .map(h => ({
-            title: h.title,
-            url:
-              h.url ??
-              h.story_url ??
-              `https://news.ycombinator.com/item?id=${h.objectID}`,
-            snippet: h.title,
-          }))
-      },
-      catch: cause =>
-        new FetchError({
-          url: `hn.algolia.com/search?q=${query}`,
-          message: cause instanceof Error ? cause.message : String(cause),
+          catch: cause =>
+            new FetchError({
+              url: `exa.ai/search?q=${encodeURIComponent(query)}`,
+              message:
+                cause instanceof Error && cause.name === "AbortError"
+                  ? "Exa search timed out"
+                  : cause instanceof Error
+                    ? cause.message
+                    : String(cause),
+            }),
         }),
-    })
+      ({ timeout }) => Effect.sync(() => clearTimeout(timeout))
+    )
   }
 
   extractContent(

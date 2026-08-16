@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback, useEffect } from "react"
+import { useRef, useState, useEffect } from "react"
 
 import type { ReactNode, MouseEvent, WheelEvent } from "react"
 
@@ -51,80 +51,71 @@ export function Canvas({
     return () => ro.disconnect()
   }, [])
 
-  const centerOn = useCallback(
-    (x: number, y: number, scale?: number) => {
-      setState(prev => ({
-        x: dimensions.w / 2 - x * (scale ?? prev.scale),
-        y: dimensions.h / 2 - y * (scale ?? prev.scale),
-        scale: scale ?? prev.scale,
-      }))
-    },
-    [dimensions]
-  )
+  const centerOn = (x: number, y: number, scale?: number) => {
+    setState(prev => ({
+      x: dimensions.w / 2 - x * (scale ?? prev.scale),
+      y: dimensions.h / 2 - y * (scale ?? prev.scale),
+      scale: scale ?? prev.scale,
+    }))
+  }
 
-  const handleWheel = useCallback(
-    (e: WheelEvent<HTMLDivElement>) => {
-      if (e.ctrlKey || e.metaKey) {
-        e.preventDefault()
-        const delta = -e.deltaY * 0.001
-        const rect = containerRef.current?.getBoundingClientRect()
-        if (!rect) return
-        const mx = e.clientX - rect.left
-        const my = e.clientY - rect.top
-        setState(prev => {
-          const newScale = Math.min(
-            maxScale,
-            Math.max(minScale, prev.scale * (1 + delta))
-          )
-          const ratio = newScale / prev.scale
-          return {
-            x: mx - (mx - prev.x) * ratio,
-            y: my - (my - prev.y) * ratio,
-            scale: newScale,
-          }
-        })
-      } else {
-        setState(prev => ({
-          ...prev,
-          x: prev.x - e.deltaX,
-          y: prev.y - e.deltaY,
-        }))
-      }
-    },
-    [minScale, maxScale]
-  )
-
-  const handleMouseDown = useCallback(
-    (e: MouseEvent<HTMLDivElement>) => {
-      if (e.button === 1 || e.button === 0) {
-        const isMiddle = e.button === 1
-        if (isMiddle) e.preventDefault()
-        isDragging.current = true
-        isPanning.current = true
-        lastPos.current = { x: e.clientX, y: e.clientY }
-        dragStart.current = {
-          x: e.clientX,
-          y: e.clientY,
-          stateX: state.x,
-          stateY: state.y,
+  const handleWheel = (e: WheelEvent<HTMLDivElement>) => {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault()
+      const delta = -e.deltaY * 0.001
+      const rect = containerRef.current?.getBoundingClientRect()
+      if (!rect) return
+      const mx = e.clientX - rect.left
+      const my = e.clientY - rect.top
+      setState(prev => {
+        const newScale = Math.min(
+          maxScale,
+          Math.max(minScale, prev.scale * (1 + delta))
+        )
+        const ratio = newScale / prev.scale
+        return {
+          x: mx - (mx - prev.x) * ratio,
+          y: my - (my - prev.y) * ratio,
+          scale: newScale,
         }
-      }
-    },
-    [state]
-  )
+      })
+    } else {
+      setState(prev => ({
+        ...prev,
+        x: prev.x - e.deltaX,
+        y: prev.y - e.deltaY,
+      }))
+    }
+  }
 
-  const handleMouseMove = useCallback((e: MouseEvent<HTMLDivElement>) => {
+  const handleMouseDown = (e: MouseEvent<HTMLDivElement>) => {
+    if (e.button === 1 || e.button === 0) {
+      const isMiddle = e.button === 1
+      if (isMiddle) e.preventDefault()
+      isDragging.current = true
+      isPanning.current = true
+      lastPos.current = { x: e.clientX, y: e.clientY }
+      dragStart.current = {
+        x: e.clientX,
+        y: e.clientY,
+        stateX: state.x,
+        stateY: state.y,
+      }
+    }
+  }
+
+  const handleMouseMove = (e: MouseEvent<HTMLDivElement>) => {
     if (!isDragging.current || !isPanning.current) return
     const dx = e.clientX - lastPos.current.x
     const dy = e.clientY - lastPos.current.y
     lastPos.current = { x: e.clientX, y: e.clientY }
     setState(prev => ({ ...prev, x: prev.x + dx, y: prev.y + dy }))
-  }, [])
+  }
 
-  const handleMouseUp = useCallback(() => {
+  const handleMouseUp = () => {
     isDragging.current = false
     isPanning.current = false
-  }, [])
+  }
 
   useEffect(() => {
     const handleGlobalMouseUp = () => {

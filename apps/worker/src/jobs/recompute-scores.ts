@@ -1,24 +1,29 @@
-import { Effect } from "effect"
+import { Effect, Layer } from "effect"
 import {
   StoryRepository,
-  InterestRepository,
-  InteractionRepository,
+  StoryRepositoryLive,
+  InterestRepositoryLive,
+  InteractionRepositoryLive,
   UserRepository,
+  UserRepositoryLive,
 } from "@weric/database"
-import { RecommendationService } from "@weric/recommendation"
+import {
+  RecommendationService,
+  RecommendationAuto,
+} from "@weric/recommendation"
 
+import type { Db } from "@weric/database"
 import type { JobHandler } from "~worker/runtime.ts"
 
-export function createRecomputeScoresHandler(
-  storyRepo: StoryRepository,
-  interestRepo: InterestRepository,
-  interactionRepo: InteractionRepository,
-  userRepo: UserRepository
-): JobHandler {
-  const recommendationService = new RecommendationService(
-    storyRepo,
-    interestRepo,
-    interactionRepo
+export function createRecomputeScoresHandler(db: Db): JobHandler {
+  const RecommendationLayer = Layer.provide(
+    RecommendationAuto,
+    Layer.mergeAll(
+      StoryRepositoryLive(db),
+      InterestRepositoryLive(db),
+      InteractionRepositoryLive(db),
+      UserRepositoryLive(db)
+    )
   )
 
   return {
@@ -27,40 +32,37 @@ export function createRecomputeScoresHandler(
     handle(
       _payload: Record<string, unknown>,
       _jobId: string
-    ): Effect.Effect<void, Error> {
+    ): Effect.Effect<void, unknown> {
       return Effect.gen(function* () {
-        const { data: stories } = yield* Effect.tryPromise({
-          try: () =>
-            Effect.runPromise(
-              storyRepo.findPublishedFeed({ page: 1, limit: 100 })
-            ),
-          catch: (cause: unknown) =>
-            new Error(`Failed to fetch stories: ${cause}`),
+        const storyRepo = yield* StoryRepository
+        const recommendationService = yield* RecommendationService
+        const userRepo = yield* UserRepository
+
+        const { data: stories } = yield* storyRepo.findPublishedFeed({
+          page: 1,
+          limit: 100,
         })
 
-        const users = yield* Effect.tryPromise({
-          try: () => Effect.runPromise(userRepo.findAll()),
-          catch: (cause: unknown) =>
-            new Error(`Failed to fetch users: ${cause}`),
-        })
+        const users = yield* userRepo.findAll()
 
-        for (const user of users.slice(0, 10)) {
-          const feed = yield* Effect.tryPromise({
-            try: () =>
-              Effect.runPromise(
-                recommendationService.generateFeed(user.id, { limit: 50 })
-              ),
-            catch: (cause: unknown) =>
-              new Error(`Failed to generate feed: ${cause}`),
-          }).pipe(Effect.catchAll(() => Effect.succeed(null)))
+        let totalRanked = 0
+
+        for (const user of users) {
+          const feed = yield* recommendationService
+            .generateFeed(user.id, { limit: 50 })
+            .pipe(Effect.catchAll(() => Effect.succeed(null)))
 
           if (feed) {
-            console.log(
-              `Recomputed scores for user ${user.id}: ${feed.data.length} stories`
-            )
+            totalRanked += feed.data.length
           }
         }
-      })
+
+        if (users.length > 0) {
+          console.log(
+            `Recomputed scores across ${stories.length} stories for ${users.length} users: ${totalRanked} total ranked`
+          )
+        }
+      }).pipe(Effect.provide(RecommendationLayer)) as never
     },
   }
 }

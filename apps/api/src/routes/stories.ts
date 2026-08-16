@@ -1,6 +1,11 @@
 import { Hono } from "hono"
 import { Effect } from "effect"
-import { StoryRepository, EvidenceRepository } from "@weric/database"
+import {
+  StoryRepository,
+  StoryRepositoryLive,
+  EvidenceRepository,
+} from "@weric/database"
+import { serviceFromLayer } from "~api/lib/layers.ts"
 import {
   CreateEvidenceInputSchema,
   EvidenceSource,
@@ -50,7 +55,7 @@ const StorySlugParam = z.object({ slug: z.string().min(1) })
 
 export function createStoriesRoutes(db: Db) {
   const router = new Hono<{ Variables: ApiVariables }>()
-  const storyRepo = new StoryRepository(db)
+  const storyRepo = serviceFromLayer(StoryRepository, StoryRepositoryLive(db))
   const evidenceRepo = new EvidenceRepository(db)
 
   router.get("/", async c => {
@@ -66,7 +71,12 @@ export function createStoriesRoutes(db: Db) {
 
     return c.json({
       data,
-      meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
     })
   })
 
@@ -76,7 +86,6 @@ export function createStoriesRoutes(db: Db) {
     const detail = await Effect.runPromise(
       storyRepo.findBySlugWithDetails(slug)
     )
-
     if (!detail) {
       return c.json(
         {
@@ -93,7 +102,7 @@ export function createStoriesRoutes(db: Db) {
   })
 
   router.post("/", async c => {
-    const user = requireUser(c)
+    requireUser(c)
     const body = CreateEvidenceRequest.parse(await c.req.json())
 
     const result = await Effect.runPromise(evidenceRepo.create(body))

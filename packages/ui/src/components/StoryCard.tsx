@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react"
+import { useState } from "react"
 
 export interface StoryCardData {
   id: string
@@ -136,23 +136,20 @@ export function StoryCard({
   const [hovered, setHovered] = useState(false)
   const [isBookmarked, setIsBookmarked] = useState(initialBookmarked)
 
-  const handleClick = useCallback(() => {
+  const handleClick = () => {
     onExpand?.(story)
-  }, [story, onExpand])
+  }
 
-  const handleBookmark = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation()
-      const prev = isBookmarked
-      setIsBookmarked(!prev)
-      onBookmark?.(story.id)?.then(success => {
-        if (success === false) {
-          setIsBookmarked(prev)
-        }
-      })
-    },
-    [story.id, onBookmark, isBookmarked]
-  )
+  const handleBookmark = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    const prev = isBookmarked
+    setIsBookmarked(!prev)
+    onBookmark?.(story.id)?.then(success => {
+      if (success === false) {
+        setIsBookmarked(prev)
+      }
+    })
+  }
 
   return (
     <div

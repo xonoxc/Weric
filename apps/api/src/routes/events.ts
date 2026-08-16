@@ -14,7 +14,12 @@ export function createEventsRoutes(jobRepo: JobRepository) {
     const { id } = c.req.param()
     const job = await Effect.runPromise(jobRepo.findById(id)).catch(() => null)
     if (!job) {
-      return c.json({ error: "Job not found" }, 404)
+      return c.json(
+        {
+          error: "Job not found",
+        },
+        404
+      )
     }
     return c.json(job)
   })
@@ -22,7 +27,12 @@ export function createEventsRoutes(jobRepo: JobRepository) {
   router.get("/events", c => {
     const jobId = c.req.query("jobId")?.trim()
     if (!jobId) {
-      return c.json({ error: "jobId query parameter is required" }, 400)
+      return c.json(
+        {
+          error: "jobId query parameter is required",
+        },
+        400
+      )
     }
 
     return streamSSE(c, async stream => {

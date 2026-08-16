@@ -101,6 +101,24 @@ export class ChatRepository {
     })
   }
 
+  countDistinctStoriesByUser(
+    userId: string
+  ): Effect.Effect<number, RepositoryError> {
+    return Effect.tryPromise({
+      try: async () => {
+        const [row] = await this.db
+          .select({
+            count: sql<number>`count(DISTINCT ${chatStories.storyId})::int`,
+          })
+          .from(chatStories)
+          .innerJoin(chats, eq(chatStories.chatId, chats.id))
+          .where(eq(chats.userId, userId))
+        return row?.count ?? 0
+      },
+      catch: cause => new ConnectionError(cause),
+    })
+  }
+
   findByIdWithStories(
     id: string
   ): Effect.Effect<ChatDetail | null, RepositoryError> {

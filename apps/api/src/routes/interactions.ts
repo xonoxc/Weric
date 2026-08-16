@@ -1,10 +1,14 @@
 import { Hono } from "hono"
-import { Effect } from "effect"
-import { RecommendationService } from "@weric/recommendation"
+import { Effect, Layer } from "effect"
 import {
+  RecommendationService,
+  RecommendationAuto,
+} from "@weric/recommendation"
+import {
+  StoryRepositoryLive,
+  InterestRepositoryLive,
   InteractionRepository,
-  StoryRepository,
-  InterestRepository,
+  InteractionRepositoryLive,
 } from "@weric/database"
 import { CreateInteractionInputSchema, InteractionType } from "@weric/contracts"
 import { z } from "zod"
@@ -27,12 +31,16 @@ const InteractionResponse = z.object({
 
 export function createInteractionsRoutes(db: Db) {
   const router = new Hono<{ Variables: ApiVariables }>()
-  const interactionRepo = new InteractionRepository(db)
 
-  const recommendationService = new RecommendationService(
-    new StoryRepository(db),
-    new InterestRepository(db),
-    interactionRepo
+  const InteractionLayer = InteractionRepositoryLive(db)
+
+  const RecommendationLayer = Layer.provide(
+    RecommendationAuto,
+    Layer.mergeAll(
+      StoryRepositoryLive(db),
+      InterestRepositoryLive(db),
+      InteractionRepositoryLive(db)
+    )
   )
 
   router.post("/", async c => {
@@ -40,15 +48,24 @@ export function createInteractionsRoutes(db: Db) {
     const body = CreateInteractionInputSchema.parse(await c.req.json())
 
     const result = await Effect.runPromise(
-      interactionRepo.create({ userId: user.id, ...body })
+      Effect.gen(function* () {
+        const interactionRepo = yield* InteractionRepository
+        return yield* interactionRepo.create({
+          userId: user.id,
+          ...body,
+        })
+      }).pipe(Effect.provide(InteractionLayer))
     )
 
     await Effect.runPromise(
-      recommendationService.updateInterests(
-        user.id,
-        body.storyId,
-        body.interactionType
-      )
+      Effect.gen(function* () {
+        const recommendationService = yield* RecommendationService
+        yield* recommendationService.updateInterests(
+          user.id,
+          body.storyId,
+          body.interactionType
+        )
+      }).pipe(Effect.provide(RecommendationLayer))
     )
 
     return c.json(InteractionResponse.parse(result), 201)

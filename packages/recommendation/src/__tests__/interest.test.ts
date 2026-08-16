@@ -1,9 +1,9 @@
-import { describe, expect, it, vi } from "vitest"
-import { InterestLearner } from "~rec/interest.ts"
+import { describe, expect, it, beforeAll } from "vitest"
+import { InterestLearner, InterestLearnerLive } from "~rec/interest.ts"
 import { InterestRepository } from "@weric/database"
-import { Effect } from "effect"
+import { Effect, Layer } from "effect"
 
-import type { StoryWithEvidenceCount, InterestRow } from "@weric/database"
+import type { StoryWithEvidenceCount } from "@weric/database"
 
 function makeStory(
   overrides: Partial<StoryWithEvidenceCount> = {}
@@ -25,7 +25,20 @@ function makeStory(
 
 describe("InterestLearner", () => {
   describe("extractTopics", () => {
-    const learner = new InterestLearner({} as InterestRepository)
+    let learner: InterestLearner
+
+    beforeAll(async () => {
+      learner = await Effect.runPromise(
+        Effect.gen(function* () {
+          return yield* InterestLearner
+        }).pipe(
+          Effect.provide(InterestLearnerLive),
+          Effect.provide(
+            Layer.succeed(InterestRepository, {} as InterestRepository)
+          )
+        )
+      )
+    })
 
     it("extracts significant words from story title", () => {
       const story = makeStory({ title: "AI Research Breakthrough Discovery" })
