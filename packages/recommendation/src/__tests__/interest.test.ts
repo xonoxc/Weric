@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from "vitest"
-import { InterestLearner } from "../interest.ts"
-import type { StoryWithEvidenceCount, InterestRow } from "@weric/database"
+import { InterestLearner } from "~rec/interest.ts"
 import { InterestRepository } from "@weric/database"
 import { Effect } from "effect"
+
+import type { StoryWithEvidenceCount, InterestRow } from "@weric/database"
 
 function makeStory(
   overrides: Partial<StoryWithEvidenceCount> = {}

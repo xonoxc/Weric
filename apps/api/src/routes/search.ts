@@ -5,10 +5,11 @@ import {
   EvidenceRepository,
   JobRepository,
 } from "@weric/database"
+import { jobBus } from "~api/lib/job-bus.ts"
+
 import type { StoryWithEvidenceCount, EvidenceSearchRow } from "@weric/database"
 import type { Db } from "@weric/database"
-import type { ApiVariables } from "../index.ts"
-import { jobBus } from "../lib/job-bus.ts"
+import type { ApiVariables } from "~api/app.ts"
 
 export function createSearchRoutes(db: Db) {
   const router = new Hono<{ Variables: ApiVariables }>()

@@ -1,5 +1,5 @@
 import { Link, Navigate } from "react-router-dom"
-import { useLogin } from "../hooks/useLogin.ts"
+import { useLogin } from "~web/hooks/useLogin.ts"
 
 const pageStyle: React.CSSProperties = {
   position: "fixed",

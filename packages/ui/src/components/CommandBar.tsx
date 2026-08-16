@@ -1,10 +1,6 @@
-import {
-  useState,
-  useRef,
-  useCallback,
-  useEffect,
-  type KeyboardEvent as ReactKeyboardEvent,
-} from "react"
+import { useState, useRef, useCallback, useEffect } from "react"
+
+import type { KeyboardEvent as ReactKeyboardEvent } from "react"
 
 interface Suggestion {
   label: string

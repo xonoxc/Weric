@@ -1,6 +1,7 @@
 import { Effect } from "effect"
-import type { StoryRepository } from "@weric/database"
 import { ServiceError, StoryNotFoundError } from "./errors.ts"
+
+import type { StoryRepository } from "@weric/database"
 import type { StoryError } from "./errors.ts"
 
 export interface TimelineEntry {

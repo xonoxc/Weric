@@ -1,6 +1,7 @@
 import { Effect } from "effect"
-import type { EntityRepository } from "@weric/database"
 import { ExtractionError } from "./errors.ts"
+
+import type { EntityRepository } from "@weric/database"
 import type { StoryError } from "./errors.ts"
 import type { NormalizedDocument } from "./normalizer.ts"
 

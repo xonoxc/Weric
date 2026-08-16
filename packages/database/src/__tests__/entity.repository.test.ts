@@ -1,9 +1,10 @@
 import { describe, expect, it, beforeEach } from "vitest"
 import { Effect } from "effect"
-import { EntityRepository } from "~/repositories/entity.repository.ts"
-import { StoryRepository } from "~/repositories/story.repository.ts"
-import { getTestDb, cleanDatabase } from "~/__tests__/helpers.ts"
-import type { Db } from "~/connection.ts"
+import { EntityRepository } from "~db/repositories/entity.repository.ts"
+import { StoryRepository } from "~db/repositories/story.repository.ts"
+import { getTestDb, cleanDatabase } from "~db/__tests__/helpers.ts"
+
+import type { Db } from "~db/connection.ts"
 
 describe("EntityRepository", () => {
   let repo: EntityRepository

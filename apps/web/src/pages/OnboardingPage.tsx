@@ -1,4 +1,4 @@
-import { useOnboarding } from "../hooks/useOnboarding.ts"
+import { useOnboarding } from "~web/hooks/useOnboarding.ts"
 
 const categories = [
   "AI",

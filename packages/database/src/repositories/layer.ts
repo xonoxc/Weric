@@ -1,5 +1,5 @@
 import { Context, Effect, Layer } from "effect"
-import { DrizzleDB } from "../layer.ts"
+import { DrizzleDB } from "~db/layer.ts"
 import { StoryRepository } from "./story.repository.ts"
 import { EvidenceRepository } from "./evidence.repository.ts"
 import { EntityRepository } from "./entity.repository.ts"
@@ -9,7 +9,8 @@ import { InteractionRepository } from "./interaction.repository.ts"
 import { BookmarkRepository } from "./bookmark.repository.ts"
 import { JobRepository } from "./job.repository.ts"
 import { InterestRepository } from "./interest.repository.ts"
-import type { Db } from "../connection.ts"
+
+import type { Db } from "~db/connection.ts"
 
 export class StoryRepo extends Context.Tag("StoryRepo")<
   StoryRepo,

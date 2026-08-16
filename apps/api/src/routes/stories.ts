@@ -1,9 +1,10 @@
 import { Hono } from "hono"
 import { Effect } from "effect"
 import { StoryRepository, EvidenceRepository } from "@weric/database"
-import type { Db } from "@weric/database"
 import { EvidenceSource } from "@weric/contracts"
-import type { ApiVariables } from "../index.ts"
+
+import type { Db } from "@weric/database"
+import type { ApiVariables } from "~api/app.ts"
 
 export function createStoriesRoutes(db: Db) {
   const router = new Hono<{ Variables: ApiVariables }>()

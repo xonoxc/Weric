@@ -7,7 +7,6 @@ import {
   UserRepository,
   JobRepository,
 } from "@weric/database"
-import type { Db } from "@weric/database"
 import { BrowserService } from "@weric/browser"
 import { AIService, groqProvider } from "@weric/ai"
 import { WorkerRuntime } from "./runtime.ts"
@@ -18,6 +17,8 @@ import { createRefreshStoryHandler } from "./jobs/refresh-story.ts"
 import { createRecomputeScoresHandler } from "./jobs/recompute-scores.ts"
 import { createCleanupEvidenceHandler } from "./jobs/cleanup-evidence.ts"
 import { createRebuildRecommendationsHandler } from "./jobs/rebuild-recommendations.ts"
+
+import type { Db } from "@weric/database"
 
 function buildRuntime(db: Db) {
   const storyRepo = new StoryRepository(db)

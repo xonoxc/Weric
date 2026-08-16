@@ -1,4 +1,4 @@
-import { useHome } from "../hooks/useHome.ts"
+import { useHome } from "~web/hooks/useHome.ts"
 import { Canvas, StoryCard, CommandBar, TopBar, JobStatusCard } from "@weric/ui"
 
 const loadingContainer: React.CSSProperties = {

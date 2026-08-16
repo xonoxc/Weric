@@ -1,6 +1,7 @@
+import { FeedDiversifier } from "./diversifier.ts"
+
 import type { ScoredStory } from "./scorer.ts"
 import type { StoryWithEvidenceCount } from "@weric/database"
-import { FeedDiversifier } from "./diversifier.ts"
 
 export interface RankedFeed {
   items: StoryWithEvidenceCount[]

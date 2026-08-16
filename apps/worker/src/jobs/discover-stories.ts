@@ -2,7 +2,8 @@ import { Effect } from "effect"
 import { StoryRepository, EvidenceRepository } from "@weric/database"
 import { BrowserService } from "@weric/browser"
 import { AIService } from "@weric/ai"
-import type { JobHandler } from "../runtime.ts"
+
+import type { JobHandler } from "~worker/runtime.ts"
 
 export function createDiscoverStoriesHandler(
   storyRepo: StoryRepository,

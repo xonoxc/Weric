@@ -1,8 +1,9 @@
 import { Hono } from "hono"
 import { Effect } from "effect"
 import { InterestRepository } from "@weric/database"
+
 import type { Db } from "@weric/database"
-import type { ApiVariables } from "../index.ts"
+import type { ApiVariables } from "~api/app.ts"
 
 export function createInterestsRoutes(db: Db) {
   const router = new Hono<{ Variables: ApiVariables }>()

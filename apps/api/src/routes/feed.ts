@@ -6,8 +6,9 @@ import {
   InterestRepository,
   InteractionRepository,
 } from "@weric/database"
+
 import type { Db } from "@weric/database"
-import type { ApiVariables } from "../index.ts"
+import type { ApiVariables } from "~api/app.ts"
 
 export function createFeedRoutes(db: Db) {
   const router = new Hono<{ Variables: ApiVariables }>()

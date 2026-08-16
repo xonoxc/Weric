@@ -1,6 +1,7 @@
+import { NotFoundError, ConflictError, ConnectionError } from "@weric/database"
+
 import type { ErrorHandler } from "hono"
 import type { ContentfulStatusCode } from "hono/utils/http-status"
-import { NotFoundError, ConflictError, ConnectionError } from "@weric/database"
 
 export class HttpError extends Error {
   constructor(

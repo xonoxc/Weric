@@ -1,14 +1,15 @@
 import { Effect } from "effect"
 import { and, desc, eq, sql } from "drizzle-orm"
-import type { Db } from "../connection.ts"
 import {
   stories,
   storyEvidence,
   evidence,
   storyEntities,
   entities,
-} from "../schema/tables.ts"
+} from "~db/schema/tables.ts"
 import { NotFoundError, ConnectionError } from "./errors.ts"
+
+import type { Db } from "~db/connection.ts"
 import type { RepositoryError } from "./errors.ts"
 
 const TSFMT = 'YYYY-MM-DD"T"HH24:MI:SS"Z"'

@@ -1,8 +1,9 @@
 import { Effect } from "effect"
 import { eq } from "drizzle-orm"
-import type { Db } from "../connection.ts"
-import { entities, storyEntities } from "../schema/tables.ts"
+import { entities, storyEntities } from "~db/schema/tables.ts"
 import { ConnectionError } from "./errors.ts"
+
+import type { Db } from "~db/connection.ts"
 import type { RepositoryError } from "./errors.ts"
 
 export class EntityRepository {

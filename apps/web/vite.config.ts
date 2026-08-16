@@ -1,7 +1,13 @@
 import { defineConfig } from "vite"
 import react from "@vitejs/plugin-react"
+import { resolve } from "path"
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      "~web": resolve(__dirname, "src"),
+    },
+  },
   plugins: [react()],
   server: {
     proxy: {

@@ -4,7 +4,9 @@ import { resolve } from "path"
 export default defineConfig({
   resolve: {
     alias: {
-      "~": resolve(__dirname, "src"),
+      "~worker": resolve(__dirname, "src"),
+      "~db": resolve(__dirname, "../../packages/database/src"),
+      "~ai": resolve(__dirname, "../../packages/ai/src"),
     },
   },
   test: {

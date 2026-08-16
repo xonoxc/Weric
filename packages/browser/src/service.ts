@@ -1,5 +1,6 @@
 import { Effect } from "effect"
 import { FetchError, ParseError } from "./errors.ts"
+
 import type { BrowserError } from "./errors.ts"
 
 export interface FetchedPage {

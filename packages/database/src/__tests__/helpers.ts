@@ -1,7 +1,8 @@
 import { drizzle } from "drizzle-orm/postgres-js"
 import postgres from "postgres"
-import * as schema from "~/schema/tables.ts"
-import type { Db } from "~/connection.ts"
+import * as schema from "~db/schema/tables.ts"
+
+import type { Db } from "~db/connection.ts"
 
 let client: ReturnType<typeof postgres> | null = null
 

@@ -1,17 +1,18 @@
 import { Effect } from "effect"
-import type { z } from "zod"
-import type { AIProvider, TextGenerationOptions } from "./provider.ts"
 import {
   SummarySchema,
   ClassificationSchema,
   ExtractedEntitiesSchema,
 } from "./validation.ts"
+import { ValidationError, UnsupportedFeatureError } from "./errors.ts"
+
+import type { z } from "zod"
+import type { AIProvider, TextGenerationOptions } from "./provider.ts"
 import type {
   Summary,
   Classification,
   ExtractedEntities,
 } from "./validation.ts"
-import { ValidationError, UnsupportedFeatureError } from "./errors.ts"
 import type { AIError } from "./errors.ts"
 
 export class AIService {

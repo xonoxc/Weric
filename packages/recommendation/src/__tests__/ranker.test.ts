@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
-import { FeedRanker } from "../ranker.ts"
-import type { ScoredStory } from "../scorer.ts"
+import { FeedRanker } from "~rec/ranker.ts"
+
+import type { ScoredStory } from "~rec/scorer.ts"
 import type { StoryWithEvidenceCount } from "@weric/database"
 
 function makeScored(

@@ -6,7 +6,8 @@ import {
   UserRepository,
 } from "@weric/database"
 import { RecommendationService } from "@weric/recommendation"
-import type { JobHandler } from "../runtime.ts"
+
+import type { JobHandler } from "~worker/runtime.ts"
 
 export function createRebuildRecommendationsHandler(
   storyRepo: StoryRepository,

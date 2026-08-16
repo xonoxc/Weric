@@ -1,15 +1,16 @@
 import { Effect, Schedule } from "effect"
 import { createOpenAI } from "@ai-sdk/openai"
 import { generateText, generateObject } from "ai"
+import { ProviderError, RateLimitError, TimeoutError } from "~ai/errors.ts"
+
 import type { z } from "zod"
-import { ProviderError, RateLimitError, TimeoutError } from "../errors.ts"
-import type { AIError } from "../errors.ts"
+import type { AIError } from "~ai/errors.ts"
 import type {
   AIProvider,
   TextGenerationOptions,
   TextGenerationResult,
   StructuredGenerationResult,
-} from "../provider.ts"
+} from "~ai/provider.ts"
 
 const DEFAULT_MODEL = "llama-3.3-70b-versatile"
 

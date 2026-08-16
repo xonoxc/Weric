@@ -16,6 +16,15 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "strict": true,
-    "target": "ES2022"
+    "target": "ES2022",
+    "baseUrl": ".",
+    "paths": {
+      "~api/*": ["./apps/api/src/*"],
+      "~worker/*": ["./apps/worker/src/*"],
+      "~web/*": ["./apps/web/src/*"],
+      "~db/*": ["./packages/database/src/*"],
+      "~ai/*": ["./packages/ai/src/*"],
+      "~rec/*": ["./packages/recommendation/src/*"]
+    }
   }
 }

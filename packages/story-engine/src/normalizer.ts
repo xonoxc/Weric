@@ -1,7 +1,8 @@
 import { Effect } from "effect"
+import { NormalizationError, DuplicateEvidenceError } from "./errors.ts"
+
 import type { RawDocument } from "@weric/contracts"
 import type { EvidenceRepository } from "@weric/database"
-import { NormalizationError, DuplicateEvidenceError } from "./errors.ts"
 import type { StoryError } from "./errors.ts"
 
 export interface NormalizedDocument {

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
+import { listenForJobEvents } from "~web/lib/api-client.ts"
+
 import type { SseDiscoveredStory } from "@weric/ui"
-import { listenForJobEvents } from "../lib/api-client.ts"
 
 export interface JobState {
   active: boolean

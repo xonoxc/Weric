@@ -1,7 +1,9 @@
-import { useState, type FormEvent } from "react"
+import { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { signIn, useSession } from "../lib/auth-client.ts"
-import { attempt } from "../lib/result.ts"
+import { signIn, useSession } from "~web/lib/auth-client.ts"
+import { attempt } from "~web/lib/result.ts"
+
+import type { FormEvent } from "react"
 
 export function useLogin() {
   const navigate = useNavigate()

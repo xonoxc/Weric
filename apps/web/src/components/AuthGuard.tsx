@@ -1,6 +1,7 @@
-import { type ReactNode } from "react"
 import { Navigate } from "react-router-dom"
-import { useSession } from "../lib/auth-client.ts"
+import { useSession } from "~web/lib/auth-client.ts"
+
+import type { ReactNode } from "react"
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true"
 

@@ -3,6 +3,7 @@ import { drizzle } from "drizzle-orm/postgres-js"
 import postgres from "postgres"
 import { WericConfigService } from "@weric/config"
 import * as schema from "./schema/tables.ts"
+
 import type { Db } from "./connection.ts"
 
 export class DrizzleDB extends Context.Tag("DrizzleDB")<DrizzleDB, Db>() {}

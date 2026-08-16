@@ -2,8 +2,9 @@ import { Hono } from "hono"
 import { streamSSE } from "hono/streaming"
 import { Effect } from "effect"
 import { JobRepository } from "@weric/database"
-import { jobBus } from "../lib/job-bus.ts"
-import type { StreamWriter } from "../lib/job-bus.ts"
+import { jobBus } from "~api/lib/job-bus.ts"
+
+import type { StreamWriter } from "~api/lib/job-bus.ts"
 
 export function createWorkerRoutes(jobRepo: JobRepository) {
   const router = new Hono()

@@ -1,5 +1,6 @@
-import type { ScoredStory } from "./scorer.ts"
 import { STOP_WORDS } from "@weric/shared"
+
+import type { ScoredStory } from "./scorer.ts"
 
 export class FeedDiversifier {
   diversify(scoredStories: ScoredStory[], count: number): ScoredStory[] {

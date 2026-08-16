@@ -1,12 +1,6 @@
-import {
-  useRef,
-  useState,
-  useCallback,
-  useEffect,
-  type ReactNode,
-  type MouseEvent,
-  type WheelEvent,
-} from "react"
+import { useRef, useState, useCallback, useEffect } from "react"
+
+import type { ReactNode, MouseEvent, WheelEvent } from "react"
 
 interface CanvasState {
   x: number

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
-import { FeedDiversifier } from "../diversifier.ts"
-import type { ScoredStory } from "../scorer.ts"
+import { FeedDiversifier } from "~rec/diversifier.ts"
+
+import type { ScoredStory } from "~rec/scorer.ts"
 import type { StoryWithEvidenceCount } from "@weric/database"
 
 function makeScored(title: string, score = 0.5): ScoredStory {

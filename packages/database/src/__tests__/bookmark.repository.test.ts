@@ -1,10 +1,11 @@
 import { describe, expect, it, beforeEach } from "vitest"
 import { Effect } from "effect"
-import { BookmarkRepository } from "~/repositories/bookmark.repository.ts"
-import { StoryRepository } from "~/repositories/story.repository.ts"
-import { getTestDb, cleanDatabase } from "~/__tests__/helpers.ts"
-import { users } from "~/schema/tables.ts"
-import type { Db } from "~/connection.ts"
+import { BookmarkRepository } from "~db/repositories/bookmark.repository.ts"
+import { StoryRepository } from "~db/repositories/story.repository.ts"
+import { getTestDb, cleanDatabase } from "~db/__tests__/helpers.ts"
+import { users } from "~db/schema/tables.ts"
+
+import type { Db } from "~db/connection.ts"
 
 describe("BookmarkRepository", () => {
   let repo: BookmarkRepository

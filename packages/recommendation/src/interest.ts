@@ -1,8 +1,9 @@
 import { Effect } from "effect"
-import type { StoryWithEvidenceCount } from "@weric/database"
-import type { InterestRepository } from "@weric/database"
 import { STOP_WORDS } from "@weric/shared"
 import { ScoringError } from "./errors.ts"
+
+import type { StoryWithEvidenceCount } from "@weric/database"
+import type { InterestRepository } from "@weric/database"
 import type { RecommendationError } from "./errors.ts"
 
 const INTERACTION_BOOST: Record<string, number> = {

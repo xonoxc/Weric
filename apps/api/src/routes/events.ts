@@ -1,8 +1,9 @@
 import { Hono } from "hono"
 import { streamSSE } from "hono/streaming"
-import { jobBus } from "../lib/job-bus.ts"
-import type { StreamWriter } from "../lib/job-bus.ts"
-import type { ApiVariables } from "../index.ts"
+import { jobBus } from "~api/lib/job-bus.ts"
+
+import type { StreamWriter } from "~api/lib/job-bus.ts"
+import type { ApiVariables } from "~api/app.ts"
 
 export function createEventsRoutes() {
   const router = new Hono<{ Variables: ApiVariables }>()

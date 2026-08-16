@@ -1,4 +1,9 @@
 import { Effect } from "effect"
+import { StoryScorer } from "./scorer.ts"
+import { FeedRanker } from "./ranker.ts"
+import { InterestLearner } from "./interest.ts"
+import { NoStoriesError, ScoringError } from "./errors.ts"
+
 import type {
   StoryRepository,
   InterestRepository,
@@ -6,10 +11,6 @@ import type {
   StoryWithEvidenceCount,
 } from "@weric/database"
 import type { Feed } from "@weric/contracts"
-import { StoryScorer } from "./scorer.ts"
-import { FeedRanker } from "./ranker.ts"
-import { InterestLearner } from "./interest.ts"
-import { NoStoriesError, ScoringError } from "./errors.ts"
 import type { RecommendationError } from "./errors.ts"
 
 export interface FeedOptions {

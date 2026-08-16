@@ -1,10 +1,15 @@
 import { useState, useCallback, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
 import { useQuery, useMutation } from "@tanstack/react-query"
-import type { StoryCardData } from "@weric/ui"
-import { fetchFeed, searchStories, toggleBookmark } from "../lib/api-client.ts"
-import { useSession, signOut } from "../lib/auth-client.ts"
+import {
+  fetchFeed,
+  searchStories,
+  toggleBookmark,
+} from "~web/lib/api-client.ts"
+import { useSession, signOut } from "~web/lib/auth-client.ts"
 import { useJobEvents } from "./useJobEvents.ts"
+
+import type { StoryCardData } from "@weric/ui"
 
 interface PositionedStory extends StoryCardData {
   x: number

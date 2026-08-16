@@ -1,8 +1,9 @@
 import { Effect } from "effect"
 import { eq, sql } from "drizzle-orm"
-import type { Db } from "../connection.ts"
-import { interactions } from "../schema/tables.ts"
+import { interactions } from "~db/schema/tables.ts"
 import { ConnectionError } from "./errors.ts"
+
+import type { Db } from "~db/connection.ts"
 import type { RepositoryError } from "./errors.ts"
 
 export interface InteractionAggregate {
