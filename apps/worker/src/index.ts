@@ -31,6 +31,12 @@ function buildRuntime(db: Db) {
   const ai = new AIService(groqProvider)
   const apiUrl = process.env.API_URL ?? "http://localhost:3000"
 
+  if (!process.env.GROQ_API_KEY) {
+    console.warn(
+      "[Worker] WARNING: GROQ_API_KEY is not set. AI-dependent jobs (search_discover, discover_stories) will fail."
+    )
+  }
+
   const runtime = new WorkerRuntime(
     jobRepo,
     [

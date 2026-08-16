@@ -6,6 +6,7 @@
       "name": "weric",
       "devDependencies": {
         "@effect/vitest": "^0.29.0",
+        "@types/node": "^26.1.0",
         "drizzle-kit": "^0.31.10",
         "husky": "^9.1.7",
         "lint-staged": "^17.0.8",
@@ -182,6 +183,7 @@
       },
       "devDependencies": {
         "@effect/vitest": "^0.29.0",
+        "@types/node": "^26.1.0",
         "typescript": "5.9.2",
         "vitest": "^4.1.9",
       },

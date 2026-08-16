@@ -36,6 +36,7 @@ export function useHome() {
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [jobId, setJobId] = useState<string | null>(null)
   const [jobCardDismissed, setJobCardDismissed] = useState(false)
+  const [focusStoryId, setFocusStoryId] = useState<string | null>(null)
 
   const feedQuery = useQuery({
     queryKey: ["feed"],
@@ -87,8 +88,18 @@ export function useHome() {
       }
     }
 
-    return layoutStories(all)
-  }, [searchMutation.data, feedQuery.data, jobStatus.stories])
+    const positioned = layoutStories(all)
+
+    if (focusStoryId) {
+      const idx = positioned.findIndex(s => s.id === focusStoryId)
+      if (idx !== -1) {
+        const [focused] = positioned.splice(idx, 1)
+        if (focused) positioned.push(focused)
+      }
+    }
+
+    return positioned
+  }, [searchMutation.data, feedQuery.data, jobStatus.stories, focusStoryId])
 
   const loading = feedQuery.isLoading || searchMutation.isPending
   const error = feedQuery.error ?? searchMutation.error
@@ -99,18 +110,22 @@ export function useHome() {
     (jobStatus.active || jobStatus.status !== "idle")
 
   const handleExpand = useCallback((id: string) => {
-    console.log(`Expand story ${id}`)
+    setFocusStoryId(id)
+    setJobCardDismissed(true)
   }, [])
 
   const handleBookmark = useCallback(
-    (id: string) => {
+    async (id: string) => {
       if (!session) {
         navigate("/login", { replace: true })
         return
       }
-      toggleBookmark(id).catch(() => {
-        // Optimistic update will be reverted by the UI if needed
-      })
+      try {
+        await toggleBookmark(id)
+        return true
+      } catch {
+        return false
+      }
     },
     [session, navigate]
   )

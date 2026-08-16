@@ -25,7 +25,12 @@ export function createWorkerRoutes(jobRepo: JobRepository) {
     return streamSSE(c, async stream => {
       const writer: StreamWriter = {
         send: (event, data) => {
-          stream.writeSSE({ data: JSON.stringify(data), event }).catch(() => {})
+          stream
+            .writeSSE({
+              data: JSON.stringify(data),
+              event,
+            })
+            .catch(() => {})
         },
         close: () => {},
         onAbort: cb => {
@@ -46,7 +51,7 @@ export function createWorkerRoutes(jobRepo: JobRepository) {
 
       const keepalive = setInterval(() => {
         stream.write(": keepalive\n\n").catch(() => {})
-      }, 10_000)
+      }, 5_000)
 
       jobBus.registerWorker(writer)
 
@@ -71,7 +76,9 @@ export function createWorkerRoutes(jobRepo: JobRepository) {
 
     const terminal = TerminalJobStatus.safeParse(body.status)
     if (terminal.success) {
-      jobBus.sendToClient(body.jobId, "status", { status: terminal.data })
+      jobBus.sendToClient(body.jobId, "status", {
+        status: terminal.data,
+      })
       jobBus.closeClient(body.jobId)
     }
 

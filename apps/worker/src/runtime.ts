@@ -195,9 +195,10 @@ export class WorkerRuntime {
       .catch((error: unknown) => {
         this.activeJobs--
         console.error(`[Worker] Job ${job.id} (${job.type}) failed:`, error)
+        const message = error instanceof Error ? error.message : String(error)
         this.postJobProgress(job.id, {
           progress: 1,
-          message: "Job failed",
+          message: message || "Job failed",
           status: "failed",
         })
         Effect.runPromise(this.jobRepo.updateStatus(job.id, "failed")).catch(

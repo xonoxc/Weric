@@ -332,6 +332,7 @@ export default function Home() {
         stories={jobStatus.stories}
         status={jobStatus.status}
         onDismiss={handleDismissJobCard}
+        onStoryClick={s => handleExpand(s.id)}
       />
       <CommandBar onSearch={handleSearch} />
     </>
