@@ -233,6 +233,29 @@ export async function searchStories(
   return { stories: mapped, jobId: data.jobId }
 }
 
+export async function fetchJobStatus(
+  jobId: string
+): Promise<"pending" | "running" | "completed" | "failed" | null> {
+  try {
+    const res = await fetch(`${BASE_URL}/jobs/${encodeURIComponent(jobId)}`, {
+      headers: { "Content-Type": "application/json" },
+    })
+    if (!res.ok) return null
+    const data = (await res.json()) as { status?: string }
+    if (
+      data.status === "pending" ||
+      data.status === "running" ||
+      data.status === "completed" ||
+      data.status === "failed"
+    ) {
+      return data.status
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
 export function listenForJobEvents(
   jobId: string,
   callbacks: SseEventCallback

@@ -1,6 +1,8 @@
 import { Hono } from "hono"
 import { Effect } from "effect"
 import { InterestRepository } from "@weric/database"
+import { CreateInterestsRequestSchema } from "@weric/contracts"
+import { requireUser } from "~api/lib/validation.ts"
 
 import type { Db } from "@weric/database"
 import type { ApiVariables } from "~api/app.ts"
@@ -10,13 +12,7 @@ export function createInterestsRoutes(db: Db) {
   const interestRepo = new InterestRepository(db)
 
   router.get("/", async c => {
-    const user = c.get("user")
-    if (!user) {
-      return c.json(
-        { error: { code: "UNAUTHORIZED", message: "Authentication required" } },
-        401
-      )
-    }
+    const user = requireUser(c)
 
     const data = await Effect.runPromise(interestRepo.findByUserId(user.id))
 
@@ -24,33 +20,10 @@ export function createInterestsRoutes(db: Db) {
   })
 
   router.post("/", async c => {
-    const user = c.get("user")
-    if (!user) {
-      return c.json(
-        { error: { code: "UNAUTHORIZED", message: "Authentication required" } },
-        401
-      )
-    }
+    const user = requireUser(c)
+    const { topics } = CreateInterestsRequestSchema.parse(await c.req.json())
 
-    const body = await c.req.json()
-    const topics = body.topics
-
-    if (!Array.isArray(topics)) {
-      return c.json(
-        {
-          error: {
-            code: "VALIDATION_ERROR",
-            message: "topics must be an array of strings",
-          },
-        },
-        400
-      )
-    }
-
-    const uniqueTopics = [...new Set(topics.filter(t => typeof t === "string"))]
-
-    const results: Array<{ id: string; topic: string; score: number }> = []
-    for (const topic of uniqueTopics) {
+    for (const topic of topics) {
       await Effect.runPromise(interestRepo.upsert(user.id, topic, 1.0))
     }
 

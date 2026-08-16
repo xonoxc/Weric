@@ -1,0 +1,12 @@
+import type { ContentfulStatusCode } from "hono/utils/http-status"
+
+export class HttpError extends Error {
+  constructor(
+    readonly status: ContentfulStatusCode,
+    readonly code: string,
+    message: string,
+    readonly details?: unknown
+  ) {
+    super(message)
+  }
+}

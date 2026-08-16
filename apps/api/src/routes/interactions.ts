@@ -6,9 +6,24 @@ import {
   StoryRepository,
   InterestRepository,
 } from "@weric/database"
+import { CreateInteractionInputSchema, InteractionType } from "@weric/contracts"
+import { z } from "zod"
+import { IsoDateString, requireUser } from "~api/lib/validation.ts"
 
 import type { Db } from "@weric/database"
 import type { ApiVariables } from "~api/app.ts"
+
+const InteractionResponse = z.object({
+  id: z.string(),
+  userId: z.string(),
+  storyId: z.string(),
+  interactionType: InteractionType,
+  duration: z
+    .number()
+    .nullable()
+    .transform(value => value ?? undefined),
+  createdAt: IsoDateString,
+})
 
 export function createInteractionsRoutes(db: Db) {
   const router = new Hono<{ Variables: ApiVariables }>()
@@ -21,45 +36,11 @@ export function createInteractionsRoutes(db: Db) {
   )
 
   router.post("/", async c => {
-    const user = c.get("user")
-    if (!user) {
-      return c.json(
-        { error: { code: "UNAUTHORIZED", message: "Authentication required" } },
-        401
-      )
-    }
-
-    const body = await c.req.json()
-    if (!body.storyId || typeof body.storyId !== "string") {
-      return c.json(
-        {
-          error: {
-            code: "VALIDATION_ERROR",
-            message: "storyId is required and must be a string",
-          },
-        },
-        400
-      )
-    }
-    if (!body.interactionType || typeof body.interactionType !== "string") {
-      return c.json(
-        {
-          error: {
-            code: "VALIDATION_ERROR",
-            message: "interactionType is required and must be a string",
-          },
-        },
-        400
-      )
-    }
+    const user = requireUser(c)
+    const body = CreateInteractionInputSchema.parse(await c.req.json())
 
     const result = await Effect.runPromise(
-      interactionRepo.create({
-        userId: user.id,
-        storyId: body.storyId,
-        interactionType: body.interactionType,
-        duration: typeof body.duration === "number" ? body.duration : null,
-      })
+      interactionRepo.create({ userId: user.id, ...body })
     )
 
     await Effect.runPromise(
@@ -70,20 +51,7 @@ export function createInteractionsRoutes(db: Db) {
       )
     )
 
-    return c.json(
-      {
-        id: result.id,
-        userId: result.userId,
-        storyId: result.storyId,
-        interactionType: result.interactionType,
-        duration: result.duration ?? undefined,
-        createdAt:
-          result.createdAt instanceof Date
-            ? result.createdAt.toISOString()
-            : String(result.createdAt),
-      },
-      201
-    )
+    return c.json(InteractionResponse.parse(result), 201)
   })
 
   return router

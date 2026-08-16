@@ -96,7 +96,7 @@ export function useHome() {
   const showJobCard =
     jobId !== null &&
     !jobCardDismissed &&
-    (jobStatus.active || jobStatus.stories.length > 0)
+    (jobStatus.active || jobStatus.status !== "idle")
 
   const handleExpand = useCallback((id: string) => {
     console.log(`Expand story ${id}`)

@@ -1,18 +1,8 @@
+import { z } from "zod"
 import { NotFoundError, ConflictError, ConnectionError } from "@weric/database"
+import { HttpError } from "~api/lib/http-error.ts"
 
 import type { ErrorHandler } from "hono"
-import type { ContentfulStatusCode } from "hono/utils/http-status"
-
-export class HttpError extends Error {
-  constructor(
-    readonly status: ContentfulStatusCode,
-    readonly code: string,
-    message: string,
-    readonly details?: unknown
-  ) {
-    super(message)
-  }
-}
 
 export const errorHandler: ErrorHandler = (err, c) => {
   if (err instanceof HttpError) {
@@ -25,6 +15,19 @@ export const errorHandler: ErrorHandler = (err, c) => {
         },
       },
       err.status
+    )
+  }
+
+  if (err instanceof z.ZodError) {
+    return c.json(
+      {
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Invalid request",
+          details: err.flatten(),
+        },
+      },
+      400
     )
   }
 

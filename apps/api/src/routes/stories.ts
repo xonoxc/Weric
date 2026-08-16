@@ -1,10 +1,52 @@
 import { Hono } from "hono"
 import { Effect } from "effect"
 import { StoryRepository, EvidenceRepository } from "@weric/database"
-import { EvidenceSource } from "@weric/contracts"
+import {
+  CreateEvidenceInputSchema,
+  EvidenceSource,
+  EvidenceMetadataSchema,
+} from "@weric/contracts"
+import { z } from "zod"
+import {
+  IsoDateString,
+  PaginationQuery,
+  requireUser,
+} from "~api/lib/validation.ts"
 
 import type { Db } from "@weric/database"
 import type { ApiVariables } from "~api/app.ts"
+
+const ListStoriesQuery = PaginationQuery(100).extend({
+  status: z.enum(["draft", "published", "archived"]).optional(),
+})
+
+const CreateEvidenceRequest = CreateEvidenceInputSchema.extend({
+  source: EvidenceSource.optional(),
+}).transform(data => ({
+  ...data,
+  source: data.source ?? ("manual" as const),
+  publishedAt: data.publishedAt ? new Date(data.publishedAt) : null,
+}))
+
+const EvidenceResponse = z.object({
+  id: z.string(),
+  source: EvidenceSource,
+  url: z.string(),
+  author: z
+    .string()
+    .nullable()
+    .transform(author => author ?? undefined),
+  title: z.string(),
+  content: z.string(),
+  metadata: EvidenceMetadataSchema,
+  publishedAt: z
+    .date()
+    .nullable()
+    .transform(value => (value ? value.toISOString() : undefined)),
+  discoveredAt: IsoDateString,
+})
+
+const StorySlugParam = z.object({ slug: z.string().min(1) })
 
 export function createStoriesRoutes(db: Db) {
   const router = new Hono<{ Variables: ApiVariables }>()
@@ -12,9 +54,7 @@ export function createStoriesRoutes(db: Db) {
   const evidenceRepo = new EvidenceRepository(db)
 
   router.get("/", async c => {
-    const page = Math.max(1, Number(c.req.query("page") ?? 1))
-    const limit = Math.min(100, Math.max(1, Number(c.req.query("limit") ?? 20)))
-    const status = c.req.query("status") || undefined
+    const { page, limit, status } = ListStoriesQuery.parse(c.req.query())
 
     const { data, total } = await Effect.runPromise(
       storyRepo.findManyWithEvidenceCount({
@@ -31,7 +71,7 @@ export function createStoriesRoutes(db: Db) {
   })
 
   router.get("/:slug", async c => {
-    const slug = c.req.param("slug")
+    const { slug } = StorySlugParam.parse(c.req.param())
 
     const detail = await Effect.runPromise(
       storyRepo.findBySlugWithDetails(slug)
@@ -53,61 +93,12 @@ export function createStoriesRoutes(db: Db) {
   })
 
   router.post("/", async c => {
-    const user = c.get("user")
-    if (!user) {
-      return c.json(
-        { error: { code: "UNAUTHORIZED", message: "Authentication required" } },
-        401
-      )
-    }
+    const user = requireUser(c)
+    const body = CreateEvidenceRequest.parse(await c.req.json())
 
-    const body = await c.req.json()
-    const sourceResult = EvidenceSource.safeParse(body.source ?? "manual")
-    if (!sourceResult.success) {
-      return c.json(
-        {
-          error: {
-            code: "VALIDATION_ERROR",
-            message: "Invalid source",
-            details: sourceResult.error.flatten(),
-          },
-        },
-        400
-      )
-    }
+    const result = await Effect.runPromise(evidenceRepo.create(body))
 
-    const result = await Effect.runPromise(
-      evidenceRepo.create({
-        source: sourceResult.data,
-        url: body.url,
-        author: body.author ?? null,
-        title: body.title,
-        content: body.content,
-        metadata: body.metadata ?? {},
-        publishedAt: body.publishedAt ? new Date(body.publishedAt) : null,
-      })
-    )
-
-    return c.json(
-      {
-        id: result.id,
-        source: result.source,
-        url: result.url,
-        author: result.author ?? undefined,
-        title: result.title,
-        content: result.content,
-        metadata: result.metadata,
-        publishedAt:
-          result.publishedAt instanceof Date
-            ? result.publishedAt.toISOString()
-            : undefined,
-        discoveredAt:
-          result.discoveredAt instanceof Date
-            ? result.discoveredAt.toISOString()
-            : String(result.discoveredAt),
-      },
-      201
-    )
+    return c.json(EvidenceResponse.parse(result), 201)
   })
 
   return router

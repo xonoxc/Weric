@@ -2,9 +2,21 @@ import { Hono } from "hono"
 import { streamSSE } from "hono/streaming"
 import { Effect } from "effect"
 import { JobRepository } from "@weric/database"
+import { JobStatus } from "@weric/contracts"
+import { z } from "zod"
 import { jobBus } from "~api/lib/job-bus.ts"
 
 import type { StreamWriter } from "~api/lib/job-bus.ts"
+
+const JobProgressSchema = z.object({
+  jobId: z.string().min(1),
+  progress: z.number().min(0).max(1),
+  message: z.string().optional().default(""),
+  stories: z.array(z.unknown()).optional(),
+  status: JobStatus.optional(),
+})
+
+const TerminalJobStatus = JobStatus.extract(["completed", "failed"])
 
 export function createWorkerRoutes(jobRepo: JobRepository) {
   const router = new Hono()
@@ -49,26 +61,17 @@ export function createWorkerRoutes(jobRepo: JobRepository) {
   })
 
   router.post("/job-progress", async c => {
-    const body = await c.req.json<{
-      jobId: string
-      progress: number
-      message?: string
-      stories?: unknown[]
-      status?: string
-    }>()
-
-    if (!body.jobId) {
-      return c.json({ error: "jobId required" }, 400)
-    }
+    const body = JobProgressSchema.parse(await c.req.json())
 
     jobBus.sendToClient(body.jobId, "progress", {
       progress: body.progress,
-      message: body.message ?? "",
+      message: body.message,
       stories: body.stories,
     })
 
-    if (body.status === "completed" || body.status === "failed") {
-      jobBus.sendToClient(body.jobId, "status", { status: body.status })
+    const terminal = TerminalJobStatus.safeParse(body.status)
+    if (terminal.success) {
+      jobBus.sendToClient(body.jobId, "status", { status: terminal.data })
       jobBus.closeClient(body.jobId)
     }
 

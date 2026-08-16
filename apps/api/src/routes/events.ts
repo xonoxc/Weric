@@ -1,26 +1,20 @@
 import { Hono } from "hono"
 import { streamSSE } from "hono/streaming"
+import { z } from "zod"
 import { jobBus } from "~api/lib/job-bus.ts"
 
 import type { StreamWriter } from "~api/lib/job-bus.ts"
 import type { ApiVariables } from "~api/app.ts"
 
+const EventsQuery = z.object({
+  jobId: z.string().min(1, "jobId query parameter is required"),
+})
+
 export function createEventsRoutes() {
   const router = new Hono<{ Variables: ApiVariables }>()
 
   router.get("/events", c => {
-    const jobId = c.req.query("jobId")
-    if (!jobId) {
-      return c.json(
-        {
-          error: {
-            code: "VALIDATION_ERROR",
-            message: "jobId query parameter is required",
-          },
-        },
-        400
-      )
-    }
+    const { jobId } = EventsQuery.parse(c.req.query())
 
     return streamSSE(c, async stream => {
       const closeRef = { current: false }

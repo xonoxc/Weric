@@ -43,7 +43,7 @@ app.route("/api/search", createSearchRoutes(db))
 app.route("/api/interactions", createInteractionsRoutes(db))
 app.route("/api/bookmarks", createBookmarksRoutes(db))
 app.route("/api/interests", createInterestsRoutes(db))
-app.route("/api", createEventsRoutes())
+app.route("/api", createEventsRoutes(new JobRepository(db)))
 app.route("/internal", createWorkerRoutes(new JobRepository(db)))
 
 export default app

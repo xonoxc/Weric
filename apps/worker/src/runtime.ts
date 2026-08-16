@@ -51,6 +51,15 @@ export class WorkerRuntime {
     console.log("[Worker] Shutting down...")
   }
 
+  private postJobProgress(jobId: string, data: Record<string, unknown>): void {
+    const apiUrl = this.options.apiUrl ?? "http://localhost:3000"
+    fetch(`${apiUrl}/internal/job-progress`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jobId, ...data }),
+    }).catch(() => {})
+  }
+
   private async connectToApi(): Promise<void> {
     const apiUrl = this.options.apiUrl ?? "http://localhost:3000"
     this.abortController = new AbortController()
@@ -155,6 +164,11 @@ export class WorkerRuntime {
     const handler = this.handlers.find(h => h.type === job.type)
     if (!handler) {
       console.warn(`[Worker] No handler for job type: ${job.type}`)
+      this.postJobProgress(job.id, {
+        progress: 1,
+        message: "Job failed",
+        status: "failed",
+      })
       Effect.runPromise(this.jobRepo.updateStatus(job.id, "failed")).catch(
         () => {}
       )
@@ -181,6 +195,11 @@ export class WorkerRuntime {
       .catch((error: unknown) => {
         this.activeJobs--
         console.error(`[Worker] Job ${job.id} (${job.type}) failed:`, error)
+        this.postJobProgress(job.id, {
+          progress: 1,
+          message: "Job failed",
+          status: "failed",
+        })
         Effect.runPromise(this.jobRepo.updateStatus(job.id, "failed")).catch(
           () => {}
         )

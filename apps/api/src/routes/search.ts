@@ -5,11 +5,30 @@ import {
   EvidenceRepository,
   JobRepository,
 } from "@weric/database"
+import { z } from "zod"
 import { jobBus } from "~api/lib/job-bus.ts"
+import { PaginationQuery } from "~api/lib/validation.ts"
 
 import type { StoryWithEvidenceCount, EvidenceSearchRow } from "@weric/database"
 import type { Db } from "@weric/database"
 import type { ApiVariables } from "~api/app.ts"
+
+const SearchQuery = PaginationQuery(100).extend({
+  q: z.string().trim().min(1, "Query parameter 'q' is required"),
+  type: z.enum(["all", "stories", "evidence"]).default("all"),
+})
+
+const SearchResponse = z.object({
+  stories: z.array(z.unknown()).default([]),
+  evidence: z.array(z.unknown()).default([]),
+  meta: z.object({
+    page: z.number(),
+    limit: z.number(),
+    storyTotal: z.number().default(0),
+    evidenceTotal: z.number().default(0),
+  }),
+  jobId: z.string().nullable().default(null),
+})
 
 export function createSearchRoutes(db: Db) {
   const router = new Hono<{ Variables: ApiVariables }>()
@@ -18,22 +37,7 @@ export function createSearchRoutes(db: Db) {
   const jobRepo = new JobRepository(db)
 
   router.get("/", async c => {
-    const query = c.req.query("q")
-    if (!query || query.trim().length === 0) {
-      return c.json(
-        {
-          error: {
-            code: "VALIDATION_ERROR",
-            message: "Query parameter 'q' is required",
-          },
-        },
-        400
-      )
-    }
-
-    const type = c.req.query("type") ?? "all"
-    const page = Math.max(1, Number(c.req.query("page") ?? 1))
-    const limit = Math.min(100, Math.max(1, Number(c.req.query("limit") ?? 20)))
+    const { q, type, page, limit } = SearchQuery.parse(c.req.query())
 
     let storyResult: { data: StoryWithEvidenceCount[]; total: number } | null =
       null
@@ -42,13 +46,13 @@ export function createSearchRoutes(db: Db) {
 
     if (type === "all" || type === "stories") {
       storyResult = await Effect.runPromise(
-        storyRepo.searchStories(query.trim(), { page, limit })
+        storyRepo.searchStories(q, { page, limit })
       )
     }
 
     if (type === "all" || type === "evidence") {
       evidenceResult = await Effect.runPromise(
-        evidenceRepo.searchEvidence(query.trim(), { page, limit })
+        evidenceRepo.searchEvidence(q, { page, limit })
       )
     }
 
@@ -58,7 +62,7 @@ export function createSearchRoutes(db: Db) {
       const job = await Effect.runPromise(
         jobRepo.create({
           type: "search_discover",
-          payload: { query: query.trim() },
+          payload: { query: q },
         })
       )
       jobId = job.id
@@ -72,20 +76,22 @@ export function createSearchRoutes(db: Db) {
       // Job creation failure is non-fatal — results still return
     }
 
-    return c.json({
-      stories: storyResult?.data ?? [],
-      evidence: (evidenceResult?.data ?? []).map(e => ({
-        ...e,
-        content: e.content.slice(0, 500),
-      })),
-      meta: {
-        page,
-        limit,
-        storyTotal: storyResult?.total ?? 0,
-        evidenceTotal: evidenceResult?.total ?? 0,
-      },
-      jobId,
-    })
+    return c.json(
+      SearchResponse.parse({
+        stories: storyResult?.data,
+        evidence: (evidenceResult?.data ?? []).map(e => ({
+          ...e,
+          content: e.content.slice(0, 500),
+        })),
+        meta: {
+          page,
+          limit,
+          storyTotal: storyResult?.total,
+          evidenceTotal: evidenceResult?.total,
+        },
+        jobId,
+      })
+    )
   })
 
   return router
