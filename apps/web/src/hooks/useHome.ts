@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
 import { useQuery, useMutation } from "@tanstack/react-query"
 import type { StoryCardData } from "@weric/ui"
-import { fetchFeed, searchStories } from "../lib/api-client.ts"
+import { fetchFeed, searchStories, toggleBookmark } from "../lib/api-client.ts"
 import { useSession, signOut } from "../lib/auth-client.ts"
 import { useJobEvents } from "./useJobEvents.ts"
 
@@ -97,9 +97,18 @@ export function useHome() {
     console.log(`Expand story ${id}`)
   }, [])
 
-  const handleBookmark = useCallback((id: string) => {
-    console.log(`Bookmark toggle ${id}`)
-  }, [])
+  const handleBookmark = useCallback(
+    (id: string) => {
+      if (!session) {
+        navigate("/login", { replace: true })
+        return
+      }
+      toggleBookmark(id).catch(() => {
+        // Optimistic update will be reverted by the UI if needed
+      })
+    },
+    [session, navigate]
+  )
 
   const handleSignOut = useCallback(async () => {
     await signOut()

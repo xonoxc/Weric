@@ -18,7 +18,6 @@ export function useSignup() {
     setLoading(true)
 
     const result = await attempt(() => signUp.email({ name, email, password }))
-
     if (!result.ok) {
       setError(result.error.message ?? "Connection failed")
       setLoading(false)

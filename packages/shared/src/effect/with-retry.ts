@@ -22,12 +22,13 @@ export function withRetryWhile<A, E>(
     delay?: number
   }
 ): Effect.Effect<A, E> {
-  const policy = Schedule.exponential(options?.delay ?? 500, 2.0).pipe(
-    Schedule.compose(Schedule.recurs(options?.maxRetries ?? 3))
+  const { maxRetries = 3, delay = 500 } = options ?? {}
+  const policy = Schedule.exponential(delay, 2.0).pipe(
+    Schedule.compose(Schedule.recurs(maxRetries))
   )
   return effect.pipe(
-    Effect.catchAll(error =>
-      predicate(error) ? Effect.retry(effect, policy) : Effect.fail(error)
+    Effect.catchAll((error: E) =>
+      predicate(error) ? effect.pipe(Effect.retry(policy)) : Effect.fail(error)
     )
   )
 }

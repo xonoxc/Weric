@@ -8,6 +8,9 @@ export type DatabaseConfig = z.infer<typeof DatabaseConfigSchema>
 
 export function loadDatabaseConfig(url?: string): DatabaseConfig {
   return DatabaseConfigSchema.parse({
-    url: url ?? "postgresql://weric:weric@localhost:5432/weric",
+    url:
+      url ??
+      process.env.DATABASE_URL ??
+      "postgresql://weric:weric@localhost:5432/weric",
   })
 }

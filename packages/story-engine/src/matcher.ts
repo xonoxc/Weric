@@ -50,44 +50,52 @@ const MIN_TITLE_SIMILARITY = 0.15
 const MIN_CONTENT_SIMILARITY = 0.1
 
 export class StoryMatcher {
-  constructor(private readonly storyRepo: StoryRepository) {}
+  constructor(
+    private readonly storyRepo: StoryRepository,
+    private readonly storyLimit = 1000
+  ) {}
 
   findMatches(
     evidence: NormalizedDocument
   ): Effect.Effect<MatchResult[], StoryError> {
     const storyRepo = this.storyRepo
 
-    return storyRepo.findMany({ page: 1, limit: 100, sort: "latest" }).pipe(
-      Effect.map(result => {
-        const matches: MatchResult[] = []
+    return storyRepo
+      .findMany({ page: 1, limit: this.storyLimit, sort: "latest" })
+      .pipe(
+        Effect.map(result => {
+          const matches: MatchResult[] = []
 
-        for (const story of result.data) {
-          const titleSim = titleSimilarity(evidence, story.title)
-          if (titleSim < MIN_TITLE_SIMILARITY) continue
+          for (const story of result.data) {
+            const titleSim = titleSimilarity(evidence, story.title)
+            if (titleSim < MIN_TITLE_SIMILARITY) continue
 
-          const contentSim = contentSimilarity(evidence, story.summary ?? null)
-          if (
-            titleSim + contentSim <
-            MIN_TITLE_SIMILARITY + MIN_CONTENT_SIMILARITY
+            const contentSim = contentSimilarity(
+              evidence,
+              story.summary ?? null
+            )
+            if (
+              titleSim + contentSim <
+              MIN_TITLE_SIMILARITY + MIN_CONTENT_SIMILARITY
+            )
+              continue
+
+            const confidence = Math.min(titleSim * 0.7 + contentSim * 0.3, 1.0)
+
+            matches.push({
+              storyId: story.id,
+              title: story.title,
+              confidence: Math.round(confidence * 100) / 100,
+            })
+          }
+
+          return matches.sort((a, b) => b.confidence - a.confidence)
+        }),
+        Effect.catchAll(cause =>
+          Effect.fail(
+            new MatchError({ message: "Failed to fetch stories", cause })
           )
-            continue
-
-          const confidence = Math.min(titleSim * 0.7 + contentSim * 0.3, 1.0)
-
-          matches.push({
-            storyId: story.id,
-            title: story.title,
-            confidence: Math.round(confidence * 100) / 100,
-          })
-        }
-
-        return matches.sort((a, b) => b.confidence - a.confidence)
-      }),
-      Effect.catchAll(cause =>
-        Effect.fail(
-          new MatchError({ message: "Failed to fetch stories", cause })
         )
       )
-    )
   }
 }

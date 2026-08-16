@@ -189,11 +189,8 @@ export async function fetchFeed(
   _page = 1,
   _limit = 20
 ): Promise<StoryCardData[]> {
-  console.log("[api] fetchFeed called", { _page, _limit, USE_MOCK })
   if (USE_MOCK) {
-    const data = mockStories()
-    console.log("[api] fetchFeed mock result", data.length, "stories")
-    return data
+    return mockStories()
   }
   const data = await request<FeedResponse>(
     `/feed?page=${_page}&limit=${_limit}`
@@ -207,14 +204,12 @@ export async function fetchFeed(
     updatedAt: item.story.updatedAt,
     reason: item.reason,
   }))
-  console.log("[api] fetchFeed result", mapped.length, "stories")
   return mapped
 }
 
 export async function searchStories(
   query: string
 ): Promise<{ stories: StoryCardData[]; jobId: string | null }> {
-  console.log("[api] searchStories called", { query, USE_MOCK })
   if (USE_MOCK) {
     const q = query.toLowerCase()
     const results = mockStories().filter(
@@ -222,7 +217,6 @@ export async function searchStories(
         s.title.toLowerCase().includes(q) ||
         s.summary?.toLowerCase().includes(q)
     )
-    console.log("[api] searchStories mock result", results.length, "stories")
     return { stories: results, jobId: null }
   }
   const data = await request<SearchResponse>(
@@ -236,7 +230,6 @@ export async function searchStories(
     evidenceCount: s.evidenceCount,
     updatedAt: s.updatedAt,
   }))
-  console.log("[api] searchStories result", mapped.length, "stories", data.meta)
   return { stories: mapped, jobId: data.jobId }
 }
 

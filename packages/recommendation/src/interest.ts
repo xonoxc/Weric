@@ -1,6 +1,7 @@
 import { Effect } from "effect"
 import type { StoryWithEvidenceCount } from "@weric/database"
 import type { InterestRepository } from "@weric/database"
+import { STOP_WORDS } from "@weric/shared"
 import { ScoringError } from "./errors.ts"
 import type { RecommendationError } from "./errors.ts"
 
@@ -15,48 +16,6 @@ const INTERACTION_BOOST: Record<string, number> = {
 
 const DECAY_FACTOR = 0.95
 const MAX_TOPICS = 10
-
-const STOP_WORDS = new Set([
-  "this",
-  "that",
-  "with",
-  "from",
-  "what",
-  "when",
-  "where",
-  "which",
-  "their",
-  "about",
-  "there",
-  "would",
-  "could",
-  "should",
-  "after",
-  "before",
-  "into",
-  "over",
-  "than",
-  "then",
-  "these",
-  "those",
-  "upon",
-  "very",
-  "was",
-  "been",
-  "have",
-  "been",
-  "were",
-  "more",
-  "some",
-  "them",
-  "than",
-  "such",
-  "only",
-  "other",
-  "just",
-  "also",
-  "than",
-])
 
 const BOOST_WORDS = new Set([
   "breakthrough",

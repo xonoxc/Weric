@@ -15,7 +15,8 @@ interface StoryCardProps {
   story: StoryCardData
   style?: React.CSSProperties
   onExpand?: (id: string) => void
-  onBookmark?: (id: string) => void
+  onBookmark?: (id: string) => Promise<boolean | void>
+  isBookmarked?: boolean
 }
 
 const cardStyle: React.CSSProperties = {
@@ -129,9 +130,10 @@ export function StoryCard({
   style,
   onExpand,
   onBookmark,
+  isBookmarked: initialBookmarked = false,
 }: StoryCardProps) {
   const [hovered, setHovered] = useState(false)
-  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isBookmarked, setIsBookmarked] = useState(initialBookmarked)
 
   const handleClick = useCallback(() => {
     onExpand?.(story.id)
@@ -140,10 +142,15 @@ export function StoryCard({
   const handleBookmark = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation()
-      setIsBookmarked(prev => !prev)
-      onBookmark?.(story.id)
+      const prev = isBookmarked
+      setIsBookmarked(!prev)
+      onBookmark?.(story.id)?.then(success => {
+        if (success === false) {
+          setIsBookmarked(prev)
+        }
+      })
     },
-    [story.id, onBookmark]
+    [story.id, onBookmark, isBookmarked]
   )
 
   return (

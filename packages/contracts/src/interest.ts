@@ -19,3 +19,10 @@ export const InterestUpdateSchema = z.object({
   score: z.number().min(0).max(1),
 })
 export type InterestUpdate = z.infer<typeof InterestUpdateSchema>
+
+export const CreateInterestsRequestSchema = z.object({
+  topics: z.array(z.string().min(1).max(200)),
+})
+export type CreateInterestsRequest = z.infer<
+  typeof CreateInterestsRequestSchema
+>

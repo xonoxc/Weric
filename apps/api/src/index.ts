@@ -13,9 +13,6 @@ import { createBookmarksRoutes } from "./routes/bookmarks.ts"
 import { createInterestsRoutes } from "./routes/interests.ts"
 import { createEventsRoutes } from "./routes/events.ts"
 import { createWorkerRoutes } from "./routes/worker.ts"
-import { validateEnv } from "./lib/validateEnv.ts"
-
-validateEnv()
 
 const db = createDb()
 const auth = createAuth(db)

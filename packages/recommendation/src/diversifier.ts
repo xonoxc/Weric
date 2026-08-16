@@ -1,36 +1,5 @@
 import type { ScoredStory } from "./scorer.ts"
-
-const STOP_WORDS = new Set([
-  "this",
-  "that",
-  "with",
-  "from",
-  "what",
-  "when",
-  "where",
-  "which",
-  "their",
-  "about",
-  "there",
-  "would",
-  "could",
-  "should",
-  "after",
-  "before",
-  "into",
-  "over",
-  "than",
-  "then",
-  "these",
-  "those",
-  "upon",
-  "very",
-  "was",
-  "been",
-  "have",
-  "been",
-  "were",
-])
+import { STOP_WORDS } from "@weric/shared"
 
 export class FeedDiversifier {
   diversify(scoredStories: ScoredStory[], count: number): ScoredStory[] {

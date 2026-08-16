@@ -10,6 +10,8 @@ export const WericConfigSchema = z.object({
   }),
   auth: z.object({
     jwtSecret: z.string().min(1).default("change-me-in-production"),
+    betterAuthSecret: z.string().min(1).default("change-me-in-production"),
+    betterAuthUrl: z.string().url().default("http://localhost:3000"),
   }),
   api: z.object({
     port: z.coerce.number().int().positive().default(3000),
@@ -38,6 +40,12 @@ const configFromEnv = Effect.gen(function* () {
   const jwtSecret = yield* Config.string("JWT_SECRET").pipe(
     Config.withDefault("change-me-in-production")
   )
+  const betterAuthSecret = yield* Config.string("BETTER_AUTH_SECRET").pipe(
+    Config.withDefault("change-me-in-production")
+  )
+  const betterAuthUrl = yield* Config.string("BETTER_AUTH_URL").pipe(
+    Config.withDefault("http://localhost:3000")
+  )
   const port = yield* Config.number("API_PORT").pipe(Config.withDefault(3000))
   const logLevel = yield* Config.string("LOG_LEVEL").pipe(
     Config.withDefault("info")
@@ -48,7 +56,7 @@ const configFromEnv = Effect.gen(function* () {
 
   return WericConfigSchema.parse({
     database: { url: databaseUrl },
-    auth: { jwtSecret },
+    auth: { jwtSecret, betterAuthSecret, betterAuthUrl },
     api: { port },
     logging: { level: logLevel },
     ai: {
