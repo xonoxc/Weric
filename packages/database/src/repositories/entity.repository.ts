@@ -1,7 +1,7 @@
 import { Effect } from "effect"
 import { eq } from "drizzle-orm"
 import { entities, storyEntities } from "~db/schema/tables.ts"
-import { ConnectionError } from "./errors.ts"
+import { tryDb } from "./errors.ts"
 
 import type { Db } from "~db/connection.ts"
 import type { RepositoryError } from "./errors.ts"
@@ -14,64 +14,46 @@ export class EntityRepository {
     type: string
     aliases?: string[]
   }): Effect.Effect<typeof entities.$inferSelect, RepositoryError> {
-    return Effect.tryPromise({
-      try: async () => {
-        const [row] = await this.db
-          .insert(entities)
-          .values({
-            name: data.name,
-            type: data.type,
-            aliases: (data.aliases ?? []) as unknown as Record<string, unknown>,
-          })
-          .returning()
-        return row!
-      },
-      catch: cause => new ConnectionError(cause),
+    return tryDb(async () => {
+      const [row] = await this.db
+        .insert(entities)
+        .values({
+          name: data.name,
+          type: data.type,
+          aliases: (data.aliases ?? []) as unknown as Record<string, unknown>,
+        })
+        .returning()
+      return row!
     })
   }
 
   findByName(
     name: string
   ): Effect.Effect<typeof entities.$inferSelect | null, RepositoryError> {
-    return Effect.tryPromise({
-      try: async () => {
-        const [row] = await this.db
-          .select()
-          .from(entities)
-          .where(eq(entities.name, name))
-          .limit(1)
-        return row ?? null
-      },
-      catch: cause => new ConnectionError(cause),
+    return tryDb(async () => {
+      const [row] = await this.db
+        .select()
+        .from(entities)
+        .where(eq(entities.name, name))
+        .limit(1)
+      return row ?? null
     })
   }
 
   findByType(
     type: string
   ): Effect.Effect<(typeof entities.$inferSelect)[], RepositoryError> {
-    return Effect.tryPromise({
-      try: async () => {
-        return await this.db
-          .select()
-          .from(entities)
-          .where(eq(entities.type, type))
-      },
-      catch: cause => new ConnectionError(cause),
-    })
+    return tryDb(() =>
+      this.db.select().from(entities).where(eq(entities.type, type))
+    )
   }
 
   linkToStory(
     storyId: string,
     entityId: string
   ): Effect.Effect<void, RepositoryError> {
-    return Effect.tryPromise({
-      try: async () => {
-        await this.db.insert(storyEntities).values({
-          storyId,
-          entityId,
-        })
-      },
-      catch: cause => new ConnectionError(cause),
-    })
+    return tryDb(() =>
+      this.db.insert(storyEntities).values({ storyId, entityId })
+    )
   }
 }

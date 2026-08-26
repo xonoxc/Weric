@@ -1,7 +1,7 @@
 import { Context, Effect, Layer } from "effect"
 import { eq } from "drizzle-orm"
 import { users } from "~db/schema/tables.ts"
-import { NotFoundError, ConnectionError } from "./errors.ts"
+import { NotFoundError, tryDb } from "./errors.ts"
 
 import type { Db } from "~db/connection.ts"
 import type { RepositoryError } from "./errors.ts"
@@ -40,86 +40,59 @@ export const UserRepository =
 export const UserRepositoryLive = (db: Db) =>
   Layer.succeed(UserRepository, {
     findAll() {
-      return Effect.tryPromise({
-        try: () => db.select().from(users),
-        catch: cause => new ConnectionError(cause),
-      })
+      return tryDb(() => db.select().from(users))
     },
 
     findById(id) {
-      return Effect.tryPromise({
-        try: async () => {
-          const [row] = await db
-            .select()
-            .from(users)
-            .where(eq(users.id, id))
-            .limit(1)
-
-          return row ?? null
-        },
-        catch: cause => new ConnectionError(cause),
+      return tryDb(async () => {
+        const [row] = await db
+          .select()
+          .from(users)
+          .where(eq(users.id, id))
+          .limit(1)
+        return row ?? null
       })
     },
 
     findByEmail(email) {
-      return Effect.tryPromise({
-        try: async () => {
-          const [row] = await db
-            .select()
-            .from(users)
-            .where(eq(users.email, email))
-            .limit(1)
-
-          return row ?? null
-        },
-        catch: cause => new ConnectionError(cause),
+      return tryDb(async () => {
+        const [row] = await db
+          .select()
+          .from(users)
+          .where(eq(users.email, email))
+          .limit(1)
+        return row ?? null
       })
     },
 
     findByUsername(username) {
-      return Effect.tryPromise({
-        try: async () => {
-          const [row] = await db
-            .select()
-            .from(users)
-            .where(eq(users.username, username))
-            .limit(1)
-
-          return row ?? null
-        },
-        catch: cause => new ConnectionError(cause),
+      return tryDb(async () => {
+        const [row] = await db
+          .select()
+          .from(users)
+          .where(eq(users.username, username))
+          .limit(1)
+        return row ?? null
       })
     },
 
     update(id, data) {
-      return Effect.tryPromise({
-        try: async () => {
-          const [existing] = await db
-            .select()
-            .from(users)
-            .where(eq(users.id, id))
-            .limit(1)
+      return tryDb(async () => {
+        const [existing] = await db
+          .select()
+          .from(users)
+          .where(eq(users.id, id))
+          .limit(1)
 
-          if (!existing) {
-            throw new NotFoundError("User", id)
-          }
+        if (!existing) throw new NotFoundError("User", id)
 
-          const [row] = await db
-            .update(users)
-            .set(data)
-            .where(eq(users.id, id))
-            .returning()
+        const [row] = await db
+          .update(users)
+          .set(data)
+          .where(eq(users.id, id))
+          .returning()
 
-          return row!
-        },
-
-        catch: cause => {
-          if (cause instanceof NotFoundError) {
-            return cause
-          }
-
-          return new ConnectionError(cause)
-        },
+        return row!
       })
     },
   })

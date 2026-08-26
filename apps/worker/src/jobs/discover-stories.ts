@@ -21,19 +21,19 @@ export function createDiscoverStoriesHandler(
     type: "discover_stories",
     handle(
       payload: Record<string, unknown>,
-      jobId: string
+      _jobId: string
     ): Effect.Effect<void, DiscoverStoriesError> {
       const url = payload.url as string | undefined
       if (!url) {
         return Effect.fail(
-          createDiscoverStoriesError(new Error("Missing url in payload"))
+          toDiscoverStoriesError(new Error("Missing url in payload"))
         )
       }
 
       return Effect.gen(function* () {
         const page = yield* browser
           .fetchUrl(url)
-          .pipe(Effect.mapError(createDiscoverStoriesError))
+          .pipe(Effect.mapError(toDiscoverStoriesError))
 
         const summary = yield* ai.summarize(page.text).pipe(
           Effect.retry({
@@ -64,7 +64,7 @@ export function createDiscoverStoriesHandler(
             metadata: { discoveredBy: "worker" },
             publishedAt: null,
           })
-          .pipe(Effect.mapError(createDiscoverStoriesError))
+          .pipe(Effect.mapError(toDiscoverStoriesError))
 
         const existing = yield* storyRepo
           .findBySlug(slug)
@@ -78,17 +78,17 @@ export function createDiscoverStoriesHandler(
               summary: summary.summary ?? page.text.slice(0, 500),
               evidenceIds: [evidence.id],
             })
-            .pipe(Effect.mapError(createDiscoverStoriesError))
+            .pipe(Effect.mapError(toDiscoverStoriesError))
         }
 
         yield* storyRepo
           .addEvidence(existing.id, evidence.id)
-          .pipe(Effect.mapError(createDiscoverStoriesError))
+          .pipe(Effect.mapError(toDiscoverStoriesError))
       })
     },
   }
 }
 
-function createDiscoverStoriesError(cause: unknown): DiscoverStoriesError {
+function toDiscoverStoriesError(cause: unknown): DiscoverStoriesError {
   return new DiscoverStoriesError({ cause })
 }

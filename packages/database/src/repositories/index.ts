@@ -27,7 +27,12 @@ export {
 export type { InterestRow } from "./interest.repository.ts"
 export { ChatRepository } from "./chat.repository.ts"
 export type { ChatListRow, ChatDetail } from "./chat.repository.ts"
-export { NotFoundError, ConflictError, ConnectionError } from "./errors.ts"
+export {
+  NotFoundError,
+  ConflictError,
+  ConnectionError,
+  tryDb,
+} from "./errors.ts"
 export type { RepositoryError } from "./errors.ts"
 export {
   StoryRepo,

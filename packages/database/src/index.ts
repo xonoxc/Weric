@@ -20,6 +20,7 @@ export {
   NotFoundError,
   ConflictError,
   ConnectionError,
+  tryDb,
   ChatRepository,
   StoryRepo,
   EvidenceRepo,

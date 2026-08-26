@@ -1,7 +1,7 @@
 import { Effect } from "effect"
 import { desc, eq, sql } from "drizzle-orm"
 import { evidence } from "~db/schema/tables.ts"
-import { ConflictError, ConnectionError } from "./errors.ts"
+import { ConflictError, tryDb } from "./errors.ts"
 
 import type { Db } from "~db/connection.ts"
 import type { RepositoryError } from "./errors.ts"
@@ -58,7 +58,7 @@ export class EvidenceRepository {
             `Evidence with url '${data.url}' already exists`
           )
         }
-        return new ConnectionError(cause)
+        return new ConflictError(String(cause))
       },
     })
   }
@@ -66,32 +66,26 @@ export class EvidenceRepository {
   findById(
     id: string
   ): Effect.Effect<typeof evidence.$inferSelect | null, RepositoryError> {
-    return Effect.tryPromise({
-      try: async () => {
-        const [row] = await this.db
-          .select()
-          .from(evidence)
-          .where(eq(evidence.id, id))
-          .limit(1)
-        return row ?? null
-      },
-      catch: cause => new ConnectionError(cause),
+    return tryDb(async () => {
+      const [row] = await this.db
+        .select()
+        .from(evidence)
+        .where(eq(evidence.id, id))
+        .limit(1)
+      return row ?? null
     })
   }
 
   findByUrl(
     url: string
   ): Effect.Effect<typeof evidence.$inferSelect | null, RepositoryError> {
-    return Effect.tryPromise({
-      try: async () => {
-        const [row] = await this.db
-          .select()
-          .from(evidence)
-          .where(eq(evidence.url, url))
-          .limit(1)
-        return row ?? null
-      },
-      catch: cause => new ConnectionError(cause),
+    return tryDb(async () => {
+      const [row] = await this.db
+        .select()
+        .from(evidence)
+        .where(eq(evidence.url, url))
+        .limit(1)
+      return row ?? null
     })
   }
 
@@ -99,16 +93,14 @@ export class EvidenceRepository {
     source: string,
     limit = 50
   ): Effect.Effect<(typeof evidence.$inferSelect)[], RepositoryError> {
-    return Effect.tryPromise({
-      try: async () =>
-        this.db
-          .select()
-          .from(evidence)
-          .where(eq(evidence.source, source))
-          .orderBy(desc(evidence.discoveredAt))
-          .limit(limit),
-      catch: cause => new ConnectionError(cause),
-    })
+    return tryDb(() =>
+      this.db
+        .select()
+        .from(evidence)
+        .where(eq(evidence.source, source))
+        .orderBy(desc(evidence.discoveredAt))
+        .limit(limit)
+    )
   }
 
   findMany(options: {
@@ -118,28 +110,25 @@ export class EvidenceRepository {
     { data: (typeof evidence.$inferSelect)[]; total: number },
     RepositoryError
   > {
-    return Effect.tryPromise({
-      try: async () => {
-        const page = options.page ?? 1
-        const limit = Math.min(options.limit ?? 20, 100)
-        const offset = (page - 1) * limit
+    return tryDb(async () => {
+      const page = options.page ?? 1
+      const limit = Math.min(options.limit ?? 20, 100)
+      const offset = (page - 1) * limit
 
-        const [data, countResult] = await Promise.all([
-          this.db
-            .select()
-            .from(evidence)
-            .orderBy(desc(evidence.discoveredAt))
-            .limit(limit)
-            .offset(offset),
-          this.db.select({ count: sql<number>`count(*)` }).from(evidence),
-        ])
+      const [data, countResult] = await Promise.all([
+        this.db
+          .select()
+          .from(evidence)
+          .orderBy(desc(evidence.discoveredAt))
+          .limit(limit)
+          .offset(offset),
+        this.db.select({ count: sql<number>`count(*)` }).from(evidence),
+      ])
 
-        return {
-          data,
-          total: Number(countResult[0]?.count ?? 0),
-        }
-      },
-      catch: cause => new ConnectionError(cause),
+      return {
+        data,
+        total: Number(countResult[0]?.count ?? 0),
+      }
     })
   }
 
@@ -150,45 +139,42 @@ export class EvidenceRepository {
     { data: EvidenceSearchRow[]; total: number },
     RepositoryError
   > {
-    return Effect.tryPromise({
-      try: async () => {
-        const page = options.page ?? 1
-        const limit = Math.min(options.limit ?? 100, 100)
-        const offset = (page - 1) * limit
-        const pattern = `%${query}%`
+    return tryDb(async () => {
+      const page = options.page ?? 1
+      const limit = Math.min(options.limit ?? 100, 100)
+      const offset = (page - 1) * limit
+      const pattern = `%${query}%`
 
-        const condition = sql`(${evidence.title} ILIKE ${pattern} OR ${evidence.content} ILIKE ${pattern})`
+      const condition = sql`(${evidence.title} ILIKE ${pattern} OR ${evidence.content} ILIKE ${pattern})`
 
-        const rows = await this.db
-          .select({
-            id: evidence.id,
-            source: evidence.source,
-            url: evidence.url,
-            author: evidence.author,
-            title: evidence.title,
-            content: evidence.content,
-            publishedAt: sql<
-              string | null
-            >`to_char(${evidence.publishedAt}, ${TSFMT})`,
-            discoveredAt: sql<string>`to_char(${evidence.discoveredAt}, ${TSFMT})`,
-          })
-          .from(evidence)
-          .where(condition)
-          .orderBy(desc(evidence.discoveredAt))
-          .limit(limit)
-          .offset(offset)
+      const rows = await this.db
+        .select({
+          id: evidence.id,
+          source: evidence.source,
+          url: evidence.url,
+          author: evidence.author,
+          title: evidence.title,
+          content: evidence.content,
+          publishedAt: sql<
+            string | null
+          >`to_char(${evidence.publishedAt}, ${TSFMT})`,
+          discoveredAt: sql<string>`to_char(${evidence.discoveredAt}, ${TSFMT})`,
+        })
+        .from(evidence)
+        .where(condition)
+        .orderBy(desc(evidence.discoveredAt))
+        .limit(limit)
+        .offset(offset)
 
-        const [totalResult] = await this.db
-          .select({ count: sql<number>`count(*)::int` })
-          .from(evidence)
-          .where(condition)
+      const [totalResult] = await this.db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(evidence)
+        .where(condition)
 
-        return {
-          data: rows as EvidenceSearchRow[],
-          total: totalResult?.count ?? 0,
-        }
-      },
-      catch: cause => new ConnectionError(cause),
+      return {
+        data: rows as EvidenceSearchRow[],
+        total: totalResult?.count ?? 0,
+      }
     })
   }
 }

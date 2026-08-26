@@ -16,14 +16,17 @@ import type { Db } from "@weric/database"
 import type { JobHandler } from "~worker/runtime.ts"
 
 export function createRecomputeScoresHandler(db: Db): JobHandler {
-  const RecommendationLayer = Layer.provide(
-    RecommendationAuto,
-    Layer.mergeAll(
-      StoryRepositoryLive(db),
-      InterestRepositoryLive(db),
-      InteractionRepositoryLive(db),
-      UserRepositoryLive(db)
-    )
+  const RecommendationLayer = Layer.mergeAll(
+    Layer.provide(
+      RecommendationAuto,
+      Layer.mergeAll(
+        StoryRepositoryLive(db),
+        InterestRepositoryLive(db),
+        InteractionRepositoryLive(db)
+      )
+    ),
+    StoryRepositoryLive(db),
+    UserRepositoryLive(db)
   )
 
   return {
@@ -62,7 +65,7 @@ export function createRecomputeScoresHandler(db: Db): JobHandler {
             `Recomputed scores across ${stories.length} stories for ${users.length} users: ${totalRanked} total ranked`
           )
         }
-      }).pipe(Effect.provide(RecommendationLayer)) as never
+      }).pipe(Effect.provide(RecommendationLayer))
     },
   }
 }

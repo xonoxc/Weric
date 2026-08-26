@@ -1,7 +1,7 @@
 import { Effect } from "effect"
 import { and, eq, sql } from "drizzle-orm"
 import { bookmarks, stories, storyEvidence } from "~db/schema/tables.ts"
-import { NotFoundError, ConflictError, ConnectionError } from "./errors.ts"
+import { ConflictError, NotFoundError, tryDb } from "./errors.ts"
 
 import type { Db } from "~db/connection.ts"
 import type { RepositoryError } from "./errors.ts"
@@ -49,7 +49,7 @@ export class BookmarkRepository {
         ) {
           return new ConflictError("Bookmark already exists")
         }
-        return new ConnectionError(cause)
+        return new ConflictError(String(cause))
       },
     })
   }
@@ -57,49 +57,44 @@ export class BookmarkRepository {
   findByUser(
     userId: string
   ): Effect.Effect<(typeof bookmarks.$inferSelect)[], RepositoryError> {
-    return Effect.tryPromise({
-      try: async () =>
-        this.db
-          .select()
-          .from(bookmarks)
-          .where(eq(bookmarks.userId, userId))
-          .orderBy(bookmarks.createdAt),
-      catch: cause => new ConnectionError(cause),
-    })
+    return tryDb(() =>
+      this.db
+        .select()
+        .from(bookmarks)
+        .where(eq(bookmarks.userId, userId))
+        .orderBy(bookmarks.createdAt)
+    )
   }
 
   findByUserWithStories(
     userId: string
   ): Effect.Effect<BookmarkWithStory[], RepositoryError> {
-    return Effect.tryPromise({
-      try: async () => {
-        const rows = await this.db
-          .select({
-            id: bookmarks.id,
-            storyId: bookmarks.storyId,
-            createdAt: sql<string>`to_char(${bookmarks.createdAt}, ${TSFMT})`,
-            story: {
-              id: stories.id,
-              title: stories.title,
-              slug: stories.slug,
-              summary: stories.summary,
-              confidence: stories.confidence,
-              status: stories.status,
-              createdAt: sql<string>`to_char(${stories.createdAt}, ${TSFMT})`,
-              updatedAt: sql<string>`to_char(${stories.updatedAt}, ${TSFMT})`,
-              evidenceCount: sql<number>`
-                (SELECT count(*)::int FROM ${storyEvidence} WHERE ${storyEvidence.storyId} = ${stories.id})
-              `,
-            },
-          })
-          .from(bookmarks)
-          .innerJoin(stories, eq(bookmarks.storyId, stories.id))
-          .where(eq(bookmarks.userId, userId))
-          .orderBy(bookmarks.createdAt)
+    return tryDb(async () => {
+      const rows = await this.db
+        .select({
+          id: bookmarks.id,
+          storyId: bookmarks.storyId,
+          createdAt: sql<string>`to_char(${bookmarks.createdAt}, ${TSFMT})`,
+          story: {
+            id: stories.id,
+            title: stories.title,
+            slug: stories.slug,
+            summary: stories.summary,
+            confidence: stories.confidence,
+            status: stories.status,
+            createdAt: sql<string>`to_char(${stories.createdAt}, ${TSFMT})`,
+            updatedAt: sql<string>`to_char(${stories.updatedAt}, ${TSFMT})`,
+            evidenceCount: sql<number>`
+              (SELECT count(*)::int FROM ${storyEvidence} WHERE ${storyEvidence.storyId} = ${stories.id})
+            `,
+          },
+        })
+        .from(bookmarks)
+        .innerJoin(stories, eq(bookmarks.storyId, stories.id))
+        .where(eq(bookmarks.userId, userId))
+        .orderBy(bookmarks.createdAt)
 
-        return rows as BookmarkWithStory[]
-      },
-      catch: cause => new ConnectionError(cause),
+      return rows as BookmarkWithStory[]
     })
   }
 
@@ -107,28 +102,21 @@ export class BookmarkRepository {
     userId: string,
     storyId: string
   ): Effect.Effect<void, RepositoryError> {
-    return Effect.tryPromise({
-      try: async () => {
-        const [existing] = await this.db
-          .select()
-          .from(bookmarks)
-          .where(
-            and(eq(bookmarks.userId, userId), eq(bookmarks.storyId, storyId))
-          )
-          .limit(1)
-        if (!existing)
-          throw new NotFoundError("Bookmark", `${userId}:${storyId}`)
+    return tryDb(async () => {
+      const [existing] = await this.db
+        .select()
+        .from(bookmarks)
+        .where(
+          and(eq(bookmarks.userId, userId), eq(bookmarks.storyId, storyId))
+        )
+        .limit(1)
+      if (!existing) throw new NotFoundError("Bookmark", `${userId}:${storyId}`)
 
-        await this.db
-          .delete(bookmarks)
-          .where(
-            and(eq(bookmarks.userId, userId), eq(bookmarks.storyId, storyId))
-          )
-      },
-      catch: cause => {
-        if (cause instanceof NotFoundError) return cause
-        return new ConnectionError(cause)
-      },
+      await this.db
+        .delete(bookmarks)
+        .where(
+          and(eq(bookmarks.userId, userId), eq(bookmarks.storyId, storyId))
+        )
     })
   }
 
@@ -136,18 +124,15 @@ export class BookmarkRepository {
     userId: string,
     storyId: string
   ): Effect.Effect<boolean, RepositoryError> {
-    return Effect.tryPromise({
-      try: async () => {
-        const [row] = await this.db
-          .select({ id: bookmarks.id })
-          .from(bookmarks)
-          .where(
-            and(eq(bookmarks.userId, userId), eq(bookmarks.storyId, storyId))
-          )
-          .limit(1)
-        return row !== undefined
-      },
-      catch: cause => new ConnectionError(cause),
+    return tryDb(async () => {
+      const [row] = await this.db
+        .select({ id: bookmarks.id })
+        .from(bookmarks)
+        .where(
+          and(eq(bookmarks.userId, userId), eq(bookmarks.storyId, storyId))
+        )
+        .limit(1)
+      return row !== undefined
     })
   }
 }

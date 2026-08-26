@@ -11,20 +11,25 @@ import {
   RecommendationService,
   RecommendationAuto,
   InterestLearner,
+  InterestLearnerLive,
 } from "@weric/recommendation"
 
 import type { Db } from "@weric/database"
 import type { JobHandler } from "~worker/runtime.ts"
 
 export function createLearnInterestsHandler(db: Db): JobHandler {
-  const RecommendationLayer = Layer.provide(
-    RecommendationAuto,
-    Layer.mergeAll(
-      StoryRepositoryLive(db),
-      InterestRepositoryLive(db),
-      InteractionRepositoryLive(db),
-      UserRepositoryLive(db)
-    )
+  const RecommendationLayer = Layer.mergeAll(
+    Layer.provide(
+      RecommendationAuto,
+      Layer.mergeAll(
+        StoryRepositoryLive(db),
+        InterestRepositoryLive(db),
+        InteractionRepositoryLive(db)
+      )
+    ),
+    InteractionRepositoryLive(db),
+    Layer.provide(InterestLearnerLive, InterestRepositoryLive(db)),
+    UserRepositoryLive(db)
   )
 
   return {
@@ -71,7 +76,7 @@ export function createLearnInterestsHandler(db: Db): JobHandler {
 
           yield* interestLearner.decayAll(user.id)
         }
-      }).pipe(Effect.provide(RecommendationLayer)) as never
+      }).pipe(Effect.provide(RecommendationLayer))
     },
   }
 }

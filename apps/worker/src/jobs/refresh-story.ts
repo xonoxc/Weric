@@ -24,46 +24,41 @@ export function createRefreshStoryHandler(
       }
 
       return Effect.gen(function* () {
-        const story = yield* Effect.tryPromise({
-          try: () => Effect.runPromise(storyRepo.findById(storyId)),
-          catch: (cause: unknown) =>
-            new Error(`Failed to fetch story: ${cause}`),
-        })
+        const story = yield* storyRepo
+          .findById(storyId)
+          .pipe(
+            Effect.mapError(
+              () => new Error("Failed to fetch story with id: " + storyId)
+            )
+          )
 
         if (!story) return
 
         const url = payload.url as string | undefined
         if (!url) return
 
-        const page = yield* Effect.tryPromise({
-          try: () => Effect.runPromise(browser.fetchUrl(url)),
-          catch: () => null,
-        })
+        const page = yield* browser
+          .fetchUrl(url)
+          .pipe(Effect.catchAll(() => Effect.succeed(null)))
 
         if (!page) return
 
-        const evidence = yield* Effect.tryPromise({
-          try: () =>
-            Effect.runPromise(
-              evidenceRepo.create({
-                source: "refresh",
-                url,
-                author: null,
-                title: page.title,
-                content: page.text.slice(0, 10_000),
-                metadata: { refreshedBy: "worker", storyId },
-                publishedAt: null,
-              })
-            ),
-          catch: () => null,
-        })
+        const evidence = yield* evidenceRepo
+          .create({
+            source: "refresh",
+            url,
+            author: null,
+            title: page.title,
+            content: page.text.slice(0, 10_000),
+            metadata: { refreshedBy: "worker", storyId },
+            publishedAt: null,
+          })
+          .pipe(Effect.catchAll(() => Effect.succeed(null)))
 
         if (evidence) {
-          yield* Effect.tryPromise({
-            try: () =>
-              Effect.runPromise(storyRepo.addEvidence(storyId, evidence.id)),
-            catch: () => {},
-          })
+          yield* storyRepo
+            .addEvidence(storyId, evidence.id)
+            .pipe(Effect.catchAll(() => Effect.succeed(undefined)))
         }
       }) as Effect.Effect<void, Error>
     },

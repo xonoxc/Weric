@@ -1,3 +1,5 @@
+import { Effect } from "effect"
+
 export class NotFoundError {
   readonly _tag = "NotFoundError"
   constructor(
@@ -17,3 +19,15 @@ export class ConnectionError {
 }
 
 export type RepositoryError = NotFoundError | ConflictError | ConnectionError
+
+export const tryDb = <T>(
+  fn: () => Promise<T>
+): Effect.Effect<T, RepositoryError> =>
+  Effect.tryPromise({
+    try: fn,
+    catch: (cause): RepositoryError => {
+      if (cause instanceof NotFoundError) return cause
+      if (cause instanceof ConflictError) return cause
+      return new ConnectionError(cause)
+    },
+  })

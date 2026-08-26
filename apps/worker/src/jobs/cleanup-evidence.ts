@@ -14,17 +14,13 @@ export function createCleanupEvidenceHandler(
       _jobId: string
     ): Effect.Effect<void, Error> {
       return Effect.gen(function* () {
-        const { data: allEvidence } = yield* Effect.tryPromise({
-          try: () =>
-            Effect.runPromise(
-              evidenceRepo.findMany({
-                page: 1,
-                limit: 1000,
-              })
-            ),
-          catch: (cause: unknown) =>
-            new Error(`Failed to fetch evidence: ${cause}`),
-        })
+        const { data: allEvidence } = yield* evidenceRepo
+          .findMany({ page: 1, limit: 1000 })
+          .pipe(
+            Effect.mapError(
+              cause => new Error(`Failed to fetch evidence: ${cause}`)
+            )
+          )
 
         const cutoff = Date.now() - 90 * 86_400_000
         const stale = allEvidence.filter(
