@@ -19,10 +19,9 @@ export function createDiscoverStoriesHandler(
 ): JobHandler {
   return {
     type: "discover_stories",
-
     handle(
       payload: Record<string, unknown>,
-      _jobId: string
+      jobId: string
     ): Effect.Effect<void, DiscoverStoriesError> {
       const url = payload.url as string | undefined
       if (!url) {
@@ -43,12 +42,10 @@ export function createDiscoverStoriesHandler(
               Schedule.compose(Schedule.recurs(2))
             ),
           }),
-          Effect.catchAll(() =>
-            Effect.succeed({
-              summary: page.text.slice(0, 500),
-              tone: "neutral" as const,
-            })
-          )
+          Effect.orElseSucceed(() => ({
+            summary: page.text.slice(0, 500),
+            tone: "neutral" as const,
+          }))
         )
 
         const slug = page.title
