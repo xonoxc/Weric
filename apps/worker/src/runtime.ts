@@ -201,6 +201,7 @@ export class WorkerRuntime {
           message: message || "Job failed",
           status: "failed",
         })
+
         Effect.runPromise(this.jobRepo.updateStatus(job.id, "failed")).catch(
           () => {}
         )
