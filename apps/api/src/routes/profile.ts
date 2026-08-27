@@ -30,50 +30,57 @@ export function createProfileRoutes(db: Db) {
   router.get("/", async c => {
     const user = requireUser(c)
 
-    const [
-      chats,
-      stories,
-      interests,
-      bookmarks,
-      interactionAggregates,
-      activity,
-    ] = await Promise.all([
-      Effect.runPromise(chatRepo.findByUser(user.id)),
-      Effect.runPromise(chatRepo.countDistinctStoriesByUser(user.id)),
-      Effect.runPromise(interestRepo.findByUserId(user.id)),
-      Effect.runPromise(bookmarkRepo.findByUserWithStories(user.id)),
-      Effect.runPromise(interactionRepo.aggregateByType(user.id)),
-      Effect.runPromise(interactionRepo.findRecentWithStories(user.id, 12)),
-    ])
-
-    const interactionTotal = interactionAggregates.reduce(
-      (sum, row) => sum + row.count,
-      0
-    )
-
-    return c.json({
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        username: user.username ?? null,
-        displayUsername: user.displayUsername ?? null,
-        image: user.image ?? null,
-        createdAt: user.createdAt,
-      },
-      stats: {
-        chats: chats.length,
+    const program = Effect.gen(function* () {
+      const [
+        chats,
         stories,
-        bookmarks: bookmarks.length,
-        interests: interests.length,
-        interactions: interactionTotal,
-        interactionsByType: interactionAggregates,
-      },
-      interests,
-      bookmarks,
-      recentChats: chats.slice(0, 8),
-      activity,
+        interests,
+        bookmarks,
+        interactionAggregates,
+        activity,
+      ] = yield* Effect.all(
+        [
+          chatRepo.findByUser(user.id),
+          chatRepo.countDistinctStoriesByUser(user.id),
+          interestRepo.findByUserId(user.id),
+          bookmarkRepo.findByUserWithStories(user.id),
+          interactionRepo.aggregateByType(user.id),
+          interactionRepo.findRecentWithStories(user.id, 12),
+        ],
+        { concurrency: "unbounded" }
+      )
+
+      const interactionTotal = interactionAggregates.reduce(
+        (sum, row) => sum + row.count,
+        0
+      )
+
+      return c.json({
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          username: user.username ?? null,
+          displayUsername: user.displayUsername ?? null,
+          image: user.image ?? null,
+          createdAt: user.createdAt,
+        },
+        stats: {
+          chats: chats.length,
+          stories,
+          bookmarks: bookmarks.length,
+          interests: interests.length,
+          interactions: interactionTotal,
+          interactionsByType: interactionAggregates,
+        },
+        interests,
+        bookmarks,
+        recentChats: chats.slice(0, 8),
+        activity,
+      })
     })
+
+    return Effect.runPromise(program)
   })
 
   return router
