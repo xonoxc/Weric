@@ -1,79 +1,48 @@
 import { Hono } from "hono"
-import { streamSSE } from "hono/streaming"
-import { Effect } from "effect"
-import { JobRepository } from "@weric/database"
-import { jobBus } from "~api/lib/job-bus.ts"
+import { Effect, Layer } from "effect"
+import { JobRepositoryLive } from "@weric/database"
+import {
+  EventController,
+  EventControllerLive,
+} from "~api/controllers/event.controller"
+import { JobServiceLive } from "~api/services/job.service"
+import { DatabaseLive } from "~db/connection"
+import { effectHandler } from "~api/lib/handler"
 
-import type { StreamWriter } from "~api/lib/job-bus.ts"
 import type { ApiVariables } from "~api/app.ts"
 
-export function createEventsRoutes(jobRepo: JobRepository) {
+export function createEventsRoutes() {
   const router = new Hono<{ Variables: ApiVariables }>()
 
-  router.get("/jobs/:id", async c => {
-    const { id } = c.req.param()
-    const job = await Effect.runPromise(jobRepo.findById(id)).catch(() => null)
-    if (!job) {
-      return c.json(
-        {
-          error: "Job not found",
-        },
-        404
-      )
-    }
-    return c.json(job)
-  })
+  const APILive = EventControllerLive.pipe(
+    Layer.provide(JobServiceLive),
+    Layer.provide(JobRepositoryLive),
+    Layer.provide(DatabaseLive)
+  )
 
-  router.get("/events", c => {
-    const jobId = c.req.query("jobId")?.trim()
-    if (!jobId) {
-      return c.json(
-        {
-          error: "jobId query parameter is required",
-        },
-        400
-      )
-    }
+  router.get(
+    "/jobs/:id",
+    effectHandler(
+      ctx =>
+        Effect.gen(function* () {
+          const controller = yield* EventController
+          return yield* controller.getJob(ctx)
+        }),
+      APILive
+    )
+  )
 
-    return streamSSE(c, async stream => {
-      const closeRef = { current: false }
-
-      stream.onAbort(() => {
-        closeRef.current = true
-        jobBus.unregisterClient(jobId)
-      })
-
-      const writer: StreamWriter = {
-        send: (event, data) => {
-          if (!closeRef.current) {
-            stream
-              .writeSSE({
-                data: JSON.stringify(data),
-                event,
-              })
-              .catch(() => {})
-          }
-        },
-        close: () => (closeRef.current = true),
-        onAbort: cb => stream.onAbort(cb),
-      }
-
-      jobBus.registerClient(jobId, writer)
-
-      const clientKeepalive = setInterval(() => {
-        stream.write(": keepalive\n\n").catch(() => {})
-      }, 5_000)
-
-      while (!closeRef.current) {
-        await new Promise(r => setTimeout(r, 500))
-      }
-
-      clearInterval(clientKeepalive)
-
-      jobBus.unregisterClient(jobId)
-      stream.close()
-    })
-  })
+  router.get(
+    "/events",
+    effectHandler(
+      ctx =>
+        Effect.gen(function* () {
+          const controller = yield* EventController
+          return yield* controller.streamEvents(ctx)
+        }),
+      APILive
+    )
+  )
 
   return router
 }

@@ -58,6 +58,9 @@ export const evidence = pgTable(
   ]
 )
 
+export type DbEvidence = typeof evidence.$inferSelect
+export type DbEvidenceInsert = typeof evidence.$inferInsert
+
 export const storyEvidence = pgTable(
   "story_evidence",
   {

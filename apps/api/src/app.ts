@@ -1,6 +1,6 @@
 import { Hono } from "hono"
 import { logger } from "hono/logger"
-import { createDb, JobRepository } from "@weric/database"
+import { createDb } from "@weric/database"
 import { createAuth } from "@weric/auth"
 import { errorHandler } from "./middleware/error.ts"
 import { createSessionMiddleware } from "./middleware/session.ts"
@@ -33,21 +33,21 @@ app.onError(errorHandler)
 
 app.use("*", logger())
 
-app.route("/api/auth", createAuthRoutes(auth))
+app.route("/api/auth", createAuthRoutes())
 
 app.use("*", createSessionMiddleware(auth))
 
 app.route("/health", createHealthRoutes())
 
-app.route("/api/stories", createStoriesRoutes(db))
-app.route("/api/feed", createFeedRoutes(db))
-app.route("/api/search", createSearchRoutes(db))
-app.route("/api/chats", createChatRoutes(db))
-app.route("/api/interactions", createInteractionsRoutes(db))
-app.route("/api/bookmarks", createBookmarksRoutes(db))
-app.route("/api/interests", createInterestsRoutes(db))
-app.route("/api/profile", createProfileRoutes(db))
-app.route("/api", createEventsRoutes(new JobRepository(db)))
-app.route("/internal", createWorkerRoutes(new JobRepository(db)))
+app.route("/api/stories", createStoriesRoutes())
+app.route("/api/feed", createFeedRoutes())
+app.route("/api/search", createSearchRoutes())
+app.route("/api/chats", createChatRoutes())
+app.route("/api/interactions", createInteractionsRoutes())
+app.route("/api/bookmarks", createBookmarksRoutes())
+app.route("/api/interests", createInterestsRoutes())
+app.route("/api/profile", createProfileRoutes())
+app.route("/api", createEventsRoutes())
+app.route("/internal", createWorkerRoutes())
 
 export default app

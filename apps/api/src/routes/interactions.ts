@@ -1,75 +1,48 @@
 import { Hono } from "hono"
 import { Effect, Layer } from "effect"
 import {
-  RecommendationService,
-  RecommendationAuto,
-} from "@weric/recommendation"
-import {
   StoryRepositoryLive,
-  InterestRepositoryLive,
-  InteractionRepository,
   InteractionRepositoryLive,
+  InterestRepositoryLive,
 } from "@weric/database"
-import { CreateInteractionInputSchema, InteractionType } from "@weric/contracts"
-import { z } from "zod"
-import { IsoDateString, requireUser } from "~api/lib/validation.ts"
+import { RecommendationAuto } from "@weric/recommendation"
+import {
+  InteractionController,
+  InteractionControllerLive,
+} from "~api/controllers/interaction.controller"
+import { InteractionServiceLive } from "~api/services/interaction.service"
+import { DatabaseLive } from "~db/connection"
+import { effectHandler } from "~api/lib/handler"
 
-import type { Db } from "@weric/database"
 import type { ApiVariables } from "~api/app.ts"
 
-const InteractionResponse = z.object({
-  id: z.string(),
-  userId: z.string(),
-  storyId: z.string(),
-  interactionType: InteractionType,
-  duration: z
-    .number()
-    .nullable()
-    .transform(value => value ?? undefined),
-  createdAt: IsoDateString,
-})
-
-export function createInteractionsRoutes(db: Db) {
+export function createInteractionsRoutes() {
   const router = new Hono<{ Variables: ApiVariables }>()
 
-  const InteractionLayer = InteractionRepositoryLive(db)
-
-  const RecommendationLayer = Layer.provide(
-    RecommendationAuto,
-    Layer.mergeAll(
-      StoryRepositoryLive(db),
-      InterestRepositoryLive(db),
-      InteractionRepositoryLive(db)
-    )
+  const APILive = InteractionControllerLive.pipe(
+    Layer.provide(InteractionServiceLive),
+    Layer.provide(RecommendationAuto),
+    Layer.provide(
+      Layer.mergeAll(
+        StoryRepositoryLive,
+        InteractionRepositoryLive,
+        InterestRepositoryLive
+      )
+    ),
+    Layer.provide(DatabaseLive)
   )
 
-  router.post("/", async c => {
-    const user = requireUser(c)
-    const body = CreateInteractionInputSchema.parse(await c.req.json())
-
-    const result = await Effect.runPromise(
-      Effect.gen(function* () {
-        const interactionRepo = yield* InteractionRepository
-        return yield* interactionRepo.create({
-          userId: user.id,
-          ...body,
-        })
-      }).pipe(Effect.provide(InteractionLayer))
+  router.post(
+    "/",
+    effectHandler(
+      ctx =>
+        Effect.gen(function* () {
+          const controller = yield* InteractionController
+          return yield* controller.create(ctx)
+        }),
+      APILive
     )
-
-    await Effect.runPromise(
-      Effect.gen(function* () {
-        const recommendationService = yield* RecommendationService
-        yield* recommendationService.updateInterests(
-          user.id,
-          body.storyId,
-          body.interactionType
-        )
-      }).pipe(Effect.provide(RecommendationLayer))
-    )
-
-    return c.json(InteractionResponse.parse(result), 201)
-  })
+  )
 
   return router
 }

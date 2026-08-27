@@ -3,7 +3,7 @@ import { and, eq, sql } from "drizzle-orm"
 import { interests } from "~db/schema/tables.ts"
 import { tryDb } from "./errors.ts"
 
-import type { Db } from "~db/connection.ts"
+import { Database } from "~db/connection.ts"
 import type { RepositoryError } from "./errors.ts"
 
 const TSFMT = 'YYYY-MM-DD"T"HH24:MI:SS"Z"'
@@ -36,43 +36,51 @@ export interface InterestRepository {
 export const InterestRepository =
   Context.GenericTag<InterestRepository>("InterestRepository")
 
-export const InterestRepositoryLive = (db: Db) =>
-  Layer.succeed(InterestRepository, {
-    findByUserId(userId) {
-      return tryDb(async () => {
-        const rows = await db
-          .select({
-            id: interests.id,
-            userId: interests.userId,
-            topic: interests.topic,
-            score: interests.score,
-            updatedAt: sql<string>`to_char(${interests.updatedAt}, ${TSFMT})`,
-          })
-          .from(interests)
-          .where(eq(interests.userId, userId))
-          .orderBy(interests.updatedAt)
+export const InterestRepositoryLive = Layer.effect(
+  InterestRepository,
+  Effect.gen(function* () {
+    const db = yield* Database
 
-        return rows as InterestRow[]
-      })
-    },
+    return {
+      findByUserId: userId => {
+        return tryDb(async () => {
+          const rows = await db
+            .select({
+              id: interests.id,
+              userId: interests.userId,
+              topic: interests.topic,
+              score: interests.score,
+              updatedAt: sql<string>`to_char(${interests.updatedAt}, ${TSFMT})`,
+            })
+            .from(interests)
+            .where(eq(interests.userId, userId))
+            .orderBy(interests.updatedAt)
 
-    upsert(userId, topic, score) {
-      return tryDb(() =>
-        db
-          .insert(interests)
-          .values({ userId, topic, score })
-          .onConflictDoUpdate({
-            target: [interests.userId, interests.topic],
-            set: { score, updatedAt: sql`now()` },
-          })
-      )
-    },
+          return rows as InterestRow[]
+        })
+      },
 
-    deleteByTopic(userId, topic) {
-      return tryDb(() =>
-        db
-          .delete(interests)
-          .where(and(eq(interests.userId, userId), eq(interests.topic, topic)))
-      )
-    },
+      upsert: (userId, topic, score) => {
+        return tryDb(() =>
+          db
+            .insert(interests)
+            .values({ userId, topic, score })
+            .onConflictDoUpdate({
+              target: [interests.userId, interests.topic],
+              set: { score, updatedAt: sql`now()` },
+            })
+        )
+      },
+
+      deleteByTopic: (userId, topic) => {
+        return tryDb(() =>
+          db
+            .delete(interests)
+            .where(
+              and(eq(interests.userId, userId), eq(interests.topic, topic))
+            )
+        )
+      },
+    }
   })
+)

@@ -1,55 +1,60 @@
 import { Hono } from "hono"
-import { Effect } from "effect"
-import { BookmarkRepository } from "@weric/database"
-import { CreateBookmarkInputSchema } from "@weric/contracts"
-import { z } from "zod"
-import { IsoDateString, requireUser } from "~api/lib/validation.ts"
+import { Effect, Layer } from "effect"
+import { BookmarkRepositoryLive } from "@weric/database"
+import {
+  BookmarkController,
+  BookmarkControllerLive,
+} from "~api/controllers/bookmark.controller"
+import { BookmarkServiceLive } from "~api/services/bookmark.service"
+import { DatabaseLive } from "~db/connection"
+import { effectHandler } from "~api/lib/handler"
 
-import type { Db } from "@weric/database"
 import type { ApiVariables } from "~api/app.ts"
 
-const BookmarkResponse = z.object({
-  id: z.string(),
-  userId: z.string(),
-  storyId: z.string(),
-  createdAt: IsoDateString,
-})
-
-const StoryIdParam = z.object({ storyId: z.string().uuid() })
-
-export function createBookmarksRoutes(db: Db) {
+export function createBookmarksRoutes() {
   const router = new Hono<{ Variables: ApiVariables }>()
-  const bookmarkRepo = new BookmarkRepository(db)
 
-  router.get("/", async c => {
-    const user = requireUser(c)
+  const APILive = BookmarkControllerLive.pipe(
+    Layer.provide(BookmarkServiceLive),
+    Layer.provide(BookmarkRepositoryLive),
+    Layer.provide(DatabaseLive)
+  )
 
-    const data = await Effect.runPromise(
-      bookmarkRepo.findByUserWithStories(user.id)
+  router.get(
+    "/",
+    effectHandler(
+      ctx =>
+        Effect.gen(function* () {
+          const controller = yield* BookmarkController
+          return yield* controller.list(ctx)
+        }),
+      APILive
     )
+  )
 
-    return c.json({ data })
-  })
-
-  router.post("/", async c => {
-    const user = requireUser(c)
-    const { storyId } = CreateBookmarkInputSchema.parse(await c.req.json())
-
-    const result = await Effect.runPromise(
-      bookmarkRepo.create(user.id, storyId)
+  router.post(
+    "/",
+    effectHandler(
+      ctx =>
+        Effect.gen(function* () {
+          const controller = yield* BookmarkController
+          return yield* controller.create(ctx)
+        }),
+      APILive
     )
+  )
 
-    return c.json(BookmarkResponse.parse(result), 201)
-  })
-
-  router.delete("/:storyId", async c => {
-    const user = requireUser(c)
-    const { storyId } = StoryIdParam.parse(c.req.param())
-
-    await Effect.runPromise(bookmarkRepo.delete(user.id, storyId))
-
-    return c.json({ success: true })
-  })
+  router.delete(
+    "/:storyId",
+    effectHandler(
+      ctx =>
+        Effect.gen(function* () {
+          const controller = yield* BookmarkController
+          return yield* controller.remove(ctx)
+        }),
+      APILive
+    )
+  )
 
   return router
 }

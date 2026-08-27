@@ -1,40 +1,48 @@
 import { Hono } from "hono"
-import { Effect } from "effect"
-import { InterestRepository, InterestRepositoryLive } from "@weric/database"
-import { serviceFromLayer } from "~api/lib/layers.ts"
-import { CreateInterestsRequestSchema } from "@weric/contracts"
-import { requireUser } from "~api/lib/validation.ts"
+import { Effect, Layer } from "effect"
+import { InterestRepositoryLive } from "@weric/database"
 
-import type { Db } from "@weric/database"
 import type { ApiVariables } from "~api/app.ts"
+import {
+  InterestController,
+  InterestControllerLive,
+} from "~api/controllers/interest.controller"
+import { InterestServiceLive } from "~api/services/interest.service"
+import { DatabaseLive } from "~db/connection"
+import { effectHandler } from "~api/lib/handler"
 
-export function createInterestsRoutes(db: Db) {
+export function createInterestsRoutes() {
   const router = new Hono<{ Variables: ApiVariables }>()
-  const interestRepo = serviceFromLayer(
-    InterestRepository,
-    InterestRepositoryLive(db)
+
+  const APILive = InterestControllerLive.pipe(
+    Layer.provide(InterestServiceLive),
+    Layer.provide(InterestRepositoryLive),
+    Layer.provide(DatabaseLive)
   )
 
-  router.get("/", async c => {
-    const user = requireUser(c)
+  router.get(
+    "/",
+    effectHandler(
+      ctx =>
+        Effect.gen(function* () {
+          const controller = yield* InterestController
+          return yield* controller.get(ctx)
+        }),
+      APILive
+    )
+  )
 
-    const data = await Effect.runPromise(interestRepo.findByUserId(user.id))
-
-    return c.json({ data })
-  })
-
-  router.post("/", async c => {
-    const user = requireUser(c)
-    const { topics } = CreateInterestsRequestSchema.parse(await c.req.json())
-
-    for (const topic of topics) {
-      await Effect.runPromise(interestRepo.upsert(user.id, topic, 1.0))
-    }
-
-    const data = await Effect.runPromise(interestRepo.findByUserId(user.id))
-
-    return c.json({ data }, 201)
-  })
+  router.post(
+    "/",
+    effectHandler(
+      ctx =>
+        Effect.gen(function* () {
+          const controller = yield* InterestController
+          return yield* controller.set(ctx)
+        }),
+      APILive
+    )
+  )
 
   return router
 }

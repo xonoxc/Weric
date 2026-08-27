@@ -1,10 +1,14 @@
 import { describe, expect, it, beforeEach } from "vitest"
-import { Effect } from "effect"
-import { BookmarkRepository } from "~db/repositories/bookmark.repository.ts"
+import { Effect, Layer } from "effect"
+import {
+  BookmarkRepository,
+  BookmarkRepositoryLive,
+} from "~db/repositories/bookmark.repository.ts"
 import {
   StoryRepository,
   StoryRepositoryLive,
 } from "~db/repositories/story.repository.ts"
+import { Database } from "~db/connection.ts"
 import { getTestDb, cleanDatabase } from "~db/__tests__/helpers.ts"
 import { users } from "~db/schema/tables.ts"
 
@@ -18,11 +22,16 @@ describe("BookmarkRepository", () => {
   beforeEach(async () => {
     await cleanDatabase()
     const db: Db = getTestDb()
-    repo = new BookmarkRepository(db)
+    const dbLayer = Layer.succeed(Database, db)
+    repo = Effect.runSync(
+      Effect.gen(function* () {
+        return yield* BookmarkRepository
+      }).pipe(Effect.provide(BookmarkRepositoryLive), Effect.provide(dbLayer))
+    )
     const storyRepo = Effect.runSync(
       Effect.gen(function* () {
         return yield* StoryRepository
-      }).pipe(Effect.provide(StoryRepositoryLive(db)))
+      }).pipe(Effect.provide(StoryRepositoryLive), Effect.provide(dbLayer))
     )
 
     const [user] = await db

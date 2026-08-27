@@ -1,4 +1,4 @@
-import { Effect } from "effect"
+import { Context, Effect, Layer } from "effect"
 import { desc, eq, sql } from "drizzle-orm"
 import {
   chats,
@@ -8,7 +8,7 @@ import {
 } from "~db/schema/tables.ts"
 import { NotFoundError, tryDb } from "./errors.ts"
 
-import type { Db } from "~db/connection.ts"
+import { Database } from "~db/connection.ts"
 import type { RepositoryError } from "./errors.ts"
 import type { StoryWithEvidenceCount } from "./story.repository.ts"
 
@@ -32,153 +32,179 @@ export interface ChatDetail {
   stories: StoryWithEvidenceCount[]
 }
 
-export class ChatRepository {
-  constructor(private readonly db: Db) {}
-
-  create(data: {
+export interface ChatRepository {
+  readonly create: (data: {
     title: string
     query?: string | null
     userId?: string | null
-  }): Effect.Effect<typeof chats.$inferSelect, RepositoryError> {
-    return tryDb(async () => {
-      const [row] = await this.db
-        .insert(chats)
-        .values({
-          title: data.title,
-          query: data.query ?? null,
-          userId: data.userId ?? null,
-        })
-        .returning()
-      return row!
-    })
-  }
+  }) => Effect.Effect<typeof chats.$inferSelect, RepositoryError>
 
-  findById(
+  readonly findById: (
     id: string
-  ): Effect.Effect<typeof chats.$inferSelect | null, RepositoryError> {
-    return tryDb(async () => {
-      const [row] = await this.db
-        .select()
-        .from(chats)
-        .where(eq(chats.id, id))
-        .limit(1)
-      return row ?? null
-    })
-  }
+  ) => Effect.Effect<typeof chats.$inferSelect | null, RepositoryError>
 
-  findByUser(
+  readonly findByUser: (
     userId: string,
-    options: { limit?: number } = {}
-  ): Effect.Effect<ChatListRow[], RepositoryError> {
-    return tryDb(async () => {
-      const limit = Math.min(options.limit ?? 100, 200)
-      const rows = await this.db
-        .select({
-          id: chats.id,
-          title: chats.title,
-          query: chats.query,
-          createdAt: chats.createdAt,
-          updatedAt: chats.updatedAt,
-          storyCount: sql<number>`(
-            SELECT count(*)::int FROM ${chatStories}
-            WHERE ${chatStories.chatId} = ${chats.id}
-          )`,
-        })
-        .from(chats)
-        .where(eq(chats.userId, userId))
-        .orderBy(desc(chats.updatedAt))
-        .limit(limit)
-      return rows as ChatListRow[]
-    })
-  }
+    options?: { limit?: number }
+  ) => Effect.Effect<ChatListRow[], RepositoryError>
 
-  countDistinctStoriesByUser(
+  readonly countDistinctStoriesByUser: (
     userId: string
-  ): Effect.Effect<number, RepositoryError> {
-    return tryDb(async () => {
-      const [row] = await this.db
-        .select({
-          count: sql<number>`count(DISTINCT ${chatStories.storyId})::int`,
-        })
-        .from(chatStories)
-        .innerJoin(chats, eq(chatStories.chatId, chats.id))
-        .where(eq(chats.userId, userId))
-      return row?.count ?? 0
-    })
-  }
+  ) => Effect.Effect<number, RepositoryError>
 
-  findByIdWithStories(
+  readonly findByIdWithStories: (
     id: string
-  ): Effect.Effect<ChatDetail | null, RepositoryError> {
-    return tryDb(async () => {
-      const [chat] = await this.db
-        .select()
-        .from(chats)
-        .where(eq(chats.id, id))
-        .limit(1)
-      if (!chat) return null
+  ) => Effect.Effect<ChatDetail | null, RepositoryError>
 
-      const rows = await this.db
-        .select({
-          id: stories.id,
-          title: stories.title,
-          slug: stories.slug,
-          summary: sql<string>`COALESCE(${stories.summary}, '')`,
-          confidence: sql<number>`COALESCE(${stories.confidence}, 0)`,
-          status: stories.status,
-          createdAt: sql<string>`to_char(${stories.createdAt}, ${TSFMT})`,
-          updatedAt: sql<string>`to_char(${stories.updatedAt}, ${TSFMT})`,
-          evidenceCount: sql<number>`(
-            SELECT count(*)::int FROM ${storyEvidence}
-            WHERE ${storyEvidence.storyId} = ${stories.id}
-          )`,
-        })
-        .from(chatStories)
-        .innerJoin(stories, eq(chatStories.storyId, stories.id))
-        .where(eq(chatStories.chatId, id))
-        .orderBy(desc(stories.createdAt))
-
-      return {
-        id: chat.id,
-        title: chat.title,
-        query: chat.query,
-        createdAt: chat.createdAt,
-        updatedAt: chat.updatedAt,
-        stories: rows as StoryWithEvidenceCount[],
-      }
-    })
-  }
-
-  addStory(
+  readonly addStory: (
     chatId: string,
     storyId: string
-  ): Effect.Effect<void, RepositoryError> {
-    return tryDb(() =>
-      this.db
-        .insert(chatStories)
-        .values({ chatId, storyId })
-        .onConflictDoNothing()
-    )
-  }
+  ) => Effect.Effect<void, RepositoryError>
 
-  touch(id: string): Effect.Effect<void, RepositoryError> {
-    return tryDb(() =>
-      this.db
-        .update(chats)
-        .set({ updatedAt: new Date() })
-        .where(eq(chats.id, id))
-    )
-  }
+  readonly touch: (id: string) => Effect.Effect<void, RepositoryError>
 
-  delete(id: string): Effect.Effect<void, RepositoryError> {
-    return tryDb(async () => {
-      const [existing] = await this.db
-        .select()
-        .from(chats)
-        .where(eq(chats.id, id))
-        .limit(1)
-      if (!existing) throw new NotFoundError("Chat", id)
-      await this.db.delete(chats).where(eq(chats.id, id))
-    })
-  }
+  readonly delete: (id: string) => Effect.Effect<void, RepositoryError>
 }
+
+export const ChatRepository =
+  Context.GenericTag<ChatRepository>("ChatRepository")
+
+export const ChatRepositoryLive = Layer.effect(
+  ChatRepository,
+  Effect.gen(function* () {
+    const db = yield* Database
+
+    return {
+      create: data => {
+        return tryDb(async () => {
+          const [row] = await db
+            .insert(chats)
+            .values({
+              title: data.title,
+              query: data.query ?? null,
+              userId: data.userId ?? null,
+            })
+            .returning()
+          return row!
+        })
+      },
+
+      findById: id => {
+        return tryDb(async () => {
+          const [row] = await db
+            .select()
+            .from(chats)
+            .where(eq(chats.id, id))
+            .limit(1)
+          return row ?? null
+        })
+      },
+
+      findByUser: (userId, options = {}) => {
+        return tryDb(async () => {
+          const limit = Math.min(options.limit ?? 100, 200)
+          const rows = await db
+            .select({
+              id: chats.id,
+              title: chats.title,
+              query: chats.query,
+              createdAt: chats.createdAt,
+              updatedAt: chats.updatedAt,
+              storyCount: sql<number>`(
+                SELECT count(*)::int FROM ${chatStories}
+                WHERE ${chatStories.chatId} = ${chats.id}
+              )`,
+            })
+            .from(chats)
+            .where(eq(chats.userId, userId))
+            .orderBy(desc(chats.updatedAt))
+            .limit(limit)
+          return rows as ChatListRow[]
+        })
+      },
+
+      countDistinctStoriesByUser: userId => {
+        return tryDb(async () => {
+          const [row] = await db
+            .select({
+              count: sql<number>`count(DISTINCT ${chatStories.storyId})::int`,
+            })
+            .from(chatStories)
+            .innerJoin(chats, eq(chatStories.chatId, chats.id))
+            .where(eq(chats.userId, userId))
+          return row?.count ?? 0
+        })
+      },
+
+      findByIdWithStories: id => {
+        return tryDb(async () => {
+          const [chat] = await db
+            .select()
+            .from(chats)
+            .where(eq(chats.id, id))
+            .limit(1)
+          if (!chat) return null
+
+          const rows = await db
+            .select({
+              id: stories.id,
+              title: stories.title,
+              slug: stories.slug,
+              summary: sql<string>`COALESCE(${stories.summary}, '')`,
+              confidence: sql<number>`COALESCE(${stories.confidence}, 0)`,
+              status: stories.status,
+              createdAt: sql<string>`to_char(${stories.createdAt}, ${TSFMT})`,
+              updatedAt: sql<string>`to_char(${stories.updatedAt}, ${TSFMT})`,
+              evidenceCount: sql<number>`(
+                SELECT count(*)::int FROM ${storyEvidence}
+                WHERE ${storyEvidence.storyId} = ${stories.id}
+              )`,
+            })
+            .from(chatStories)
+            .innerJoin(stories, eq(chatStories.storyId, stories.id))
+            .where(eq(chatStories.chatId, id))
+            .orderBy(desc(stories.createdAt))
+
+          return {
+            id: chat.id,
+            title: chat.title,
+            query: chat.query,
+            createdAt: chat.createdAt,
+            updatedAt: chat.updatedAt,
+            stories: rows as StoryWithEvidenceCount[],
+          }
+        })
+      },
+
+      addStory: (chatId, storyId) => {
+        return tryDb(() =>
+          db
+            .insert(chatStories)
+            .values({ chatId, storyId })
+            .onConflictDoNothing()
+        )
+      },
+
+      touch: id => {
+        return tryDb(() =>
+          db
+            .update(chats)
+            .set({ updatedAt: new Date() })
+            .where(eq(chats.id, id))
+        )
+      },
+
+      delete: id => {
+        return tryDb(async () => {
+          const [existing] = await db
+            .select()
+            .from(chats)
+            .where(eq(chats.id, id))
+            .limit(1)
+          if (!existing) throw new NotFoundError("Chat", id)
+          await db.delete(chats).where(eq(chats.id, id))
+        })
+      },
+    }
+  })
+)
