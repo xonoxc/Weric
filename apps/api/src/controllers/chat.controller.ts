@@ -4,7 +4,6 @@ import { requireUser } from "~api/lib/validation"
 
 import type { ApiVariables } from "~api/app"
 import type { Context as HonoCtx } from "hono"
-import type { RepositoryError } from "@weric/database"
 
 import { z } from "zod"
 

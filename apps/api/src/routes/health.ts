@@ -1,17 +1,18 @@
 import { Hono } from "hono"
-import { Effect, Layer } from "effect"
+import { Effect } from "effect"
 import {
   HealthController,
   HealthControllerLive,
 } from "~api/controllers/health.controller"
-import { effectHandler } from "~api/lib/handler"
+import { buildRouteContext, effectHandler } from "~api/lib/handler"
+import type { AppContext } from "~api/lib/app-context"
 
 import type { ApiVariables } from "~api/app.ts"
 
-export function createHealthRoutes() {
+export function createHealthRoutes(base: AppContext) {
   const router = new Hono<{ Variables: ApiVariables }>()
 
-  const APILive = HealthControllerLive
+  const routeContext = buildRouteContext(HealthControllerLive, base)
 
   router.get(
     "/",
@@ -21,7 +22,7 @@ export function createHealthRoutes() {
           const controller = yield* HealthController
           return yield* controller.check(ctx)
         }),
-      APILive
+      routeContext
     )
   )
 

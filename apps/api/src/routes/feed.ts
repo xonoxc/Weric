@@ -11,25 +11,27 @@ import {
   FeedControllerLive,
 } from "~api/controllers/feed.controller"
 import { FeedServiceLive } from "~api/services/feed.service"
-import { DatabaseLive } from "~db/connection"
-import { effectHandler } from "~api/lib/handler"
+import { buildRouteContext, effectHandler } from "~api/lib/handler"
+import type { AppContext } from "~api/lib/app-context"
 
 import type { ApiVariables } from "~api/app.ts"
 
-export function createFeedRoutes() {
+export function createFeedRoutes(base: AppContext) {
   const router = new Hono<{ Variables: ApiVariables }>()
 
-  const APILive = FeedControllerLive.pipe(
-    Layer.provide(FeedServiceLive),
-    Layer.provide(RecommendationAuto),
-    Layer.provide(
-      Layer.mergeAll(
-        StoryRepositoryLive,
-        InteractionRepositoryLive,
-        InterestRepositoryLive
+  const routeContext = buildRouteContext(
+    FeedControllerLive.pipe(
+      Layer.provide(FeedServiceLive),
+      Layer.provide(RecommendationAuto),
+      Layer.provide(
+        Layer.mergeAll(
+          StoryRepositoryLive,
+          InteractionRepositoryLive,
+          InterestRepositoryLive
+        )
       )
     ),
-    Layer.provide(DatabaseLive)
+    base
   )
 
   router.get(
@@ -40,7 +42,7 @@ export function createFeedRoutes() {
           const controller = yield* FeedController
           return yield* controller.generate(ctx)
         }),
-      APILive
+      routeContext
     )
   )
 

@@ -11,25 +11,27 @@ import {
   InteractionControllerLive,
 } from "~api/controllers/interaction.controller"
 import { InteractionServiceLive } from "~api/services/interaction.service"
-import { DatabaseLive } from "~db/connection"
-import { effectHandler } from "~api/lib/handler"
+import { buildRouteContext, effectHandler } from "~api/lib/handler"
+import type { AppContext } from "~api/lib/app-context"
 
 import type { ApiVariables } from "~api/app.ts"
 
-export function createInteractionsRoutes() {
+export function createInteractionsRoutes(base: AppContext) {
   const router = new Hono<{ Variables: ApiVariables }>()
 
-  const APILive = InteractionControllerLive.pipe(
-    Layer.provide(InteractionServiceLive),
-    Layer.provide(RecommendationAuto),
-    Layer.provide(
-      Layer.mergeAll(
-        StoryRepositoryLive,
-        InteractionRepositoryLive,
-        InterestRepositoryLive
+  const routeContext = buildRouteContext(
+    InteractionControllerLive.pipe(
+      Layer.provide(InteractionServiceLive),
+      Layer.provide(RecommendationAuto),
+      Layer.provide(
+        Layer.mergeAll(
+          StoryRepositoryLive,
+          InteractionRepositoryLive,
+          InterestRepositoryLive
+        )
       )
     ),
-    Layer.provide(DatabaseLive)
+    base
   )
 
   router.post(
@@ -40,7 +42,7 @@ export function createInteractionsRoutes() {
           const controller = yield* InteractionController
           return yield* controller.create(ctx)
         }),
-      APILive
+      routeContext
     )
   )
 

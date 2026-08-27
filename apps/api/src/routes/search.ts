@@ -11,25 +11,27 @@ import {
   SearchControllerLive,
 } from "~api/controllers/search.controller"
 import { SearchServiceLive } from "~api/services/search.service"
-import { DatabaseLive } from "~db/connection"
-import { effectHandler } from "~api/lib/handler"
+import { buildRouteContext, effectHandler } from "~api/lib/handler"
+import type { AppContext } from "~api/lib/app-context"
 
 import type { ApiVariables } from "~api/app.ts"
 
-export function createSearchRoutes() {
+export function createSearchRoutes(base: AppContext) {
   const router = new Hono<{ Variables: ApiVariables }>()
 
-  const APILive = SearchControllerLive.pipe(
-    Layer.provide(SearchServiceLive),
-    Layer.provide(
-      Layer.mergeAll(
-        StoryRepositoryLive,
-        EvidenceRepositoryLive,
-        JobRepositoryLive,
-        ChatRepositoryLive
+  const routeContext = buildRouteContext(
+    SearchControllerLive.pipe(
+      Layer.provide(SearchServiceLive),
+      Layer.provide(
+        Layer.mergeAll(
+          StoryRepositoryLive,
+          EvidenceRepositoryLive,
+          JobRepositoryLive,
+          ChatRepositoryLive
+        )
       )
     ),
-    Layer.provide(DatabaseLive)
+    base
   )
 
   router.get(
@@ -40,7 +42,7 @@ export function createSearchRoutes() {
           const controller = yield* SearchController
           return yield* controller.search(ctx)
         }),
-      APILive
+      routeContext
     )
   )
 

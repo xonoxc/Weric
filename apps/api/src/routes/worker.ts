@@ -6,18 +6,20 @@ import {
   WorkerControllerLive,
 } from "~api/controllers/worker.controller"
 import { JobServiceLive } from "~api/services/job.service"
-import { DatabaseLive } from "~db/connection"
-import { effectHandler } from "~api/lib/handler"
+import { buildRouteContext, effectHandler } from "~api/lib/handler"
+import type { AppContext } from "~api/lib/app-context"
 
 import type { ApiVariables } from "~api/app.ts"
 
-export function createWorkerRoutes() {
+export function createWorkerRoutes(base: AppContext) {
   const router = new Hono<{ Variables: ApiVariables }>()
 
-  const APILive = WorkerControllerLive.pipe(
-    Layer.provide(JobServiceLive),
-    Layer.provide(JobRepositoryLive),
-    Layer.provide(DatabaseLive)
+  const routeContext = buildRouteContext(
+    WorkerControllerLive.pipe(
+      Layer.provide(JobServiceLive),
+      Layer.provide(JobRepositoryLive)
+    ),
+    base
   )
 
   router.get(
@@ -28,7 +30,7 @@ export function createWorkerRoutes() {
           const controller = yield* WorkerController
           return yield* controller.streamEvents(ctx)
         }),
-      APILive
+      routeContext
     )
   )
 
@@ -40,7 +42,7 @@ export function createWorkerRoutes() {
           const controller = yield* WorkerController
           return yield* controller.jobProgress(ctx)
         }),
-      APILive
+      routeContext
     )
   )
 

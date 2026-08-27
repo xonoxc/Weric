@@ -333,6 +333,9 @@ export const chats = pgTable(
   ]
 )
 
+export type DBChat = typeof chats.$inferSelect
+export type DBChatInsert = typeof chats.$inferInsert
+
 export const chatStories = pgTable(
   "chat_stories",
   {

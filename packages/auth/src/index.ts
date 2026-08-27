@@ -1,5 +1,3 @@
-// @weric/auth — Authentication logic (Better Auth)
-
 import { betterAuth } from "better-auth"
 import { drizzleAdapter } from "@better-auth/drizzle-adapter"
 import { username } from "better-auth/plugins"

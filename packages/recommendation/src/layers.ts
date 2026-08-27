@@ -1,9 +1,9 @@
 import { Layer } from "effect"
-import { RecommendationService, RecommendationServiceLive } from "./service.ts"
+import { RecommendationServiceLive } from "./service.ts"
 import { InterestLearnerLive } from "./interest.ts"
 import { StoryScorerLive } from "./scorer.ts"
 import { FeedRankerLive } from "./ranker.ts"
-import { FeedDiversifier, FeedDiversifierLive } from "./diversifier.ts"
+import { FeedDiversifierLive } from "./diversifier.ts"
 
 /**
  * Fully-composed recommendation layer ("auto DI").

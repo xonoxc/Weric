@@ -5,19 +5,15 @@ import {
   AuthController,
   AuthControllerLive,
 } from "~api/controllers/auth.controller"
-import { AuthServiceLive } from "~api/services/auth.service"
-import { DatabaseLive } from "~db/connection"
-import { effectHandler } from "~api/lib/handler"
+import { buildRouteContext, effectHandler } from "~api/lib/handler"
+import type { AppContext } from "~api/lib/app-context"
 
 import type { ApiVariables } from "~api/app.ts"
 
-export function createAuthRoutes() {
+export function createAuthRoutes(base: AppContext) {
   const router = new Hono<{ Variables: ApiVariables }>()
 
-  const APILive = AuthControllerLive.pipe(
-    Layer.provide(AuthServiceLive),
-    Layer.provide(DatabaseLive)
-  )
+  const routeContext = buildRouteContext(AuthControllerLive, base)
 
   router.use(
     "*",
@@ -40,7 +36,7 @@ export function createAuthRoutes() {
           const controller = yield* AuthController
           return yield* controller.handle(ctx)
         }),
-      APILive
+      routeContext
     )
   )
 

@@ -6,18 +6,20 @@ import {
   BookmarkControllerLive,
 } from "~api/controllers/bookmark.controller"
 import { BookmarkServiceLive } from "~api/services/bookmark.service"
-import { DatabaseLive } from "~db/connection"
-import { effectHandler } from "~api/lib/handler"
+import { buildRouteContext, effectHandler } from "~api/lib/handler"
+import type { AppContext } from "~api/lib/app-context"
 
 import type { ApiVariables } from "~api/app.ts"
 
-export function createBookmarksRoutes() {
+export function createBookmarksRoutes(base: AppContext) {
   const router = new Hono<{ Variables: ApiVariables }>()
 
-  const APILive = BookmarkControllerLive.pipe(
-    Layer.provide(BookmarkServiceLive),
-    Layer.provide(BookmarkRepositoryLive),
-    Layer.provide(DatabaseLive)
+  const routeContext = buildRouteContext(
+    BookmarkControllerLive.pipe(
+      Layer.provide(BookmarkServiceLive),
+      Layer.provide(BookmarkRepositoryLive)
+    ),
+    base
   )
 
   router.get(
@@ -28,7 +30,7 @@ export function createBookmarksRoutes() {
           const controller = yield* BookmarkController
           return yield* controller.list(ctx)
         }),
-      APILive
+      routeContext
     )
   )
 
@@ -40,7 +42,7 @@ export function createBookmarksRoutes() {
           const controller = yield* BookmarkController
           return yield* controller.create(ctx)
         }),
-      APILive
+      routeContext
     )
   )
 
@@ -52,7 +54,7 @@ export function createBookmarksRoutes() {
           const controller = yield* BookmarkController
           return yield* controller.remove(ctx)
         }),
-      APILive
+      routeContext
     )
   )
 

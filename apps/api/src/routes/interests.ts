@@ -8,16 +8,18 @@ import {
   InterestControllerLive,
 } from "~api/controllers/interest.controller"
 import { InterestServiceLive } from "~api/services/interest.service"
-import { DatabaseLive } from "~db/connection"
-import { effectHandler } from "~api/lib/handler"
+import { buildRouteContext, effectHandler } from "~api/lib/handler"
+import type { AppContext } from "~api/lib/app-context"
 
-export function createInterestsRoutes() {
+export function createInterestsRoutes(base: AppContext) {
   const router = new Hono<{ Variables: ApiVariables }>()
 
-  const APILive = InterestControllerLive.pipe(
-    Layer.provide(InterestServiceLive),
-    Layer.provide(InterestRepositoryLive),
-    Layer.provide(DatabaseLive)
+  const routeContext = buildRouteContext(
+    InterestControllerLive.pipe(
+      Layer.provide(InterestServiceLive),
+      Layer.provide(InterestRepositoryLive)
+    ),
+    base
   )
 
   router.get(
@@ -28,7 +30,7 @@ export function createInterestsRoutes() {
           const controller = yield* InterestController
           return yield* controller.get(ctx)
         }),
-      APILive
+      routeContext
     )
   )
 
@@ -40,7 +42,7 @@ export function createInterestsRoutes() {
           const controller = yield* InterestController
           return yield* controller.set(ctx)
         }),
-      APILive
+      routeContext
     )
   )
 

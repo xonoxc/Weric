@@ -17,6 +17,8 @@ export const AuthServiceLive = Layer.effect(
   AuthService,
   Effect.gen(function* () {
     const db = yield* Database
-    return { auth: createAuth(db) }
+    return {
+      auth: createAuth(db),
+    }
   })
 )
