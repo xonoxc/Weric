@@ -1,6 +1,7 @@
 export { createDb, type Db } from "./connection.ts"
 export { loadDatabaseConfig, type DatabaseConfig } from "./config.ts"
 export * as schema from "./schema/tables.ts"
+export type { DbJob } from "./schema/tables.ts"
 
 export { DrizzleDB, DatabaseLiveLayer, DatabaseTestLayer } from "./layer.ts"
 export {

@@ -307,6 +307,9 @@ export const jobs = pgTable(
   ]
 )
 
+export type DbJob = typeof jobs.$inferSelect
+export type InsertDBjob = typeof jobs.$inferInsert
+
 export const chats = pgTable(
   "chats",
   {

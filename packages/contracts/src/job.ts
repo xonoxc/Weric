@@ -23,9 +23,10 @@ export const JobSchema = z.object({
   payload: JobPayloadSchema,
   status: JobStatus.default("pending"),
   retries: z.number().int().nonnegative().default(0),
-  scheduledAt: z.string().datetime().optional(),
-  executedAt: z.string().datetime().optional(),
+  scheduledAt: z.string().datetime().nullable().default(null),
+  executedAt: z.string().datetime().nullable().default(null),
 })
+
 export type Job = z.infer<typeof JobSchema>
 
 export const CreateJobInputSchema = z.object({
