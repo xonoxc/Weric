@@ -41,21 +41,21 @@ export function createRebuildRecommendationsHandler(db: Db): JobHandler {
         const users = yield* userRepo.findAll()
 
         let totalStories = 0
-        let userCount = 0
 
-        for (const user of users) {
-          const feed = yield* recommendationService
-            .generateFeed(user.id, { limit: 100 })
-            .pipe(Effect.catchAll(() => Effect.succeed(null)))
-
-          if (feed) {
-            totalStories += feed.data.length
-          }
-          userCount += 1
-        }
+        yield* Effect.forEach(
+          users,
+          user =>
+            recommendationService.generateFeed(user.id, { limit: 100 }).pipe(
+              Effect.catchAll(() => Effect.succeed(null)),
+              Effect.tap(feed => {
+                if (feed) totalStories += feed.data.length
+              })
+            ),
+          { concurrency: 10 }
+        )
 
         console.log(
-          `[${jobId}] Rebuilt recommendations for ${userCount} users (${totalStories} total stories)`
+          `[${jobId}] Rebuilt recommendations for ${users.length} users (${totalStories} total stories)`
         )
       }).pipe(Effect.provide(RecommendationLayer))
     },

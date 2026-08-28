@@ -53,15 +53,17 @@ export function createRecomputeScoresHandler(db: Db): JobHandler {
 
         let totalRanked = 0
 
-        for (const user of users) {
-          const feed = yield* recommendationService
-            .generateFeed(user.id, { limit: 50 })
-            .pipe(Effect.catchAll(() => Effect.succeed(null)))
-
-          if (feed) {
-            totalRanked += feed.data.length
-          }
-        }
+        yield* Effect.forEach(
+          users,
+          user =>
+            recommendationService.generateFeed(user.id, { limit: 50 }).pipe(
+              Effect.catchAll(() => Effect.succeed(null)),
+              Effect.tap(feed => {
+                if (feed) totalRanked += feed.data.length
+              })
+            ),
+          { concurrency: 10 }
+        )
 
         if (users.length > 0) {
           console.log(

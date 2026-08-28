@@ -53,35 +53,53 @@ export function createLearnInterestsHandler(db: Db): JobHandler {
 
         const users = yield* userRepo.findAll()
 
-        for (const user of users) {
-          const interactions = yield* interactionRepo.findByUser(user.id)
+        yield* Effect.forEach(
+          users,
+          user =>
+            Effect.gen(function* () {
+              const interactions = yield* interactionRepo.findByUser(user.id)
 
-          const recentInteractions = interactions.filter(
-            (i: { createdAt: Date }) => {
-              const age = Date.now() - new Date(i.createdAt).getTime()
-              return age < 86_400_000
-            }
-          )
-
-          const uniqueStories = new Set(
-            recentInteractions.map((i: { storyId: string }) => i.storyId)
-          )
-
-          for (const storyId of uniqueStories) {
-            const storyInteractions = recentInteractions.filter(
-              (i: { storyId: string }) => i.storyId === storyId
-            )
-            for (const interaction of storyInteractions) {
-              yield* recommendationService.updateInterests(
-                user.id,
-                storyId,
-                interaction.interactionType
+              const recentInteractions = interactions.filter(
+                (i: { createdAt: Date }) => {
+                  const age = Date.now() - new Date(i.createdAt).getTime()
+                  return age < 86_400_000
+                }
               )
-            }
-          }
 
-          yield* interestLearner.decayAll(user.id)
-        }
+              const groupedByStory = new Map<
+                string,
+                typeof recentInteractions
+              >()
+
+              for (const interaction of recentInteractions) {
+                const list = groupedByStory.get(interaction.storyId)
+                if (list) {
+                  list.push(interaction)
+                } else {
+                  groupedByStory.set(interaction.storyId, [interaction])
+                }
+              }
+
+              yield* Effect.forEach(
+                [...groupedByStory.entries()],
+                ([storyId, storyInteractions]) =>
+                  Effect.forEach(
+                    storyInteractions,
+                    interaction =>
+                      recommendationService.updateInterests(
+                        user.id,
+                        storyId,
+                        interaction.interactionType
+                      ),
+                    { concurrency: 5 }
+                  ),
+                { concurrency: 3 }
+              )
+
+              yield* interestLearner.decayAll(user.id)
+            }),
+          { concurrency: 10 }
+        )
       }).pipe(Effect.provide(RecommendationLayer))
     },
   }
