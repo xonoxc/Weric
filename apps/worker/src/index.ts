@@ -1,10 +1,16 @@
 import {
   createDb,
+  Database,
+  StoryRepository,
   StoryRepositoryLive,
   EvidenceRepository,
+  EvidenceRepositoryLive,
   JobRepository,
+  JobRepositoryLive,
   ChatRepository,
+  ChatRepositoryLive,
 } from "@weric/database"
+import { Context, Effect, Layer } from "effect"
 import { BrowserService } from "@weric/browser"
 import { AIService, groqProvider } from "@weric/ai"
 import { WorkerRuntime } from "./runtime.ts"
@@ -18,14 +24,33 @@ import { createRebuildRecommendationsHandler } from "./jobs/rebuild-recommendati
 
 import type { Db } from "@weric/database"
 
+function buildRepos(db: Db) {
+  const databaseLayer = Layer.succeed(Database, db)
+
+  const context = Effect.runSync(
+    Layer.build(
+      Layer.mergeAll(
+        StoryRepositoryLive,
+        EvidenceRepositoryLive,
+        JobRepositoryLive,
+        ChatRepositoryLive
+      )
+    ).pipe(Effect.provide(databaseLayer), Effect.scoped)
+  )
+
+  return {
+    storyRepo: Context.get(context, StoryRepository),
+    evidenceRepo: Context.get(context, EvidenceRepository),
+    jobRepo: Context.get(context, JobRepository),
+    chatRepo: Context.get(context, ChatRepository),
+  }
+}
+
 function buildRuntime(db: Db) {
-  // Story/Interest/Interaction/User repos are now Effect tags — the
-  // recommendation jobs wire them via layers. Other jobs still take the
-  // class-based repositories directly.
-  const storyRepo = StoryRepositoryLive(db) as never
-  const evidenceRepo = new EvidenceRepository(db)
-  const jobRepo = new JobRepository(db)
-  const chatRepo = new ChatRepository(db)
+  // Story/Interest/Interaction/User repos are Effect layers — build them once
+  // into concrete service objects and pass those to the handlers. The
+  // recommendation jobs wire their own layers from `db`.
+  const { storyRepo, evidenceRepo, jobRepo, chatRepo } = buildRepos(db)
   const browser = new BrowserService()
   const ai = new AIService(groqProvider)
   const apiUrl = process.env.API_URL ?? "http://localhost:3000"

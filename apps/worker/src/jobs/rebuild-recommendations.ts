@@ -1,5 +1,6 @@
 import { Effect, Layer } from "effect"
 import {
+  Database,
   StoryRepositoryLive,
   InterestRepositoryLive,
   InteractionRepositoryLive,
@@ -15,16 +16,18 @@ import type { Db } from "@weric/database"
 import type { JobHandler } from "~worker/runtime.ts"
 
 export function createRebuildRecommendationsHandler(db: Db): JobHandler {
+  const DatabaseLayer = Layer.succeed(Database, db)
+
   const RecommendationLayer = Layer.mergeAll(
     Layer.provide(
       RecommendationAuto,
       Layer.mergeAll(
-        StoryRepositoryLive(db),
-        InterestRepositoryLive(db),
-        InteractionRepositoryLive(db)
+        Layer.provide(StoryRepositoryLive, DatabaseLayer),
+        Layer.provide(InterestRepositoryLive, DatabaseLayer),
+        Layer.provide(InteractionRepositoryLive, DatabaseLayer)
       )
     ),
-    UserRepositoryLive(db)
+    Layer.provide(UserRepositoryLive, DatabaseLayer)
   )
 
   return {

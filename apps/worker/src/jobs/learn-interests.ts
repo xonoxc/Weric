@@ -1,5 +1,6 @@
 import { Effect, Layer } from "effect"
 import {
+  Database,
   StoryRepositoryLive,
   InterestRepositoryLive,
   InteractionRepository,
@@ -18,18 +19,23 @@ import type { Db } from "@weric/database"
 import type { JobHandler } from "~worker/runtime.ts"
 
 export function createLearnInterestsHandler(db: Db): JobHandler {
+  const DatabaseLayer = Layer.succeed(Database, db)
+
   const RecommendationLayer = Layer.mergeAll(
     Layer.provide(
       RecommendationAuto,
       Layer.mergeAll(
-        StoryRepositoryLive(db),
-        InterestRepositoryLive(db),
-        InteractionRepositoryLive(db)
+        Layer.provide(StoryRepositoryLive, DatabaseLayer),
+        Layer.provide(InterestRepositoryLive, DatabaseLayer),
+        Layer.provide(InteractionRepositoryLive, DatabaseLayer)
       )
     ),
-    InteractionRepositoryLive(db),
-    Layer.provide(InterestLearnerLive, InterestRepositoryLive(db)),
-    UserRepositoryLive(db)
+    Layer.provide(InteractionRepositoryLive, DatabaseLayer),
+    Layer.provide(
+      InterestLearnerLive,
+      Layer.provide(InterestRepositoryLive, DatabaseLayer)
+    ),
+    Layer.provide(UserRepositoryLive, DatabaseLayer)
   )
 
   return {
