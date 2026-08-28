@@ -1,6 +1,6 @@
 import { Hono } from "hono"
 import { cors } from "hono/cors"
-import { Effect, Layer } from "effect"
+import { Effect } from "effect"
 import {
   AuthController,
   AuthControllerLive,
