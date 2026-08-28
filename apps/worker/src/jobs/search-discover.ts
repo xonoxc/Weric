@@ -26,6 +26,14 @@ function describeError(error: unknown): string {
   return String(error)
 }
 
+function toSlug(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 200)
+}
+
 export function createSearchDiscoverHandler(
   storyRepo: StoryRepository,
   evidenceRepo: EvidenceRepository,
@@ -58,24 +66,30 @@ export function createSearchDiscoverHandler(
 
       const chatId = payload.chatId as string | undefined
 
-      postProgress(jobId, {
-        progress: 0.05,
-        message: "Starting discovery...",
-      })
+      postProgress(jobId, { progress: 0.05, message: "Starting discovery..." })
 
       return Effect.gen(function* () {
-        postProgress(jobId, {
-          progress: 0.1,
-          message: "Searching the web...",
-        })
-
-        const results = yield* browser
-          .searchWeb(query)
-          .pipe(
-            Effect.mapError(e => new Error(`Web search failed: ${e.message}`))
+        const failures: string[] = []
+        const safe = <R, E>(desc: string, fx: Effect.Effect<R, E>) =>
+          fx.pipe(
+            Effect.catchAll(error => {
+              failures.push(`${desc}: ${describeError(error)}`)
+              return Effect.succeed(null as R | null)
+            })
           )
 
-        if (results.length === 0) {
+        postProgress(jobId, { progress: 0.1, message: "Searching the web..." })
+
+        const results = yield* safe(
+          "web search",
+          browser
+            .searchWeb(query)
+            .pipe(
+              Effect.mapError(e => new Error(`Web search failed: ${e.message}`))
+            )
+        )
+
+        if (!results || results.length === 0) {
           postProgress(jobId, {
             progress: 1,
             message: "No results found",
@@ -85,158 +99,117 @@ export function createSearchDiscoverHandler(
         }
 
         const total = Math.min(results.length, 5)
-        const progressStart = 0.15
-        const progressRange = 0.75
-
-        const failures: string[] = []
         let succeeded = 0
 
-        for (let i = 0; i < total; i++) {
-          const result = results[i]
-          if (!result) continue
+        const processResult = (
+          result: (typeof results)[number],
+          index: number
+        ): Effect.Effect<void, never> => {
+          const stepProgress = 0.15 + ((index + 1) / total) * 0.75
+          const baseProgress = 0.15 + (index / total) * 0.75
 
-          const stepProgress = progressStart + ((i + 1) / total) * progressRange
+          const report = (progress: number, message: string, extra?: object) =>
+            postProgress(jobId, { progress, message, ...extra })
 
-          postProgress(jobId, {
-            progress: progressStart + (i / total) * progressRange,
-            message: `Fetching page ${i + 1}/${total}...`,
-          })
+          return Effect.gen(function* () {
+            report(baseProgress, `Fetching page ${index + 1}/${total}...`)
 
-          const page = yield* browser.fetchUrl(result.url).pipe(
-            Effect.catchAll(error => {
-              failures.push(`fetch ${result.url}: ${describeError(error)}`)
-              return Effect.succeed(null as FetchedPage | null)
-            })
-          )
+            const page = yield* safe(
+              `fetch ${result.url}`,
+              browser.fetchUrl(result.url)
+            )
+            if (!page) return
 
-          if (!page) continue
-
-          postProgress(jobId, {
-            progress: progressStart + (i / total) * progressRange + 0.05,
-            message: `Summarizing page ${i + 1}/${total}...`,
-          })
-
-          const summary = yield* ai.summarize(page.text).pipe(
-            Effect.catchAll(error => {
-              failures.push(
-                `summarize "${page.title.slice(0, 60)}": ${describeError(error)}`
-              )
-              return Effect.succeed(null as Summary | null)
-            })
-          )
-
-          const storySummary = summary?.summary ?? page.text.slice(0, 500)
-
-          const slug = page.title
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "-")
-            .replace(/^-|-$/g, "")
-            .slice(0, 200)
-
-          const evidence = yield* evidenceRepo
-            .create({
-              source: "search_discover",
-              url: result.url,
-              author: null,
-              title: page.title,
-              content: page.text.slice(0, 10_000),
-              metadata: { searchQuery: query, discoveredBy: "worker" },
-              publishedAt: null,
-            })
-            .pipe(
-              Effect.catchAll(error =>
-                evidenceRepo.findByUrl(result.url).pipe(
-                  Effect.catchAll(() => {
-                    failures.push(
-                      `create evidence ${result.url}: ${describeError(error)}`
-                    )
-                    return Effect.succeed(null)
-                  })
-                )
-              )
+            report(
+              baseProgress + 0.05,
+              `Summarizing page ${index + 1}/${total}...`
             )
 
-          if (!evidence) continue
-
-          const existing = yield* storyRepo.findBySlug(slug).pipe(
-            Effect.catchAll(error => {
-              failures.push(`lookup story "${slug}": ${describeError(error)}`)
-              return Effect.succeed(null)
-            })
-          )
-
-          if (existing) {
-            yield* storyRepo.addEvidence(existing.id, evidence.id).pipe(
-              Effect.catchAll(error => {
-                failures.push(
-                  `link evidence to story "${slug}": ${describeError(error)}`
-                )
-                return Effect.void
-              })
+            const summary = yield* safe(
+              `summarize "${page.title.slice(0, 60)}"`,
+              ai.summarize(page.text)
             )
 
-            if (chatId) {
-              yield* chatRepo.addStory(chatId, existing.id).pipe(
-                Effect.catchAll(error => {
-                  failures.push(
-                    `link chat ${chatId} to story "${slug}": ${describeError(error)}`
-                  )
-                  return Effect.void
-                })
-              )
-            }
+            const storySummary = summary?.summary ?? page.text.slice(0, 500)
+            const slug = toSlug(page.title)
 
-            succeeded++
-            postProgress(jobId, {
-              progress: stepProgress,
-              message: `Linked evidence to existing story: ${page.title.slice(0, 60)}`,
-            })
-          } else {
-            const created = yield* storyRepo
-              .create({
+            const evidence = yield* safe(
+              `create evidence ${result.url}`,
+              evidenceRepo.create({
+                source: "search_discover",
+                url: result.url,
+                author: null,
                 title: page.title,
-                slug,
-                summary: storySummary,
-                evidenceIds: [evidence.id],
+                content: page.text.slice(0, 10_000),
+                metadata: { searchQuery: query, discoveredBy: "worker" },
+                publishedAt: null,
               })
-              .pipe(
-                Effect.catchAll(error => {
-                  failures.push(
-                    `create story "${slug}": ${describeError(error)}`
-                  )
-                  return Effect.succeed(null)
-                })
-              )
+            )
 
-            if (created) {
+            if (!evidence) return
+
+            const existing = yield* safe(
+              `lookup story "${slug}"`,
+              storyRepo.findBySlug(slug)
+            )
+
+            if (existing) {
+              yield* safe(
+                `link evidence to story "${slug}"`,
+                storyRepo.addEvidence(existing.id, evidence.id)
+              )
               if (chatId) {
-                yield* chatRepo.addStory(chatId, created.id).pipe(
-                  Effect.catchAll(error => {
-                    failures.push(
-                      `link chat ${chatId} to story "${slug}": ${describeError(error)}`
-                    )
-                    return Effect.void
-                  })
+                yield* safe(
+                  `link chat ${chatId} to story "${slug}"`,
+                  chatRepo.addStory(chatId, existing.id)
                 )
               }
-
               succeeded++
-              postProgress(jobId, {
-                progress: stepProgress,
-                message: `Discovered: ${page.title.slice(0, 60)}`,
-                stories: [
-                  {
-                    id: created.id,
-                    title: created.title,
-                    slug: created.slug,
-                    summary: created.summary ?? "",
-                    confidence: 0,
-                  },
-                ],
-              })
+              report(
+                stepProgress,
+                `Linked evidence to existing story: ${page.title.slice(0, 60)}`
+              )
+            } else {
+              const created = yield* safe(
+                `create story "${slug}"`,
+                storyRepo.create({
+                  title: page.title,
+                  slug,
+                  summary: storySummary,
+                  evidenceIds: [evidence.id],
+                })
+              )
+
+              if (created) {
+                if (chatId) {
+                  yield* safe(
+                    `link chat ${chatId} to story "${slug}"`,
+                    chatRepo.addStory(chatId, created.id)
+                  )
+                }
+                succeeded++
+                report(stepProgress, `Discovered: ${page.title.slice(0, 60)}`, {
+                  stories: [
+                    {
+                      id: created.id,
+                      title: created.title,
+                      slug: created.slug,
+                      summary: created.summary ?? "",
+                      confidence: 0,
+                    },
+                  ],
+                })
+              }
             }
-          }
+          })
         }
+
+        yield* Effect.all(
+          results
+            .slice(0, total)
+            .map((result, index) => processResult(result, index)),
+          { concurrency: 5 }
+        )
 
         if (succeeded === 0) {
           const first = failures[0] ?? "no results processed"
