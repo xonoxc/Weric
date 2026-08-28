@@ -6,6 +6,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "~web": resolve(__dirname, "src"),
+      "@": resolve(__dirname, "src"),
     },
   },
   plugins: [

@@ -12,11 +12,16 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@base-ui/react": "^1.7.0",
+    "@tabler/icons-react": "^3.46.0",
     "@weric/contracts": "workspace:*",
     "@weric/shared": "workspace:*",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "react-router-dom": "^7.18.1"
+    "react-router-dom": "^7.18.1",
+    "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {
     "@types/react": "19.2.2",
