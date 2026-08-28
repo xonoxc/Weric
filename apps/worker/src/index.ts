@@ -79,7 +79,7 @@ function buildRuntime(db: Db) {
       createCleanupEvidenceHandler(evidenceRepo),
       createRebuildRecommendationsHandler(db),
     ],
-    { apiUrl }
+    { apiUrl, maxConcurrency: Number(process.env.WORKER_MAX_CONCURRENCY ?? 10) }
   )
 
   return runtime

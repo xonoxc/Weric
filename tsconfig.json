@@ -25,6 +25,7 @@
       "~db/*": ["./packages/database/src/*"],
       "~ai/*": ["./packages/ai/src/*"],
       "~rec/*": ["./packages/recommendation/src/*"]
-    }
+    },
+    "plugins": [{ "name": "@effect/language-service" }]
   }
 }
