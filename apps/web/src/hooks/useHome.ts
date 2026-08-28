@@ -13,7 +13,7 @@ import { useSession, signOut } from "~web/lib/auth-client.ts"
 import { useJobEvents } from "./useJobEvents.ts"
 
 import type { StoryCardData } from "@weric/ui"
-import type { ExpandableStory } from "~web/components/StoryDetailPanel.tsx"
+import type { ExpandableStory } from "~web/components/story-detail-panel.tsx"
 
 interface PositionedStory extends StoryCardData {
   x: number

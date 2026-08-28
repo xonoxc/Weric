@@ -15,7 +15,7 @@ import {
   SidebarTrigger,
   SidebarRail,
   useSidebar,
-} from "~web/components/ui/sidebar/Sidebar.tsx"
+} from "~web/components/ui/sidebar/sidebar.tsx"
 
 interface ChatSidebarProps {
   chats: ChatListRow[]

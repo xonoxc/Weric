@@ -2,8 +2,8 @@ import { useNavigate } from "react-router-dom"
 import { useHome } from "~web/hooks/useHome.ts"
 import { Canvas, StoryCard, CommandBar, TopBar, JobStatusCard } from "@weric/ui"
 import { AppSidebar } from "~web/components/app-sidebar.tsx"
-import { StoryDetailPanel } from "~web/components/StoryDetailPanel.tsx"
-import { ChatSidebar } from "~web/components/ChatSidebar"
+import { StoryDetailPanel } from "~web/components/story-detail-panel.tsx"
+import { ChatSidebar } from "~web/components/chat-sidebar"
 
 const loadingContainer: React.CSSProperties = {
   position: "fixed",
