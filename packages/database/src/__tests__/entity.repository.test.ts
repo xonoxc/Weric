@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from "vitest"
-import { Effect } from "effect"
+import { Effect, Layer } from "effect"
 import { EntityRepository } from "~db/repositories/entity.repository.ts"
 import {
   StoryRepository,
@@ -7,6 +7,7 @@ import {
 } from "~db/repositories/story.repository.ts"
 import { getTestDb, cleanDatabase } from "~db/__tests__/helpers.ts"
 
+import { Database } from "~db/connection.ts"
 import type { Db } from "~db/connection.ts"
 
 describe("EntityRepository", () => {
@@ -16,11 +17,14 @@ describe("EntityRepository", () => {
   beforeEach(async () => {
     await cleanDatabase()
     const db: Db = getTestDb()
+    const DatabaseLayer = Layer.succeed(Database, db)
     repo = new EntityRepository(db)
     storyRepo = Effect.runSync(
       Effect.gen(function* () {
         return yield* StoryRepository
-      }).pipe(Effect.provide(StoryRepositoryLive(db)))
+      }).pipe(
+        Effect.provide(StoryRepositoryLive.pipe(Layer.provide(DatabaseLayer)))
+      )
     )
   })
 

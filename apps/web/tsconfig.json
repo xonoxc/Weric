@@ -3,7 +3,6 @@
   "compilerOptions": {
     "jsx": "react-jsx",
     "outDir": "dist",
-    "rootDir": "src",
     "lib": ["es2023", "dom", "dom.iterable"],
     "noEmit": true,
     "types": ["vite/client"],

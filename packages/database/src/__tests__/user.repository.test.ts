@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from "vitest"
-import { Effect } from "effect"
+import { Effect, Layer } from "effect"
 import {
   UserRepository,
   UserRepositoryLive,
@@ -7,6 +7,7 @@ import {
 import { getTestDb, cleanDatabase } from "~db/__tests__/helpers.ts"
 import { users } from "~db/schema/tables.ts"
 
+import { Database } from "~db/connection.ts"
 import type { Db } from "~db/connection.ts"
 
 const NON_EXISTENT_ID = "00000000-0000-0000-0000-000000000000"
@@ -18,10 +19,13 @@ describe("UserRepository", () => {
   beforeEach(async () => {
     await cleanDatabase()
     db = getTestDb()
+    const DatabaseLayer = Layer.succeed(Database, db)
     repo = Effect.runSync(
       Effect.gen(function* () {
         return yield* UserRepository
-      }).pipe(Effect.provide(UserRepositoryLive(db)))
+      }).pipe(
+        Effect.provide(UserRepositoryLive.pipe(Layer.provide(DatabaseLayer)))
+      )
     )
   })
 

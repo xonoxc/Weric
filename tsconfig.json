@@ -1,12 +1,13 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
   "compilerOptions": {
-    "declaration": true,
-    "declarationMap": true,
+    "declaration": false,
+    "declarationMap": false,
     "esModuleInterop": true,
     "incremental": false,
     "isolatedModules": true,
-    "lib": ["es2023"],
+    "jsx": "react-jsx",
+    "lib": ["es2023", "dom", "dom.iterable"],
     "module": "ESNext",
     "moduleDetection": "force",
     "moduleResolution": "Bundler",
@@ -24,8 +25,10 @@
       "~web/*": ["./apps/web/src/*"],
       "~db/*": ["./packages/database/src/*"],
       "~ai/*": ["./packages/ai/src/*"],
-      "~rec/*": ["./packages/recommendation/src/*"]
+      "~rec/*": ["./packages/recommendation/src/*"],
+      "@weric/database": ["./packages/database/src/index.ts"]
     },
     "plugins": [{ "name": "@effect/language-service" }]
-  }
+  },
+  "exclude": ["node_modules", "**/dist"]
 }

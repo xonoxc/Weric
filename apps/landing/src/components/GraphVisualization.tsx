@@ -98,7 +98,7 @@ export default function GraphVisualization() {
 
       circles.forEach((circle, i) => {
         const pulse = 1 + 0.08 * Math.sin(t * 2 + i * 1.2)
-        const r = nodes[i].size * pulse * 0.5
+        const r = nodes[i]!.size * pulse * 0.5
         circle.setAttribute("r", String(r))
       })
 
@@ -130,10 +130,10 @@ export default function GraphVisualization() {
         <line
           key={i}
           className="edge"
-          x1={cx + nodes[from].x}
-          y1={cy + nodes[from].y}
-          x2={cx + nodes[to].x}
-          y2={cy + nodes[to].y}
+          x1={cx + nodes[from]!.x}
+          y1={cy + nodes[from]!.y}
+          x2={cx + nodes[to]!.x}
+          y2={cy + nodes[to]!.y}
           stroke="var(--color-accent)"
           strokeWidth="1.5"
           strokeOpacity="0.2"

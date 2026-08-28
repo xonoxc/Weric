@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from "vitest"
-import { Effect } from "effect"
+import { Effect, Layer } from "effect"
 import {
   InteractionRepository,
   InteractionRepositoryLive,
@@ -11,6 +11,7 @@ import {
 import { getTestDb, cleanDatabase } from "~db/__tests__/helpers.ts"
 import { users } from "~db/schema/tables.ts"
 
+import { Database } from "~db/connection.ts"
 import type { Db } from "~db/connection.ts"
 
 describe("InteractionRepository", () => {
@@ -21,15 +22,22 @@ describe("InteractionRepository", () => {
   beforeEach(async () => {
     await cleanDatabase()
     const db: Db = getTestDb()
+    const DatabaseLayer = Layer.succeed(Database, db)
     repo = Effect.runSync(
       Effect.gen(function* () {
         return yield* InteractionRepository
-      }).pipe(Effect.provide(InteractionRepositoryLive(db)))
+      }).pipe(
+        Effect.provide(
+          InteractionRepositoryLive.pipe(Layer.provide(DatabaseLayer))
+        )
+      )
     )
     const storyRepo = Effect.runSync(
       Effect.gen(function* () {
         return yield* StoryRepository
-      }).pipe(Effect.provide(StoryRepositoryLive(db)))
+      }).pipe(
+        Effect.provide(StoryRepositoryLive.pipe(Layer.provide(DatabaseLayer)))
+      )
     )
 
     const [user] = await db

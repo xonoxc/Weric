@@ -1,8 +1,12 @@
 import { describe, expect, it, beforeEach } from "vitest"
-import { Effect } from "effect"
-import { JobRepository } from "~db/repositories/job.repository.ts"
+import { Effect, Layer } from "effect"
+import {
+  JobRepository,
+  JobRepositoryLive,
+} from "~db/repositories/job.repository.ts"
 import { getTestDb, cleanDatabase } from "~db/__tests__/helpers.ts"
 
+import { Database } from "~db/connection.ts"
 import type { Db } from "~db/connection.ts"
 
 describe("JobRepository", () => {
@@ -11,7 +15,14 @@ describe("JobRepository", () => {
   beforeEach(async () => {
     await cleanDatabase()
     const db: Db = getTestDb()
-    repo = new JobRepository(db)
+    const DatabaseLayer = Layer.succeed(Database, db)
+    repo = Effect.runSync(
+      Effect.gen(function* () {
+        return yield* JobRepository
+      }).pipe(
+        Effect.provide(JobRepositoryLive.pipe(Layer.provide(DatabaseLayer)))
+      )
+    )
   })
 
   it("creates a job", async () => {

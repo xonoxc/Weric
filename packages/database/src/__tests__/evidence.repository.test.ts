@@ -1,8 +1,12 @@
 import { describe, expect, it, beforeEach } from "vitest"
-import { Effect } from "effect"
-import { EvidenceRepository } from "~db/repositories/evidence.repository.ts"
+import { Effect, Layer } from "effect"
+import {
+  EvidenceRepository,
+  EvidenceRepositoryLive,
+} from "~db/repositories/evidence.repository.ts"
 import { getTestDb, cleanDatabase } from "~db/__tests__/helpers.ts"
 
+import { Database } from "~db/connection.ts"
 import type { Db } from "~db/connection.ts"
 
 const NON_EXISTENT_ID = "00000000-0000-0000-0000-000000000000"
@@ -13,7 +17,16 @@ describe("EvidenceRepository", () => {
   beforeEach(async () => {
     await cleanDatabase()
     const db: Db = getTestDb()
-    repo = new EvidenceRepository(db)
+    const DatabaseLayer = Layer.succeed(Database, db)
+    repo = Effect.runSync(
+      Effect.gen(function* () {
+        return yield* EvidenceRepository
+      }).pipe(
+        Effect.provide(
+          EvidenceRepositoryLive.pipe(Layer.provide(DatabaseLayer))
+        )
+      )
+    )
   })
 
   it("creates an evidence record", async () => {

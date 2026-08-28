@@ -115,18 +115,18 @@ export default function DemoAnimation() {
             }}
           >
             <div className="text-xs font-medium text-text-primary">
-              {stories[i].title}
+              {stories[i]!.title}
             </div>
             <div className="flex items-center gap-3 mt-2 text-xs text-text-tertiary">
-              <span>{stories[i].sources} sources</span>
+              <span>{stories[i]!.sources} sources</span>
               <span
                 className={
-                  stories[i].confidence >= 85
+                  stories[i]!.confidence >= 85
                     ? "text-accent"
                     : "text-text-tertiary"
                 }
               >
-                {stories[i].confidence}%
+                {stories[i]!.confidence}%
               </span>
             </div>
             {connected && (
