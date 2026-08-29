@@ -16,8 +16,7 @@
     "@weric/contracts": "workspace:*",
     "@weric/shared": "workspace:*",
     "ai": "^4.0.0",
-    "effect": "^3.21.4",
-    "zod": "^3.24.0"
+    "effect": "^3.22.1"
   },
   "devDependencies": {
     "@types/node": "^26.1.0",

@@ -1,37 +1,57 @@
-import { z } from "zod"
+import { Schema } from "effect"
 
-export const JobType = z.enum([
+export const JobType = Schema.Literal(
   "discover_stories",
   "search_discover",
   "refresh_story",
   "rebuild_recommendations",
   "cleanup_evidence",
   "learn_interests",
-  "recompute_scores",
-])
-export type JobType = z.infer<typeof JobType>
+  "recompute_scores"
+)
+export type JobType = Schema.Schema.Type<typeof JobType>
 
-export const JobStatus = z.enum(["pending", "running", "completed", "failed"])
-export type JobStatus = z.infer<typeof JobStatus>
+export const JobStatus = Schema.Literal(
+  "pending",
+  "running",
+  "completed",
+  "failed"
+)
+export type JobStatus = Schema.Schema.Type<typeof JobStatus>
 
-export const JobPayloadSchema = z.record(z.string(), z.unknown()).default({})
-export type JobPayload = z.infer<typeof JobPayloadSchema>
+export const JobPayloadSchema = Schema.optional(
+  Schema.Record({
+    key: Schema.String,
+    value: Schema.Unknown,
+  })
+).pipe(Schema.withDecodingDefault(() => ({})))
 
-export const JobSchema = z.object({
-  id: z.string().uuid(),
+export type JobPayload = Schema.Schema.Type<typeof JobPayloadSchema>
+
+export const JobSchema = Schema.Struct({
+  id: Schema.UUID,
   type: JobType,
   payload: JobPayloadSchema,
-  status: JobStatus.default("pending"),
-  retries: z.number().int().nonnegative().default(0),
-  scheduledAt: z.string().datetime().nullable().default(null),
-  executedAt: z.string().datetime().nullable().default(null),
+  status: Schema.optional(JobStatus).pipe(
+    Schema.withDecodingDefault(() => "pending" as const)
+  ),
+  retries: Schema.Number.pipe(Schema.int(), Schema.nonNegative()).pipe(
+    Schema.optional,
+    Schema.withDecodingDefault(() => 0)
+  ),
+  scheduledAt: Schema.optional(Schema.NullOr(Schema.Date)).pipe(
+    Schema.withDecodingDefault(() => null)
+  ),
+  executedAt: Schema.optional(Schema.NullOr(Schema.Date)).pipe(
+    Schema.withDecodingDefault(() => null)
+  ),
 })
 
-export type Job = z.infer<typeof JobSchema>
+export type Job = Schema.Schema.Type<typeof JobSchema>
 
-export const CreateJobInputSchema = z.object({
+export const CreateJobInputSchema = Schema.Struct({
   type: JobType,
-  payload: JobPayloadSchema.optional(),
-  scheduledAt: z.string().datetime().optional(),
+  payload: JobPayloadSchema,
+  scheduledAt: Schema.optional(Schema.Date),
 })
-export type CreateJobInput = z.infer<typeof CreateJobInputSchema>
+export type CreateJobInput = Schema.Schema.Type<typeof CreateJobInputSchema>

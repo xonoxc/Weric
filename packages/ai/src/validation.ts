@@ -1,32 +1,25 @@
-import { z } from "zod"
+import { Schema } from "effect"
 
-export const SummarySchema = z.object({
-  summary: z.string().min(1),
-  keyPoints: z.array(z.string()),
-  tone: z.enum(["neutral", "positive", "negative", "mixed"]),
+export const SummarySchema = Schema.Struct({
+  summary: Schema.String.pipe(Schema.minLength(1)),
+  keyPoints: Schema.Array(Schema.String),
+  tone: Schema.Literal("neutral", "positive", "negative", "mixed"),
 })
+export type Summary = Schema.Schema.Type<typeof SummarySchema>
 
-export type Summary = {
-  summary: string
-  keyPoints: string[]
-  tone: "neutral" | "positive" | "negative" | "mixed"
-}
-
-export const ClassificationSchema = z.object({
-  category: z.string().min(1),
-  confidence: z.number().min(0).max(1),
-  subcategories: z.array(z.string()),
+export const ClassificationSchema = Schema.Struct({
+  category: Schema.String.pipe(Schema.minLength(1)),
+  confidence: Schema.Number.pipe(
+    Schema.greaterThanOrEqualTo(0),
+    Schema.lessThanOrEqualTo(1)
+  ),
+  subcategories: Schema.Array(Schema.String),
 })
+export type Classification = Schema.Schema.Type<typeof ClassificationSchema>
 
-export type Classification = {
-  category: string
-  confidence: number
-  subcategories: string[]
-}
-
-export const ExtractedEntitySchema = z.object({
-  name: z.string().min(1),
-  type: z.enum([
+export const ExtractedEntitySchema = Schema.Struct({
+  name: Schema.String.pipe(Schema.minLength(1)),
+  type: Schema.Literal(
     "person",
     "organization",
     "location",
@@ -34,15 +27,15 @@ export const ExtractedEntitySchema = z.object({
     "event",
     "product",
     "technology",
-    "other",
-  ]),
-  description: z.string().optional(),
+    "other"
+  ),
+  description: Schema.optional(Schema.String),
 })
+export type ExtractedEntity = Schema.Schema.Type<typeof ExtractedEntitySchema>
 
-export type ExtractedEntity = z.infer<typeof ExtractedEntitySchema>
-
-export const ExtractedEntitiesSchema = z.object({
-  entities: z.array(ExtractedEntitySchema),
+export const ExtractedEntitiesSchema = Schema.Struct({
+  entities: Schema.Array(ExtractedEntitySchema),
 })
-
-export type ExtractedEntities = z.infer<typeof ExtractedEntitiesSchema>
+export type ExtractedEntities = Schema.Schema.Type<
+  typeof ExtractedEntitiesSchema
+>

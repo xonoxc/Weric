@@ -1,76 +1,102 @@
-import { z } from "zod"
+import { Schema } from "effect"
 import { StorySchema } from "./story.ts"
 import { EvidenceSchema } from "./evidence.ts"
 import { EntitySchema } from "./entity.ts"
 
-const BaseEvent = z.object({
-  id: z.string().uuid(),
-  timestamp: z.string().datetime(),
+const BaseEvent = Schema.Struct({
+  id: Schema.UUID,
+  timestamp: Schema.String,
 })
 
-export const StoryCreatedEventSchema = BaseEvent.extend({
-  type: z.literal("story:created"),
-  payload: z.object({
-    story: StorySchema,
-  }),
-})
+export const StoryCreatedEventSchema = Schema.extend(
+  BaseEvent,
+  Schema.Struct({
+    type: Schema.Literal("story:created"),
+    payload: Schema.Struct({
+      story: StorySchema,
+    }),
+  })
+)
 
-export const StoryUpdatedEventSchema = BaseEvent.extend({
-  type: z.literal("story:updated"),
-  payload: z.object({
-    storyId: z.string().uuid(),
-  }),
-})
+export const StoryUpdatedEventSchema = Schema.extend(
+  BaseEvent,
+  Schema.Struct({
+    type: Schema.Literal("story:updated"),
+    payload: Schema.Struct({
+      storyId: Schema.UUID,
+    }),
+  })
+)
 
-export const StoryMergedEventSchema = BaseEvent.extend({
-  type: z.literal("story:merged"),
-  payload: z.object({
-    targetStoryId: z.string().uuid(),
-    sourceStoryId: z.string().uuid(),
-  }),
-})
+export const StoryMergedEventSchema = Schema.extend(
+  BaseEvent,
+  Schema.Struct({
+    type: Schema.Literal("story:merged"),
+    payload: Schema.Struct({
+      targetStoryId: Schema.UUID,
+      sourceStoryId: Schema.UUID,
+    }),
+  })
+)
 
-export const EvidenceDiscoveredEventSchema = BaseEvent.extend({
-  type: z.literal("evidence:discovered"),
-  payload: z.object({
-    evidence: EvidenceSchema,
-  }),
-})
+export const EvidenceDiscoveredEventSchema = Schema.extend(
+  BaseEvent,
+  Schema.Struct({
+    type: Schema.Literal("evidence:discovered"),
+    payload: Schema.Struct({
+      evidence: EvidenceSchema,
+    }),
+  })
+)
 
-export const UserBookmarkedEventSchema = BaseEvent.extend({
-  type: z.literal("user:bookmarked"),
-  payload: z.object({
-    userId: z.string().uuid(),
-    storyId: z.string().uuid(),
-  }),
-})
+export const UserBookmarkedEventSchema = Schema.extend(
+  BaseEvent,
+  Schema.Struct({
+    type: Schema.Literal("user:bookmarked"),
+    payload: Schema.Struct({
+      userId: Schema.UUID,
+      storyId: Schema.UUID,
+    }),
+  })
+)
 
-export const UserReadStoryEventSchema = BaseEvent.extend({
-  type: z.literal("user:read_story"),
-  payload: z.object({
-    userId: z.string().uuid(),
-    storyId: z.string().uuid(),
-    duration: z.number().int().nonnegative().optional(),
-  }),
-})
+export const UserReadStoryEventSchema = Schema.extend(
+  BaseEvent,
+  Schema.Struct({
+    type: Schema.Literal("user:read_story"),
+    payload: Schema.Struct({
+      userId: Schema.UUID,
+      storyId: Schema.UUID,
+      duration: Schema.optional(
+        Schema.Number.pipe(Schema.int(), Schema.nonNegative())
+      ),
+    }),
+  })
+)
 
-export const UserIgnoredStoryEventSchema = BaseEvent.extend({
-  type: z.literal("user:ignored_story"),
-  payload: z.object({
-    userId: z.string().uuid(),
-    storyId: z.string().uuid(),
-  }),
-})
+export const UserIgnoredStoryEventSchema = Schema.extend(
+  BaseEvent,
+  Schema.Struct({
+    type: Schema.Literal("user:ignored_story"),
+    payload: Schema.Struct({
+      userId: Schema.UUID,
+      storyId: Schema.UUID,
+    }),
+  })
+)
 
-export const RecommendationGeneratedEventSchema = BaseEvent.extend({
-  type: z.literal("recommendation:generated"),
-  payload: z.object({
-    userId: z.string().uuid(),
-    count: z.number().int().nonnegative(),
-  }),
-})
+export const RecommendationGeneratedEventSchema = Schema.extend(
+  BaseEvent,
+  Schema.Struct({
+    type: Schema.Literal("recommendation:generated"),
+    payload: Schema.Struct({
+      userId: Schema.UUID,
+      count: Schema.Number.pipe(Schema.int(), Schema.nonNegative()),
+    }),
+  })
+)
 
-export const WericEventSchema = z.discriminatedUnion("type", [
+export const WericEventSchema = Schema.Union(
   StoryCreatedEventSchema,
   StoryUpdatedEventSchema,
   StoryMergedEventSchema,
@@ -78,18 +104,28 @@ export const WericEventSchema = z.discriminatedUnion("type", [
   UserBookmarkedEventSchema,
   UserReadStoryEventSchema,
   UserIgnoredStoryEventSchema,
-  RecommendationGeneratedEventSchema,
-])
-export type StoryCreatedEvent = z.infer<typeof StoryCreatedEventSchema>
-export type StoryUpdatedEvent = z.infer<typeof StoryUpdatedEventSchema>
-export type StoryMergedEvent = z.infer<typeof StoryMergedEventSchema>
-export type EvidenceDiscoveredEvent = z.infer<
+  RecommendationGeneratedEventSchema
+)
+export type StoryCreatedEvent = Schema.Schema.Type<
+  typeof StoryCreatedEventSchema
+>
+export type StoryUpdatedEvent = Schema.Schema.Type<
+  typeof StoryUpdatedEventSchema
+>
+export type StoryMergedEvent = Schema.Schema.Type<typeof StoryMergedEventSchema>
+export type EvidenceDiscoveredEvent = Schema.Schema.Type<
   typeof EvidenceDiscoveredEventSchema
 >
-export type UserBookmarkedEvent = z.infer<typeof UserBookmarkedEventSchema>
-export type UserReadStoryEvent = z.infer<typeof UserReadStoryEventSchema>
-export type UserIgnoredStoryEvent = z.infer<typeof UserIgnoredStoryEventSchema>
-export type RecommendationGeneratedEvent = z.infer<
+export type UserBookmarkedEvent = Schema.Schema.Type<
+  typeof UserBookmarkedEventSchema
+>
+export type UserReadStoryEvent = Schema.Schema.Type<
+  typeof UserReadStoryEventSchema
+>
+export type UserIgnoredStoryEvent = Schema.Schema.Type<
+  typeof UserIgnoredStoryEventSchema
+>
+export type RecommendationGeneratedEvent = Schema.Schema.Type<
   typeof RecommendationGeneratedEventSchema
 >
-export type WericEvent = z.infer<typeof WericEventSchema>
+export type WericEvent = Schema.Schema.Type<typeof WericEventSchema>

@@ -1,18 +1,20 @@
-import { Context, Effect, Layer } from "effect"
+import { Context, Effect, Layer, Schema } from "effect"
 import { StoryService, parseCreateEvidence } from "~api/services/story.service"
 import { requireUser } from "~api/lib/validation"
 
 import type { ApiVariables } from "~api/app"
 import type { Context as HonoCtx } from "hono"
 
-import { z } from "zod"
 import { PaginationQuery } from "~api/lib/validation"
 
-const ListStoriesQuery = PaginationQuery(100).extend({
-  status: z.enum(["draft", "published", "archived"]).optional(),
-})
+const ListStoriesQuery = Schema.extend(
+  PaginationQuery(100),
+  Schema.Struct({
+    status: Schema.optional(Schema.Literal("draft", "published", "archived")),
+  })
+)
 
-const StorySlugParam = z.object({ slug: z.string().min(1) })
+const StorySlugParam = Schema.Struct({ slug: Schema.String })
 
 export interface StoryController {
   readonly list: (
@@ -39,9 +41,9 @@ export const StoryControllerLive = Layer.effect(
     return {
       list: ctx =>
         Effect.gen(function* () {
-          const { page, limit, status } = ListStoriesQuery.parse(
-            ctx.req.query()
-          )
+          const { page, limit, status } = Schema.decodeUnknownSync(
+            ListStoriesQuery
+          )(ctx.req.query())
 
           const { data, total } = yield* service.listStories({
             page,
@@ -62,7 +64,9 @@ export const StoryControllerLive = Layer.effect(
 
       getBySlug: ctx =>
         Effect.gen(function* () {
-          const { slug } = StorySlugParam.parse(ctx.req.param())
+          const { slug } = Schema.decodeUnknownSync(StorySlugParam)(
+            ctx.req.param()
+          )
 
           const detail = yield* service.getStoryBySlug(slug)
           if (!detail) {

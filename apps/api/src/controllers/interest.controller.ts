@@ -1,4 +1,4 @@
-import { Context, Effect, Layer } from "effect"
+import { Context, Effect, Layer, Schema } from "effect"
 import { InterestError, InterestService } from "~api/services/interest.service"
 
 import type { ApiVariables } from "~api/app"
@@ -46,9 +46,11 @@ export const InterestControllerLive = Layer.effect(
               }),
           })
 
-          const { topics } = CreateInterestsRequestSchema.parse(body)
+          const { topics } = Schema.decodeUnknownSync(
+            CreateInterestsRequestSchema
+          )(body)
 
-          const data = yield* service.setInterests(user.id, topics)
+          const data = yield* service.setInterests(user.id, [...topics])
 
           return ctx.json({ data }, 201)
         }),

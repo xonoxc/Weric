@@ -1,8 +1,8 @@
-import { z } from "zod"
 import { NotFoundError, ConflictError, ConnectionError } from "@weric/database"
 import { HttpError } from "~api/lib/http-error.ts"
 
 import type { ErrorHandler } from "hono"
+import { ParseResult } from "effect"
 
 export const errorHandler: ErrorHandler = (err, c) => {
   if (err instanceof HttpError) {
@@ -18,13 +18,18 @@ export const errorHandler: ErrorHandler = (err, c) => {
     )
   }
 
-  if (err instanceof z.ZodError) {
+  if (ParseResult.isParseError(err)) {
+    const formattedIssues = ParseResult.ArrayFormatter.formatErrorSync(err)
+
     return c.json(
       {
         error: {
           code: "VALIDATION_ERROR",
           message: "Invalid request",
-          details: err.flatten(),
+          details: formattedIssues.map(({ path, message }) => ({
+            path,
+            message,
+          })),
         },
       },
       400

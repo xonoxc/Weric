@@ -1,44 +1,60 @@
-import { z } from "zod"
+import { Schema } from "effect"
 
-export const StoryStatus = z.enum(["draft", "published", "archived"])
-export type StoryStatus = z.infer<typeof StoryStatus>
+export const StoryStatus = Schema.Literal("draft", "published", "archived")
+export type StoryStatus = Schema.Schema.Type<typeof StoryStatus>
 
-export const StorySchema = z.object({
-  id: z.string().uuid(),
-  title: z.string().min(1).max(500),
-  slug: z.string().min(1).max(500),
-  summary: z.string().optional(),
-  confidence: z.number().min(0).max(1).default(0),
-  status: StoryStatus.default("draft"),
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
+export const StorySchema = Schema.Struct({
+  id: Schema.UUID,
+  title: Schema.String.pipe(Schema.minLength(1), Schema.maxLength(500)),
+  slug: Schema.String.pipe(Schema.minLength(1), Schema.maxLength(500)),
+  summary: Schema.optional(Schema.String),
+  confidence: Schema.optional(
+    Schema.Number.pipe(
+      Schema.greaterThanOrEqualTo(0),
+      Schema.lessThanOrEqualTo(1)
+    )
+  ).pipe(Schema.withDecodingDefault(() => 0)),
+  status: Schema.optional(StoryStatus).pipe(
+    Schema.withDecodingDefault(() => "draft" as const)
+  ),
+  createdAt: Schema.String,
+  updatedAt: Schema.String,
 })
-export type Story = z.infer<typeof StorySchema>
+export type Story = Schema.Schema.Type<typeof StorySchema>
 
-export const CreateStoryInputSchema = z.object({
-  title: z.string().min(1).max(500),
-  summary: z.string().optional(),
-  evidenceIds: z.array(z.string().uuid()).default([]),
+export const CreateStoryInputSchema = Schema.Struct({
+  title: Schema.String.pipe(Schema.minLength(1), Schema.maxLength(500)),
+  summary: Schema.optional(Schema.String),
+  evidenceIds: Schema.optional(Schema.Array(Schema.UUID)).pipe(
+    Schema.withDecodingDefault(() => [])
+  ),
 })
-export type CreateStoryInput = z.infer<typeof CreateStoryInputSchema>
+export type CreateStoryInput = Schema.Schema.Type<typeof CreateStoryInputSchema>
 
-export const UpdateStoryInputSchema = z.object({
-  title: z.string().min(1).max(500).optional(),
-  summary: z.string().optional(),
-  status: StoryStatus.optional(),
-  confidence: z.number().min(0).max(1).optional(),
+export const UpdateStoryInputSchema = Schema.Struct({
+  title: Schema.optional(
+    Schema.String.pipe(Schema.minLength(1), Schema.maxLength(500))
+  ),
+  summary: Schema.optional(Schema.String),
+  status: Schema.optional(StoryStatus),
+  confidence: Schema.optional(
+    Schema.Number.pipe(
+      Schema.greaterThanOrEqualTo(0),
+      Schema.lessThanOrEqualTo(1)
+    )
+  ),
 })
-export type UpdateStoryInput = z.infer<typeof UpdateStoryInputSchema>
+export type UpdateStoryInput = Schema.Schema.Type<typeof UpdateStoryInputSchema>
 
-export const StorySummarySchema = z.object({
-  id: z.string().uuid(),
-  title: z.string(),
-  slug: z.string(),
-  summary: z.string().optional(),
-  confidence: z.number(),
+export const StorySummarySchema = Schema.Struct({
+  id: Schema.UUID,
+  title: Schema.String,
+  slug: Schema.String,
+  summary: Schema.optional(Schema.String),
+  confidence: Schema.Number,
   status: StoryStatus,
-  evidenceCount: z.number().int().nonnegative(),
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
+  evidenceCount: Schema.Number.pipe(Schema.int(), Schema.nonNegative()),
+  createdAt: Schema.String,
+  updatedAt: Schema.String,
 })
-export type StorySummary = z.infer<typeof StorySummarySchema>
+export type StorySummary = Schema.Schema.Type<typeof StorySummarySchema>

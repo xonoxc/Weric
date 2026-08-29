@@ -1,15 +1,23 @@
-import { JobPayloadSchema, JobType } from "packages/contracts/src"
+import { Schema } from "effect"
+import { JobPayloadSchema, JobType } from "@weric/contracts"
+
 import type { DbJob } from "~db/schema/tables"
-import type { Job } from "packages/contracts/src"
+import type { Job, JobStatus } from "packages/contracts/src"
 
 export function toJob(row: DbJob): Job {
+  const { payload } = Schema.decodeUnknownSync(
+    Schema.Struct({
+      payload: JobPayloadSchema,
+    })
+  )({ payload: row.payload })
+
   return {
     id: row.id,
-    type: JobType.parse(row.type),
-    payload: JobPayloadSchema.parse(row.payload),
-    status: row.status,
+    type: Schema.decodeUnknownSync(JobType)(row.type),
+    payload: payload,
+    status: row.status as JobStatus,
     retries: row.retries,
-    scheduledAt: row.scheduledAt?.toISOString() ?? null,
-    executedAt: row.executedAt?.toISOString() ?? null,
+    scheduledAt: (row.scheduledAt ? row.scheduledAt : null) as Date,
+    executedAt: (row.executedAt ? row.executedAt : null) as Date,
   }
 }

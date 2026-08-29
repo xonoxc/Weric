@@ -1,4 +1,5 @@
 import { Context, Effect, Layer } from "effect"
+import { Schema } from "effect"
 import { StoryRepository, EvidenceRepository } from "@weric/database"
 import { evidence } from "~db/schema/tables.ts"
 import { CreateEvidenceInputSchema, EvidenceSource } from "@weric/contracts"
@@ -57,7 +58,7 @@ export const StoryServiceLive = Layer.effect(
 )
 
 export const parseCreateEvidence = (raw: unknown) => {
-  const parsed = CreateEvidenceInputSchema.parse(raw)
+  const parsed = Schema.decodeUnknownSync(CreateEvidenceInputSchema)(raw)
   return {
     source: parsed.source,
     url: parsed.url,

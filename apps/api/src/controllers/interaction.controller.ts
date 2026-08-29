@@ -1,24 +1,19 @@
-import { Context, Effect, Layer } from "effect"
+import { Context, Effect, Layer, Schema } from "effect"
 import { InteractionService } from "~api/services/interaction.service"
 import { requireUser } from "~api/lib/validation"
 
-import { IsoDateString } from "~api/lib/validation"
 import { CreateInteractionInputSchema, InteractionType } from "@weric/contracts"
 
 import type { ApiVariables } from "~api/app"
 import type { Context as HonoCtx } from "hono"
-import { z } from "zod"
 
-const InteractionResponse = z.object({
-  id: z.string(),
-  userId: z.string(),
-  storyId: z.string(),
+const InteractionResponse = Schema.Struct({
+  id: Schema.String,
+  userId: Schema.String,
+  storyId: Schema.String,
   interactionType: InteractionType,
-  duration: z
-    .number()
-    .nullable()
-    .transform(value => value ?? undefined),
-  createdAt: IsoDateString,
+  duration: Schema.optional(Schema.NullOr(Schema.Number)),
+  createdAt: Schema.Date,
 })
 
 export interface InteractionController {
@@ -40,11 +35,14 @@ export const InteractionControllerLive = Layer.effect(
       create: ctx =>
         Effect.gen(function* () {
           const user = requireUser(ctx)
-          const body = CreateInteractionInputSchema.parse(
-            yield* Effect.tryPromise({
-              try: () => ctx.req.json(),
-              catch: cause => new Error(String(cause)),
-            })
+
+          const reqBody = yield* Effect.tryPromise({
+            try: () => ctx.req.json(),
+            catch: cause => new Error(String(cause)),
+          })
+
+          const body = Schema.decodeUnknownSync(CreateInteractionInputSchema)(
+            reqBody
           )
 
           const result = yield* service.create({
@@ -54,7 +52,10 @@ export const InteractionControllerLive = Layer.effect(
             duration: body.duration ?? null,
           })
 
-          return ctx.json(InteractionResponse.parse(result), 201)
+          return ctx.json(
+            Schema.decodeUnknownSync(InteractionResponse)(result),
+            201
+          )
         }),
     }
   })

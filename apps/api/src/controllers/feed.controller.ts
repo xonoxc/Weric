@@ -1,4 +1,4 @@
-import { Context, Effect, Layer } from "effect"
+import { Context, Effect, Layer, Schema } from "effect"
 import { FeedService } from "~api/services/feed.service"
 import { requireUser } from "~api/lib/validation"
 import { PaginationQuery } from "~api/lib/validation"
@@ -27,7 +27,9 @@ export const FeedControllerLive = Layer.effect(
       generate: ctx =>
         Effect.gen(function* () {
           const user = requireUser(ctx)
-          const { page, limit } = FeedQuery.parse(ctx.req.query())
+          const { page, limit } = Schema.decodeUnknownSync(FeedQuery)(
+            ctx.req.query()
+          )
 
           const feed: Feed = yield* service.generateFeed(user.id, {
             page,

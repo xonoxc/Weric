@@ -1,6 +1,5 @@
-import { Effect } from "effect"
+import { Effect, Schema } from "effect"
 
-import type { z } from "zod"
 import type { AIError } from "./errors.ts"
 
 export interface TextGenerationOptions {
@@ -34,7 +33,7 @@ export interface AIProvider {
 
   generateStructured<T>(
     prompt: string,
-    schema: z.Schema<T>,
+    schema: Schema.Schema<T, any>,
     options?: TextGenerationOptions
   ): Effect.Effect<StructuredGenerationResult<T>, AIError>
 }

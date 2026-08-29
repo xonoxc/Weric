@@ -1,17 +1,19 @@
-import { Context, Effect, Layer } from "effect"
+import { Context, Effect, Layer, Schema } from "effect"
 import { ChatService } from "~api/services/chat.service"
 import { requireUser } from "~api/lib/validation"
 
 import type { ApiVariables } from "~api/app"
 import type { Context as HonoCtx } from "hono"
 
-import { z } from "zod"
-
-const CreateChatRequest = z.object({
-  query: z.string().trim().min(1).max(500).optional(),
+const CreateChatRequest = Schema.Struct({
+  query: Schema.optional(
+    Schema.Trim.pipe(Schema.minLength(1), Schema.maxLength(500))
+  ),
 })
 
-const ChatIdParam = z.object({ id: z.string().min(1) })
+const ChatIdParam = Schema.Struct({
+  id: Schema.String.pipe(Schema.minLength(1)),
+})
 
 export interface ChatController {
   readonly list: (
@@ -62,12 +64,13 @@ export const ChatControllerLive = Layer.effect(
       create: ctx =>
         Effect.gen(function* () {
           const user = requireUser(ctx)
-          const body = CreateChatRequest.parse(
-            yield* Effect.tryPromise({
-              try: () => ctx.req.json(),
-              catch: cause => new Error(String(cause)),
-            })
-          )
+
+          const rawBody = yield* Effect.tryPromise({
+            try: () => ctx.req.json(),
+            catch: cause => new Error(String(cause)),
+          })
+
+          const body = Schema.decodeUnknownSync(CreateChatRequest)(rawBody)
 
           const chat = yield* service.create({
             title: defaultChatTitle(),
@@ -81,7 +84,7 @@ export const ChatControllerLive = Layer.effect(
       getById: ctx =>
         Effect.gen(function* () {
           const user = requireUser(ctx)
-          const { id } = ChatIdParam.parse(ctx.req.param())
+          const { id } = Schema.decodeUnknownSync(ChatIdParam)(ctx.req.param())
 
           const chat = yield* service.findById(id)
           if (!owned(chat, user)) {
@@ -103,7 +106,7 @@ export const ChatControllerLive = Layer.effect(
       remove: ctx =>
         Effect.gen(function* () {
           const user = requireUser(ctx)
-          const { id } = ChatIdParam.parse(ctx.req.param())
+          const { id } = Schema.decodeUnknownSync(ChatIdParam)(ctx.req.param())
 
           const chat = yield* service.findById(id)
           if (!owned(chat, user)) {
@@ -119,7 +122,10 @@ export const ChatControllerLive = Layer.effect(
           }
 
           yield* service.delete(id)
-          return ctx.json({ ok: true })
+
+          return ctx.json({
+            ok: true,
+          })
         }),
     }
   })

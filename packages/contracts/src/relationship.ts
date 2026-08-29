@@ -1,6 +1,6 @@
-import { z } from "zod"
+import { Schema } from "effect"
 
-export const RelationType = z.enum([
+export const RelationType = Schema.Literal(
   "mentions",
   "affiliated_with",
   "located_in",
@@ -12,23 +12,23 @@ export const RelationType = z.enum([
   "employed_by",
   "funds",
   "funded_by",
-  "related_to",
-])
-export type RelationType = z.infer<typeof RelationType>
+  "related_to"
+)
+export type RelationType = Schema.Schema.Type<typeof RelationType>
 
-export const RelationshipSchema = z.object({
-  id: z.string().uuid(),
-  sourceEntity: z.string().uuid(),
-  targetEntity: z.string().uuid(),
+export const RelationshipSchema = Schema.Struct({
+  id: Schema.UUID,
+  sourceEntity: Schema.UUID,
+  targetEntity: Schema.UUID,
   relationType: RelationType,
 })
-export type Relationship = z.infer<typeof RelationshipSchema>
+export type Relationship = Schema.Schema.Type<typeof RelationshipSchema>
 
-export const CreateRelationshipInputSchema = z.object({
-  sourceEntity: z.string().uuid(),
-  targetEntity: z.string().uuid(),
+export const CreateRelationshipInputSchema = Schema.Struct({
+  sourceEntity: Schema.UUID,
+  targetEntity: Schema.UUID,
   relationType: RelationType,
 })
-export type CreateRelationshipInput = z.infer<
+export type CreateRelationshipInput = Schema.Schema.Type<
   typeof CreateRelationshipInputSchema
 >

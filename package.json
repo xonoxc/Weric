@@ -20,6 +20,9 @@
     "db:studio": "drizzle-kit studio --config=drizzle.config.ts",
     "prepare": "husky"
   },
+  "dependencies": {
+    "effect": "^3.22.1"
+  },
   "devDependencies": {
     "@effect/language-service": "^0.87.2",
     "@effect/vitest": "^0.29.0",

@@ -1,16 +1,18 @@
-import { z } from "zod"
+import { Schema } from "effect"
 
-const DatabaseConfigSchema = z.object({
-  url: z.string().url(),
+const URL_REGEX = /^https?:\/\/[^\s/$.?#].[^\s]*$/i
+
+const DatabaseConfigSchema = Schema.Struct({
+  url: Schema.String.pipe(Schema.pattern(URL_REGEX)),
 })
 
-export type DatabaseConfig = z.infer<typeof DatabaseConfigSchema>
+export type DatabaseConfig = Schema.Schema.Type<typeof DatabaseConfigSchema>
 
 export function loadDatabaseConfig(url?: string): DatabaseConfig {
-  return DatabaseConfigSchema.parse({
+  return Schema.decodeUnknownSync(DatabaseConfigSchema)({
     url:
       url ??
       process.env.DATABASE_URL ??
-      "postgresql://weric:weric@localhost:5432/weric",
+      "postgresql://weric:***@localhost:5432/weric",
   })
 }

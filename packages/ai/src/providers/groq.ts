@@ -1,9 +1,8 @@
-import { Effect, Schedule } from "effect"
+import { Effect, JSONSchema, Schedule, Schema } from "effect"
 import { createOpenAI } from "@ai-sdk/openai"
-import { generateText, generateObject } from "ai"
+import { generateText, generateObject, jsonSchema } from "ai"
 import { ProviderError, RateLimitError, TimeoutError } from "~ai/errors.ts"
 
-import type { z } from "zod"
 import type { AIError } from "~ai/errors.ts"
 import type {
   AIProvider,
@@ -13,6 +12,21 @@ import type {
 } from "~ai/provider.ts"
 
 const DEFAULT_MODEL = "llama-3.3-70b-versatile"
+
+/** Bridge an effect `Schema` into the shape the `ai` SDK expects: a JSON
+ * schema descriptor (built via `JSONSchema.make`) with a `validate` function
+ * that re-runs the effect schema (mirrors the SDK's `zodSchema`). */
+function toAISchema<T>(schema: Schema.Schema<T, any>) {
+  const json = JSONSchema.make(schema)
+  return jsonSchema(json, {
+    validate: (value: unknown) => {
+      const either = Schema.decodeUnknownEither(schema)(value)
+      return either._tag === "Right"
+        ? { success: true, value: either.right }
+        : { success: false, error: either.left }
+    },
+  }) as any
+}
 
 function getApiKey(): string {
   return typeof process !== "undefined" && process.env
@@ -85,7 +99,7 @@ export const groqProvider: AIProvider = {
 
   generateStructured<T>(
     prompt: string,
-    schema: z.Schema<T>,
+    schema: Schema.Schema<T, unknown>,
     options?: TextGenerationOptions
   ): Effect.Effect<StructuredGenerationResult<T>, AIError> {
     const model = getModel(options?.model)
@@ -96,7 +110,7 @@ export const groqProvider: AIProvider = {
           model,
           system: options?.system,
           prompt,
-          schema,
+          schema: toAISchema(schema),
           maxTokens: options?.maxTokens,
           temperature: options?.temperature,
         }),
@@ -104,7 +118,7 @@ export const groqProvider: AIProvider = {
     }).pipe(
       Effect.retry(retryPolicy),
       Effect.map(result => ({
-        object: result.object,
+        object: result.object as T,
         usage: {
           promptTokens: result.usage.promptTokens,
           completionTokens: result.usage.completionTokens,

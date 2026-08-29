@@ -1,4 +1,4 @@
-import { z } from "zod"
+import { Schema } from "effect"
 
 import type { Context } from "hono"
 import type { AuthUser } from "@weric/auth"
@@ -6,15 +6,22 @@ import type { ApiVariables } from "~api/app.ts"
 
 import { HttpError } from "~api/lib/http-error.ts"
 
-export const IsoDateString = z
-  .union([z.instanceof(Date), z.string()])
-  .transform(value => (value instanceof Date ? value.toISOString() : value))
-
 export const PaginationQuery = (maxLimit: number) =>
-  z.object({
-    page: z.coerce.number().int().min(1).default(1),
-    limit: z.coerce.number().int().min(1).max(maxLimit).default(20),
+  Schema.Struct({
+    page: Schema.optional(
+      Schema.NumberFromString.pipe(Schema.int(), Schema.positive())
+    ).pipe(Schema.withDecodingDefault(() => 1)),
+
+    limit: Schema.optional(
+      Schema.NumberFromString.pipe(
+        Schema.int(),
+        Schema.positive(),
+        Schema.lessThanOrEqualTo(maxLimit)
+      )
+    ).pipe(Schema.withDecodingDefault(() => 20)),
   })
+
+export const IsoDateString = Schema.DateFromString
 
 export function requireUser(c: Context<{ Variables: ApiVariables }>): AuthUser {
   const user = c.get("user")

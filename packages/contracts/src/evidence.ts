@@ -1,51 +1,60 @@
-import { z } from "zod"
+import { Schema } from "effect"
 
-export const EvidenceSource = z.enum([
+const URL_REGEX = /^https?:\/\/[^\s/$.?#].[^\s]*$/i
+
+export const EvidenceSource = Schema.Literal(
   "rss",
   "github",
   "reddit",
   "hackernews",
   "web",
-  "manual",
-])
-export type EvidenceSource = z.infer<typeof EvidenceSource>
+  "manual"
+)
+export type EvidenceSource = Schema.Schema.Type<typeof EvidenceSource>
 
-export const EvidenceMetadataSchema = z
-  .record(z.string(), z.unknown())
-  .default({})
-export type EvidenceMetadata = z.infer<typeof EvidenceMetadataSchema>
-
-export const EvidenceSchema = z.object({
-  id: z.string().uuid(),
-  source: EvidenceSource,
-  url: z.string().url(),
-  author: z.string().optional(),
-  title: z.string().min(1),
-  content: z.string().min(1),
-  metadata: EvidenceMetadataSchema,
-  publishedAt: z.string().datetime().optional(),
-  discoveredAt: z.string().datetime(),
+export const EvidenceMetadataSchema = Schema.Record({
+  key: Schema.String,
+  value: Schema.Unknown,
 })
-export type Evidence = z.infer<typeof EvidenceSchema>
+export type EvidenceMetadata = Schema.Schema.Type<typeof EvidenceMetadataSchema>
 
-export const RawDocumentSchema = z.object({
+export const EvidenceSchema = Schema.Struct({
+  id: Schema.UUID,
   source: EvidenceSource,
-  url: z.string().url(),
-  author: z.string().optional(),
-  title: z.string().min(1),
-  content: z.string().min(1),
-  metadata: EvidenceMetadataSchema,
-  publishedAt: z.string().datetime().optional(),
+  url: Schema.String.pipe(Schema.pattern(URL_REGEX)),
+  author: Schema.optional(Schema.String),
+  title: Schema.String.pipe(Schema.minLength(1)),
+  content: Schema.String.pipe(Schema.minLength(1)),
+  metadata: Schema.optional(EvidenceMetadataSchema).pipe(
+    Schema.withDecodingDefault(() => ({}))
+  ),
+  publishedAt: Schema.optional(Schema.String),
+  discoveredAt: Schema.String,
 })
-export type RawDocument = z.infer<typeof RawDocumentSchema>
+export type Evidence = Schema.Schema.Type<typeof EvidenceSchema>
 
-export const CreateEvidenceInputSchema = z.object({
+export const RawDocumentSchema = Schema.Struct({
   source: EvidenceSource,
-  url: z.string().url(),
-  author: z.string().optional(),
-  title: z.string().min(1),
-  content: z.string().min(1),
-  metadata: EvidenceMetadataSchema.optional(),
-  publishedAt: z.string().datetime().optional(),
+  url: Schema.String.pipe(Schema.pattern(URL_REGEX)),
+  author: Schema.optional(Schema.String),
+  title: Schema.String.pipe(Schema.minLength(1)),
+  content: Schema.String.pipe(Schema.minLength(1)),
+  metadata: Schema.optional(EvidenceMetadataSchema).pipe(
+    Schema.withDecodingDefault(() => ({}))
+  ),
+  publishedAt: Schema.optional(Schema.String),
 })
-export type CreateEvidenceInput = z.infer<typeof CreateEvidenceInputSchema>
+export type RawDocument = Schema.Schema.Type<typeof RawDocumentSchema>
+
+export const CreateEvidenceInputSchema = Schema.Struct({
+  source: EvidenceSource,
+  url: Schema.String.pipe(Schema.pattern(URL_REGEX)),
+  author: Schema.optional(Schema.String),
+  title: Schema.String.pipe(Schema.minLength(1)),
+  content: Schema.String.pipe(Schema.minLength(1)),
+  metadata: Schema.optional(EvidenceMetadataSchema),
+  publishedAt: Schema.optional(Schema.String),
+})
+export type CreateEvidenceInput = Schema.Schema.Type<
+  typeof CreateEvidenceInputSchema
+>

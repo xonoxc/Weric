@@ -1,4 +1,4 @@
-import { Effect } from "effect"
+import { Effect, Schema } from "effect"
 import {
   SummarySchema,
   ClassificationSchema,
@@ -6,7 +6,6 @@ import {
 } from "./validation.ts"
 import { ValidationError, UnsupportedFeatureError } from "./errors.ts"
 
-import type { z } from "zod"
 import type { AIProvider, TextGenerationOptions } from "./provider.ts"
 import type {
   Summary,
@@ -86,7 +85,7 @@ export class AIService {
 
   structuredOutput<T>(
     prompt: string,
-    schema: z.Schema<T>,
+    schema: Schema.Schema<T, any>,
     options?: TextGenerationOptions & {
       system?: string
       validationMessage?: string

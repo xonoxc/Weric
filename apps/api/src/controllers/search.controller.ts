@@ -1,29 +1,38 @@
-import { Context, Effect, Layer } from "effect"
+import { Context, Effect, Layer, Schema } from "effect"
 import { SearchService } from "~api/services/search.service"
 
 import type { ApiVariables } from "~api/app"
 import type { Context as HonoCtx } from "hono"
 
-import { z } from "zod"
 import { PaginationQuery } from "~api/lib/validation"
 
-const SearchQuery = PaginationQuery(100).extend({
-  q: z.string().trim().min(1, "Query parameter 'q' is required"),
-  type: z.enum(["all", "stories", "evidence"]).default("all"),
-  chatId: z.string().optional(),
-})
+const SearchQuery = PaginationQuery(100).pipe(
+  Schema.extend(
+    Schema.Struct({
+      q: Schema.Trim.pipe(
+        Schema.minLength(1, {
+          message: () => "Query parameter 'q' is required",
+        })
+      ),
+      type: Schema.optional(Schema.Literal("all", "stories", "evidence")).pipe(
+        Schema.withDecodingDefault(() => "all" as const)
+      ),
+      chatId: Schema.optional(Schema.String),
+    })
+  )
+)
 
-const SearchResponse = z.object({
-  stories: z.array(z.unknown()).default([]),
-  evidence: z.array(z.unknown()).default([]),
-  meta: z.object({
-    page: z.number(),
-    limit: z.number(),
-    storyTotal: z.number().default(0),
-    evidenceTotal: z.number().default(0),
+const SearchResponse = Schema.Struct({
+  stories: Schema.optional(Schema.Array(Schema.Unknown)),
+  evidence: Schema.optional(Schema.Array(Schema.Unknown)),
+  meta: Schema.Struct({
+    page: Schema.Number,
+    limit: Schema.Number,
+    storyTotal: Schema.optional(Schema.Number),
+    evidenceTotal: Schema.optional(Schema.Number),
   }),
-  jobId: z.string().nullable().default(null),
-  chatId: z.string().nullable().default(null),
+  jobId: Schema.optional(Schema.NullOr(Schema.String)),
+  chatId: Schema.optional(Schema.NullOr(Schema.String)),
 })
 
 export interface SearchController {
@@ -43,8 +52,8 @@ export const SearchControllerLive = Layer.effect(
     return {
       search: ctx =>
         Effect.gen(function* () {
-          const parsed = SearchQuery.parse(ctx.req.query())
           const user = ctx.get("user")
+          const parsed = Schema.decodeUnknownSync(SearchQuery)(ctx.req.query())
 
           const result = yield* service.search(
             {
@@ -57,7 +66,7 @@ export const SearchControllerLive = Layer.effect(
             user?.id ?? null
           )
 
-          return ctx.json(SearchResponse.parse(result))
+          return ctx.json(Schema.encode(SearchResponse)(result))
         }),
     }
   })

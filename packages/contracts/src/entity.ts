@@ -1,6 +1,6 @@
-import { z } from "zod"
+import { Schema } from "effect"
 
-export const EntityType = z.enum([
+export const EntityType = Schema.Literal(
   "person",
   "organization",
   "location",
@@ -8,27 +8,31 @@ export const EntityType = z.enum([
   "event",
   "product",
   "technology",
-  "other",
-])
-export type EntityType = z.infer<typeof EntityType>
+  "other"
+)
+export type EntityType = Schema.Schema.Type<typeof EntityType>
 
-export const EntitySchema = z.object({
-  id: z.string().uuid(),
-  name: z.string().min(1).max(300),
+export const EntitySchema = Schema.Struct({
+  id: Schema.UUID,
+  name: Schema.String.pipe(Schema.minLength(1), Schema.maxLength(300)),
   type: EntityType,
-  aliases: z.array(z.string()).default([]),
+  aliases: Schema.optional(Schema.Array(Schema.String)).pipe(
+    Schema.withDecodingDefault(() => [])
+  ),
 })
-export type Entity = z.infer<typeof EntitySchema>
+export type Entity = Schema.Schema.Type<typeof EntitySchema>
 
-export const CreateEntityInputSchema = z.object({
-  name: z.string().min(1).max(300),
+export const CreateEntityInputSchema = Schema.Struct({
+  name: Schema.String.pipe(Schema.minLength(1), Schema.maxLength(300)),
   type: EntityType,
-  aliases: z.array(z.string()).optional(),
+  aliases: Schema.optional(Schema.Array(Schema.String)),
 })
-export type CreateEntityInput = z.infer<typeof CreateEntityInputSchema>
+export type CreateEntityInput = Schema.Schema.Type<
+  typeof CreateEntityInputSchema
+>
 
-export const StoryEntityLinkSchema = z.object({
-  storyId: z.string().uuid(),
-  entityId: z.string().uuid(),
+export const StoryEntityLinkSchema = Schema.Struct({
+  storyId: Schema.UUID,
+  entityId: Schema.UUID,
 })
-export type StoryEntityLink = z.infer<typeof StoryEntityLinkSchema>
+export type StoryEntityLink = Schema.Schema.Type<typeof StoryEntityLinkSchema>
