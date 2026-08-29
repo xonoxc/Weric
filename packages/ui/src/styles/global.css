@@ -1,13 +1,50 @@
+@import "tailwindcss";
+
+@source "../../../../apps/web/src";
+@source "../components";
+@source "../utils";
+
+@theme {
+  --color-background: var(--color-bg);
+  --color-foreground: var(--color-text-primary);
+
+  --color-card: var(--color-surface);
+  --color-card-foreground: var(--color-text-primary);
+
+  --color-popover: var(--color-surface);
+  --color-popover-foreground: var(--color-text-primary);
+
+  --color-primary: var(--color-accent);
+  --color-primary-foreground: #ffffff;
+
+  --color-secondary: var(--color-surface-hover);
+  --color-secondary-foreground: var(--color-text-primary);
+
+  --color-muted: var(--color-bg-tertiary);
+  --color-muted-foreground: var(--color-text-tertiary);
+
+  --color-accent: var(--color-accent-hover);
+  --color-accent-foreground: var(--color-text-primary);
+
+  --color-destructive: var(--color-danger);
+  --color-destructive-foreground: #ffffff;
+
+  --color-input: var(--color-border-active);
+  --color-ring: var(--color-border-active);
+}
+
 @import "./tokens.css";
 @import "./reset.css";
 
-html {
-  font-family: var(--font-sans);
-  font-size: var(--font-size-base);
-  line-height: var(--line-height-base);
-  color: var(--color-text-primary);
-  background: var(--color-bg);
-  -webkit-tap-highlight-color: transparent;
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    font-size: var(--font-size-base);
+    line-height: var(--line-height-base);
+    color: var(--color-text-primary);
+    background: var(--color-bg);
+    -webkit-tap-highlight-color: transparent;
+  }
 }
 
 ::selection {

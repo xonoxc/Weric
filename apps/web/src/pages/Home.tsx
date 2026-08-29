@@ -1,9 +1,12 @@
+import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useHome } from "~web/hooks/useHome.ts"
 import { Canvas, StoryCard, CommandBar, TopBar, JobStatusCard } from "@weric/ui"
-import { AppSidebar } from "~web/components/app-sidebar.tsx"
 import { StoryDetailPanel } from "~web/components/story-detail-panel.tsx"
 import { ChatSidebar } from "~web/components/chat-sidebar"
+import { IconLayoutSidebar } from "@tabler/icons-react"
+
+const SIDEBAR_WIDTH = 256
 
 const loadingContainer: React.CSSProperties = {
   position: "fixed",
@@ -59,6 +62,7 @@ const dot: React.CSSProperties = {
 
 export default function Home() {
   const navigate = useNavigate()
+  const [chatOpen, setChatOpen] = useState(false)
   const {
     stories,
     loading,
@@ -307,54 +311,78 @@ export default function Home() {
 
   return (
     <>
-      <TopBar actions={topBarActions} />
-      <Canvas initialScale={0.85}>
-        {stories.map(s => (
-          <StoryCard
-            key={s.id}
-            story={s}
-            style={{ left: s.x, top: s.y }}
-            onExpand={handleExpand}
-            onBookmark={handleBookmark}
-          />
-        ))}
-      </Canvas>
-      {!loading && stories.length === 0 && !error && (
-        <div style={emptyContainer}>
-          <div style={emptyTitle}>Your knowledge space is empty</div>
-          <div style={emptySubtitle}>
-            {hasSearched
-              ? "No results found. Try a different search."
-              : "Ask a question or explore trending topics to get started."}
+      <div
+        className="fixed inset-0"
+        style={{
+          transform: `translateX(${chatOpen ? SIDEBAR_WIDTH : 0}px)`,
+          transition: "transform 300ms cubic-bezier(0.16, 1, 0.3, 1)",
+        }}
+      >
+        <TopBar
+          logo={
+            <button
+              type="button"
+              title={chatOpen ? "Hide chats" : "Show chats"}
+              aria-label={chatOpen ? "Hide chats" : "Show chats"}
+              onClick={() => setChatOpen(o => !o)}
+              className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)]"
+              style={{ pointerEvents: "auto" }}
+            >
+              <IconLayoutSidebar />
+            </button>
+          }
+          actions={topBarActions}
+        />
+        <Canvas initialScale={0.85}>
+          {stories.map(s => (
+            <StoryCard
+              key={s.id}
+              story={s}
+              style={{ left: s.x, top: s.y }}
+              onExpand={handleExpand}
+              onBookmark={handleBookmark}
+            />
+          ))}
+        </Canvas>
+        {!loading && stories.length === 0 && !error && (
+          <div style={emptyContainer}>
+            <div style={emptyTitle}>Your knowledge space is empty</div>
+            <div style={emptySubtitle}>
+              {hasSearched
+                ? "No results found. Try a different search."
+                : "Ask a question or explore trending topics to get started."}
+            </div>
           </div>
-        </div>
-      )}
-      {error && (
-        <div style={emptyContainer}>
-          <div style={{ ...emptyTitle, color: "var(--color-danger)" }}>
-            Something went wrong
+        )}
+        {error && (
+          <div style={emptyContainer}>
+            <div style={{ ...emptyTitle, color: "var(--color-danger)" }}>
+              Something went wrong
+            </div>
+            <div style={emptySubtitle}>{error}</div>
           </div>
-          <div style={emptySubtitle}>{error}</div>
-        </div>
-      )}
-      <JobStatusCard
-        visible={showJobCard}
-        progress={jobStatus.progress}
-        message={jobStatus.message}
-        stories={jobStatus.stories}
-        status={jobStatus.status}
-        onDismiss={handleDismissJobCard}
-        onStoryClick={s => handleExpand(s)}
-      />
+        )}
+        <JobStatusCard
+          visible={showJobCard}
+          progress={jobStatus.progress}
+          message={jobStatus.message}
+          stories={jobStatus.stories}
+          status={jobStatus.status}
+          onDismiss={handleDismissJobCard}
+          onStoryClick={s => handleExpand(s)}
+        />
+        <StoryDetailPanel story={selectedStory} onClose={handleCloseDetail} />
+        <CommandBar onSearch={handleSearch} />
+      </div>
       <ChatSidebar
         chats={chats}
         selectedId={selectedChatId}
+        open={chatOpen}
+        onToggle={() => setChatOpen(o => !o)}
         onSelect={handleSelectChat}
         onNewChat={handleNewChat}
         onDelete={handleDeleteChat}
       />
-      <StoryDetailPanel story={selectedStory} onClose={handleCloseDetail} />
-      <CommandBar onSearch={handleSearch} />
     </>
   )
 }
