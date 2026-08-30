@@ -12,8 +12,6 @@ import type { ChatListRow } from "~web/lib/api-client.ts"
 interface ChatSidebarProps {
   chats: ChatListRow[]
   selectedId: string | null
-  open: boolean
-  onToggle: () => void
   onSelect: (id: string) => void
   onNewChat: () => void
   onDelete: (id: string) => void
@@ -22,7 +20,6 @@ interface ChatSidebarProps {
 export function ChatSidebar({
   chats,
   selectedId,
-  open,
   onSelect,
   onNewChat,
   onDelete,
@@ -37,17 +34,7 @@ export function ChatSidebar({
     : chats
 
   return (
-    <div
-      className="fixed inset-y-0 left-0 z-40 flex w-64 flex-col overflow-hidden border-r border-[var(--color-border)] bg-[var(--color-surface)]"
-      style={{
-        transform: open ? "translateX(0)" : "translateX(-100%)",
-        transition: "transform 300ms cubic-bezier(0.16, 1, 0.3, 1)",
-        visibility: open ? "visible" : "hidden",
-        transitionProperty: "transform, visibility",
-        transitionDuration: "300ms, 0s",
-        transitionDelay: "0s, 300ms",
-      }}
-    >
+    <div className="flex h-full w-full flex-col overflow-hidden border-r border-[var(--color-border)] bg-[var(--color-surface)]">
       <div className="flex shrink-0 items-center justify-between px-5 pt-4 pb-2">
         <span className="select-none text-sm font-semibold tracking-tight text-[var(--color-text-primary)]">
           Weric

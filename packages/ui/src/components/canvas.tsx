@@ -131,8 +131,9 @@ export function Canvas({
       ref={containerRef}
       className={className}
       style={{
-        position: "fixed",
-        inset: 0,
+        position: "relative",
+        width: "100%",
+        height: "100%",
         overflow: "hidden",
         cursor: isPanning.current ? "grabbing" : "grab",
         background: `

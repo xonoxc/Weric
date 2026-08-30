@@ -17,7 +17,7 @@ interface JobStatusCardProps {
 }
 
 const cardStyle: React.CSSProperties = {
-  position: "fixed",
+  position: "absolute",
   bottom: 80,
   left: "var(--space-xl)",
   width: 320,

@@ -8,7 +8,7 @@ interface TopBarProps {
 export function TopBar({ logo = "Weric", actions }: TopBarProps) {
   return (
     <div
-      className="pointer-events-none fixed top-0 right-0 left-0 z-[var(--z-top-bar)] flex items-center justify-between px-6 py-4"
+      className="pointer-events-none absolute top-0 right-0 left-0 z-[var(--z-top-bar)] flex items-center justify-between px-6 py-4"
       style={{
         background:
           "linear-gradient(180deg, rgba(26,26,26,0.95) 0%, transparent 100%)",

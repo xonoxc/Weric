@@ -87,6 +87,7 @@ export function CommandBar({
   const [selectedIndex, setSelectedIndex] = useState(-1)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
+  const blurTimerRef = useRef<number | null>(null)
 
   useEffect(() => {
     if (focused) return
@@ -107,7 +108,12 @@ export function CommandBar({
       }
     }
     window.addEventListener("keydown", handler)
-    return () => window.removeEventListener("keydown", handler)
+    return () => {
+      window.removeEventListener("keydown", handler)
+      if (blurTimerRef.current) {
+        window.clearTimeout(blurTimerRef.current)
+      }
+    }
   }, [])
 
   const autoResize = () => {
@@ -177,11 +183,11 @@ export function CommandBar({
       role="search"
       aria-label="Command bar"
       style={{
-        position: "fixed",
+        position: "absolute",
         bottom: "var(--space-lg)",
         left: "50%",
         transform: "translateX(-50%)",
-        width: "min(48%, calc(100vw - var(--space-2xl)))",
+        width: "min(48%, calc(100% - var(--space-2xl)))",
         zIndex: "var(--z-command-bar)",
         display: "flex",
         flexDirection: "column",
@@ -201,7 +207,7 @@ export function CommandBar({
             animation: "fadeSlideUp 300ms cubic-bezier(0.16, 1, 0.3, 1)",
           }}
         >
-          <div style={{ padding: "var(--space-md) var(--space-md) 0" }}>
+          <div style={{ padding: "var(--space-md)" }}>
             <div style={{ ...sectionLabel, marginBottom: 8 }}>Suggestions</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
               {suggestions.map((s, i) => (
@@ -270,9 +276,8 @@ export function CommandBar({
 
           <div
             style={{
-              padding: "var(--space-sm) var(--space-md)",
+              padding: "var(--space-md)",
               borderTop: "1px solid var(--color-border)",
-              marginTop: "var(--space-sm)",
             }}
           >
             <div style={{ ...sectionLabel, marginBottom: 8 }}>
@@ -280,12 +285,16 @@ export function CommandBar({
             </div>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               {["AI", "Today", "Rust", "Bookmarks"].map(tag => (
-                <span
+                <button
                   key={tag}
+                  type="button"
                   style={{
                     ...chip,
                     background: "var(--color-bg-secondary)",
+                    fontFamily: "var(--font-sans)",
+                    lineHeight: 1,
                   }}
+                  onMouseDown={e => e.preventDefault()}
                   onClick={() => handleAddTag(tag)}
                   onMouseEnter={e => {
                     e.currentTarget.style.borderColor =
@@ -298,13 +307,20 @@ export function CommandBar({
                   }}
                 >
                   {tag}
-                </span>
+                </button>
               ))}
-              <span
+              <button
+                type="button"
                 style={{
                   ...chip,
                   borderStyle: "dashed",
                   color: "var(--color-text-tertiary)",
+                  fontFamily: "var(--font-sans)",
+                  lineHeight: 1,
+                }}
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => {
+                  textareaRef.current?.focus()
                 }}
                 onMouseEnter={e => {
                   e.currentTarget.style.color = "var(--color-text-primary)"
@@ -317,7 +333,7 @@ export function CommandBar({
                 }}
               >
                 + Add
-              </span>
+              </button>
             </div>
           </div>
 
@@ -336,9 +352,15 @@ export function CommandBar({
               </div>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {relatedTopics.map(topic => (
-                  <span
+                  <button
                     key={topic}
-                    style={chip}
+                    type="button"
+                    style={{
+                      ...chip,
+                      fontFamily: "var(--font-sans)",
+                      lineHeight: 1,
+                    }}
+                    onMouseDown={e => e.preventDefault()}
                     onClick={() => handleAddTag(topic)}
                     onMouseEnter={e => {
                       e.currentTarget.style.borderColor =
@@ -352,7 +374,7 @@ export function CommandBar({
                     }}
                   >
                     {topic}
-                  </span>
+                  </button>
                 ))}
               </div>
             </div>
@@ -362,9 +384,15 @@ export function CommandBar({
               </div>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {availableSources.map(source => (
-                  <span
+                  <button
                     key={source}
-                    style={chip}
+                    type="button"
+                    style={{
+                      ...chip,
+                      fontFamily: "var(--font-sans)",
+                      lineHeight: 1,
+                    }}
+                    onMouseDown={e => e.preventDefault()}
                     onClick={() => handleAddTag(source)}
                     onMouseEnter={e => {
                       e.currentTarget.style.borderColor =
@@ -378,7 +406,7 @@ export function CommandBar({
                     }}
                   >
                     {source}
-                  </span>
+                  </button>
                 ))}
               </div>
             </div>
@@ -386,7 +414,7 @@ export function CommandBar({
 
           <div
             style={{
-              padding: "var(--space-sm) var(--space-md)",
+              padding: "var(--space-md)",
               borderTop: "1px solid var(--color-border)",
               display: "flex",
               alignItems: "center",
@@ -434,17 +462,15 @@ export function CommandBar({
           boxShadow: focused
             ? "0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(99,102,241,0.1)"
             : "var(--shadow-lg)",
-          transition: "all 400ms cubic-bezier(0.16, 1, 0.3, 1)",
+          transition:
+            "background 400ms cubic-bezier(0.16, 1, 0.3, 1), border-color 400ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 400ms cubic-bezier(0.16, 1, 0.3, 1), border-radius 400ms cubic-bezier(0.16, 1, 0.3, 1)",
           backdropFilter: "blur(24px)",
           WebkitBackdropFilter: "blur(24px)",
         }}
       >
         <div
           style={{
-            padding:
-              tags.length > 0 || query
-                ? "var(--space-xs) var(--space-sm)"
-                : "2px 6px",
+            padding: "var(--space-sm) var(--space-md)",
           }}
         >
           <div
@@ -457,8 +483,8 @@ export function CommandBar({
             <div
               style={{
                 flexShrink: 0,
-                width: hasContent ? 36 : 32,
-                height: hasContent ? 36 : 32,
+                width: 36,
+                height: 36,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -470,8 +496,8 @@ export function CommandBar({
               }}
             >
               <svg
-                width={hasContent ? 18 : 16}
-                height={hasContent ? 18 : 16}
+                width={16}
+                height={16}
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -559,11 +585,17 @@ export function CommandBar({
                   setFocused(true)
                   setSelectedIndex(-1)
                 }}
-                onBlur={() => {
-                  setTimeout(() => {
+                onBlur={e => {
+                  if (blurTimerRef.current) {
+                    window.clearTimeout(blurTimerRef.current)
+                  }
+                  blurTimerRef.current = window.setTimeout(() => {
+                    if (wrapperRef.current?.contains(e.relatedTarget as Node)) {
+                      return
+                    }
                     setFocused(false)
                     setSelectedIndex(-1)
-                  }, 200)
+                  }, 150)
                 }}
                 onKeyDown={handleKeyDown}
                 rows={1}
@@ -574,13 +606,12 @@ export function CommandBar({
                   border: "none",
                   outline: "none",
                   color: "var(--color-text-primary)",
-                  fontSize:
-                    tags.length > 0 || query ? "var(--font-size-base)" : 14,
+                  fontSize: "var(--font-size-base)",
                   lineHeight: "24px",
-                  padding: tags.length > 0 || query ? "2px 0 4px" : 0,
+                  padding: 0,
                   fontFamily: "var(--font-sans)",
                   resize: "none",
-                  minHeight: tags.length > 0 || query ? 24 : 28,
+                  minHeight: 24,
                   overflow: "hidden",
                 }}
               />
@@ -598,10 +629,13 @@ export function CommandBar({
               <button
                 style={{
                   ...iconBtn,
-                  width: hasContent ? 32 : 28,
-                  height: hasContent ? 32 : 28,
+                  width: 34,
+                  height: 34,
                 }}
                 title="Attach file"
+                onClick={() => {
+                  textareaRef.current?.focus()
+                }}
                 onMouseEnter={e => {
                   e.currentTarget.style.background =
                     "var(--color-surface-hover)"
@@ -613,8 +647,8 @@ export function CommandBar({
                 }}
               >
                 <svg
-                  width={hasContent ? 16 : 14}
-                  height={hasContent ? 16 : 14}
+                  width={16}
+                  height={16}
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -628,10 +662,13 @@ export function CommandBar({
               <button
                 style={{
                   ...iconBtn,
-                  width: hasContent ? 32 : 28,
-                  height: hasContent ? 32 : 28,
+                  width: 34,
+                  height: 34,
                 }}
                 title="Voice input"
+                onClick={() => {
+                  textareaRef.current?.focus()
+                }}
                 onMouseEnter={e => {
                   e.currentTarget.style.background =
                     "var(--color-surface-hover)"
@@ -643,8 +680,8 @@ export function CommandBar({
                 }}
               >
                 <svg
-                  width={hasContent ? 16 : 14}
-                  height={hasContent ? 16 : 14}
+                  width={16}
+                  height={16}
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -660,8 +697,8 @@ export function CommandBar({
               <button
                 style={{
                   ...iconBtn,
-                  width: hasContent ? 32 : 28,
-                  height: hasContent ? 32 : 28,
+                  width: 34,
+                  height: 34,
                   background: hasContent
                     ? "var(--color-accent)"
                     : "transparent",
@@ -674,8 +711,8 @@ export function CommandBar({
                 title="Send"
               >
                 <svg
-                  width={hasContent ? 15 : 13}
-                  height={hasContent ? 15 : 13}
+                  width={15}
+                  height={15}
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
