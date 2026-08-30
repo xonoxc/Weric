@@ -37,18 +37,18 @@ Internet
 
 ### Packages
 
-| Package            | Responsibility                                                   |
-| ------------------ | ---------------------------------------------------------------- |
-| **contracts**      | Single source of truth — Zod schemas, DTOs, events, shared types |
-| **story-engine**   | Knowledge generation, story creation, clustering, persistence    |
-| **recommendation** | Ranking, personalization, feed generation                        |
-| **browser**        | Internet access, searching, page extraction, scraping            |
-| **ai**             | LLM abstraction, summarization, embeddings, structured outputs   |
-| **database**       | Repositories, Drizzle, migrations                                |
-| **shared**         | Pure utility functions                                           |
-| **config**         | Configuration management                                         |
-| **auth**           | Authentication logic                                             |
-| **ui**             | Shared UI components                                             |
+| Package            | Responsibility                                                             |
+| ------------------ | -------------------------------------------------------------------------- |
+| **contracts**      | Single source of truth — Effect Schema schemas, DTOs, events, shared types |
+| **story-engine**   | Knowledge generation, story creation, clustering, persistence              |
+| **recommendation** | Ranking, personalization, feed generation                                  |
+| **browser**        | Internet access, searching, page extraction, scraping                      |
+| **ai**             | LLM abstraction, summarization, embeddings, structured outputs             |
+| **database**       | Repositories, Drizzle, migrations                                          |
+| **shared**         | Pure utility functions                                                     |
+| **config**         | Configuration management                                                   |
+| **auth**           | Authentication logic                                                       |
+| **ui**             | Shared UI components                                                       |
 
 ## Repository Layout
 

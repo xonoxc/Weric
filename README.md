@@ -15,7 +15,7 @@ Weric is an AI-native platform that transforms fragmented information from the i
 │   ├── web/          # React frontend (Vite + TanStack)
 │   └── landing/      # Marketing site (Astro)
 ├── packages/
-│   ├── contracts/    # Zod schemas, DTOs, events, shared types
+│   ├── contracts/    # Shared schemas & types, DTOs, events
 │   ├── story-engine/ # Knowledge generation, story creation
 │   ├── recommendation/ # Ranking, personalization, feed
 │   ├── browser/      # Internet access abstraction

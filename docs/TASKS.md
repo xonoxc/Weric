@@ -175,15 +175,15 @@ Barrel export of all public types.
 
 **Design Requirements:**
 
-- All types defined as Zod schemas with inferred TypeScript types
-- All types use `z.infer<typeof X>` pattern for dual validation and type inference
+- All types defined as Effect Schema schemas with inferred TypeScript types
+- All types use `Schema.Type<typeof X>` pattern for dual validation and type inference
 - Events are discriminated unions with a `type` discriminant
 - DTOs are plain objects with no class instances
 - Readonly arrays and objects where applicable
 
 **Acceptance Criteria:**
 
-- Every type has a corresponding Zod schema
+- Every type has a corresponding Effect Schema schema
 - Every schema has at least basic validation rules
 - Event types compile as discriminated unions
 - `bun run typecheck` passes in the contracts package
@@ -382,7 +382,7 @@ Public API: repository exports only. No Drizzle types.
 ### Config Package (`packages/config/src/`)
 
 - Config loaded from environment variables
-- Validated with Zod schema at startup
+- Validated with Effect Schema schema at startup
 - Typed config object with all application settings
 
 **Acceptance Criteria:**
@@ -600,11 +600,11 @@ Normalize → Extract Entities → Detect Matches → Merge or Create → Update
 - `classify(content: string, categories: string[]) → Effect<Classification, AIError>`
 - `extractEntities(content: string) → Effect<Entity[], AIError>`
 - `generateEmbeddings(text: string) → Effect<number[], AIError>`
-- `structuredOutput<T>(prompt: string, schema: ZodSchema<T>) → Effect<T, AIError>`
+- `structuredOutput<T>(prompt: string, schema: Schema.Schema<T>) → Effect<T, AIError>`
 
 ### `packages/ai/src/validation.ts`
 
-- Zod schemas for every AI output
+- Effect Schema schemas for every AI output
 - Validation of AI responses before returning to callers
 - `ValidationError` for malformed AI responses
 
@@ -633,7 +633,7 @@ Normalize → Extract Entities → Detect Matches → Merge or Create → Update
 **Acceptance Criteria:**
 
 - All four public methods return Effect types
-- AI responses are validated against Zod schemas
+- AI responses are validated against Effect Schema schemas
 - Provider selection is configurable
 - Provider errors are typed and propagated
 - No provider-specific types leak into business logic
@@ -817,7 +817,7 @@ Normalize → Extract Entities → Detect Matches → Merge or Create → Update
 
 ### `apps/api/src/middleware/validation.ts`
 
-- Request body validation using Zod
+- Request body validation using Effect Schema
 - Query parameter validation
 - Path parameter validation
 
@@ -869,7 +869,7 @@ Normalize → Extract Entities → Detect Matches → Merge or Create → Update
 - All endpoints return correct responses
 - Authentication middleware works for protected routes
 - Error handling returns consistent error format
-- Zod validation returns clear validation errors
+- Effect Schema validation returns clear validation errors
 - Handlers never import database or AI packages directly
 - API starts and responds to requests
 
@@ -1120,7 +1120,7 @@ Verify all items before declaring v0.1 complete:
 - [ ] Architecture follows the specification
 - [ ] Effect is the backbone of business logic
 - [ ] PostgreSQL schema exists with migrations
-- [ ] Shared contracts exist with Zod schemas
+- [ ] Shared contracts exist with Effect Schema schemas
 - [ ] Story Engine exists with ingestion pipeline
 - [ ] Recommendation Engine exists with feed generation
 - [ ] Browser abstraction exists with search and fetch

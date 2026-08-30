@@ -15,7 +15,7 @@ const DEFAULT_MODEL = "llama-3.3-70b-versatile"
 
 /** Bridge an effect `Schema` into the shape the `ai` SDK expects: a JSON
  * schema descriptor (built via `JSONSchema.make`) with a `validate` function
- * that re-runs the effect schema (mirrors the SDK's `zodSchema`). */
+ * that re-runs the effect schema (mirrors the SDK's `jsonSchema` helper). */
 function toAISchema<T>(schema: Schema.Schema<T, any>) {
   const json = JSONSchema.make(schema)
   return jsonSchema(json, {

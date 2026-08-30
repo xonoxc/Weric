@@ -88,9 +88,9 @@ export class StoryService extends Effect.Service<StoryService>()(
 
 ### Validation
 
-- Every external input validated with Zod.
-- Every AI response validated with Zod.
-- Every HTTP request validated with Zod.
+- Every external input validated with Effect Schema.
+- Every AI response validated with Effect Schema.
+- Every HTTP request validated with Effect Schema.
 
 ### Error Handling
 

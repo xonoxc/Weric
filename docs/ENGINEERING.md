@@ -169,7 +169,7 @@ If the Agent Runtime persisted data:
 | Router             | TanStack Router      | Type-safe routing, file-based routes                                    |
 | Query client       | TanStack Query       | Server state management, caching, mutations                             |
 | Forms              | React Hook Form      | Performant, minimal re-renders                                          |
-| Validation         | Zod                  | Runtime type validation, TypeScript inference                           |
+| Validation         | Effect Schema        | Runtime type validation, TypeScript inference                           |
 | Styling            | TailwindCSS          | Utility-first, consistent design system                                 |
 | Components         | shadcn/ui            | Accessible, customizable, not a component library                       |
 | Icons              | Lucide               | Consistent, tree-shakeable icon set                                     |
