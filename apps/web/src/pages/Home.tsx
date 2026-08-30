@@ -4,7 +4,7 @@ import { Canvas, StoryCard, CommandBar, TopBar, JobStatusCard } from "@weric/ui"
 import { StoryDetailPanel } from "~web/components/story-detail-panel.tsx"
 import { ChatSidebar } from "~web/components/chat-sidebar"
 import { UserMenu } from "~web/components/user-menu.tsx"
-import { IconLayoutSidebar } from "@tabler/icons-react"
+import { IconLayoutSidebar, IconLayoutSidebarFilled } from "@tabler/icons-react"
 
 const SIDEBAR_WIDTH = 256
 
@@ -148,7 +148,11 @@ export default function Home() {
               className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)] bg-[(--color-surface)] text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-primary)]"
               style={{ pointerEvents: "auto" }}
             >
-              <IconLayoutSidebar />
+              {chatOpen ? (
+                <IconLayoutSidebarFilled />
+              ) : (
+                <IconLayoutSidebar stroke={2} />
+              )}
             </button>
           }
           actions={topBarActions}
