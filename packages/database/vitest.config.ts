@@ -1,5 +1,6 @@
 import { defineConfig } from "vitest/config"
 import { resolve } from "path"
+import { TEST_DATABASE_URL } from "@weric/shared"
 
 export default defineConfig({
   resolve: {
@@ -9,7 +10,7 @@ export default defineConfig({
   },
   test: {
     env: {
-      DATABASE_URL: "postgresql://weric:weric@localhost:5432/weric_test",
+      DATABASE_URL: TEST_DATABASE_URL,
     },
     fileParallelism: false,
   },

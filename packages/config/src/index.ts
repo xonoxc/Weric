@@ -1,13 +1,14 @@
 import { Config, Context, Effect, Layer, Schema } from "effect"
-
-const URL_REGEX = /^https?:\/\/[^\s/$.?#].[^\s]*$/i
+import {
+  DB_URL_REGEX,
+  HTTP_URL_REGEX,
+  DEFAULT_DATABASE_URL,
+} from "@weric/shared"
 
 export const WericConfigSchema = Schema.Struct({
   database: Schema.Struct({
-    url: Schema.optional(Schema.String.pipe(Schema.pattern(URL_REGEX))).pipe(
-      Schema.withDecodingDefault(
-        () => "postgresql://weric:***@localhost:5432/weric"
-      )
+    url: Schema.optional(Schema.String.pipe(Schema.pattern(DB_URL_REGEX))).pipe(
+      Schema.withDecodingDefault(() => DEFAULT_DATABASE_URL)
     ),
   }),
   auth: Schema.Struct({
@@ -18,7 +19,7 @@ export const WericConfigSchema = Schema.Struct({
       Schema.String.pipe(Schema.minLength(1))
     ).pipe(Schema.withDecodingDefault(() => "change-me-in-production")),
     betterAuthUrl: Schema.optional(
-      Schema.String.pipe(Schema.pattern(URL_REGEX))
+      Schema.String.pipe(Schema.pattern(HTTP_URL_REGEX))
     ).pipe(Schema.withDecodingDefault(() => "http://localhost:3000")),
   }),
   api: Schema.Struct({
@@ -46,7 +47,7 @@ export class WericConfigService extends Context.Tag("WericConfigService")<
 
 const configFromEnv = Effect.gen(function* () {
   const databaseUrl = yield* Config.string("DATABASE_URL").pipe(
-    Config.withDefault("postgresql://weric:***@localhost:5432/weric")
+    Config.withDefault(DEFAULT_DATABASE_URL)
   )
   const jwtSecret = yield* Config.string("JWT_SECRET").pipe(
     Config.withDefault("change-me-in-production")
@@ -80,3 +81,10 @@ export const ConfigLiveLayer: Layer.Layer<WericConfigService> = Layer.effect(
   WericConfigService,
   Effect.orDie(configFromEnv)
 )
+
+export function loadDatabaseUrl(url?: string): string {
+  const DatabaseUrlSchema = Schema.String.pipe(Schema.pattern(DB_URL_REGEX))
+  return Schema.decodeUnknownSync(DatabaseUrlSchema)(
+    url ?? process.env.DATABASE_URL ?? DEFAULT_DATABASE_URL
+  )
+}

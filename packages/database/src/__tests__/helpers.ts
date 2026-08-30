@@ -1,5 +1,6 @@
 import { drizzle } from "drizzle-orm/postgres-js"
 import postgres from "postgres"
+import { TEST_DATABASE_URL } from "@weric/shared"
 import * as schema from "~db/schema/tables.ts"
 
 import type { Db } from "~db/connection.ts"
@@ -8,9 +9,7 @@ let client: ReturnType<typeof postgres> | null = null
 
 export function getTestDb(): Db {
   if (!client) {
-    client = postgres("postgresql://weric:weric@localhost:5432/weric_test", {
-      max: 1,
-    })
+    client = postgres(TEST_DATABASE_URL, { max: 1 })
   }
   return drizzle(client, { schema }) as unknown as Db
 }

@@ -1,6 +1,7 @@
 import { Context, Effect, Layer } from "effect"
 import { drizzle } from "drizzle-orm/postgres-js"
 import postgres from "postgres"
+import { TEST_DATABASE_URL } from "@weric/shared"
 import { WericConfigService } from "@weric/config"
 import * as schema from "./schema/tables.ts"
 
@@ -25,12 +26,9 @@ export const DatabaseLiveLayer: Layer.Layer<
 export const DatabaseTestLayer: Layer.Layer<DrizzleDB> = Layer.effect(
   DrizzleDB,
   Effect.sync(() => {
-    const client = postgres(
-      "postgresql://weric:weric@localhost:5432/weric_test",
-      {
-        max: 1,
-      }
-    )
+    const client = postgres(TEST_DATABASE_URL, {
+      max: 1,
+    })
     return drizzle(client, { schema }) as unknown as Db
   })
 )
