@@ -18,6 +18,8 @@ export async function cleanDatabase(): Promise<void> {
   if (!client) return
   await client.unsafe(`
     TRUNCATE TABLE
+      concept_stories, concept_edges, concepts,
+      chat_stories, chats,
       bookmarks, story_entities, story_evidence,
       interactions, interests, relationships,
       evidence, entities, stories, users, sessions,

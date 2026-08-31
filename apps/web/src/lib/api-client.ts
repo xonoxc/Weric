@@ -1,4 +1,5 @@
 import type { StoryCardData, SseDiscoveredStory } from "@weric/ui"
+import type { ConceptGraph } from "@weric/contracts"
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "/api"
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true"
@@ -71,6 +72,7 @@ interface SearchResponse {
   }
   jobId: string | null
   chatId: string | null
+  graph: ConceptGraph | null
 }
 
 export interface ChatListRow {
@@ -90,7 +92,6 @@ export interface ChatDetail {
   updatedAt: string
   stories: StoryCardData[]
 }
-
 export interface StoryDetailEvidence {
   id: string
   source: string
@@ -123,6 +124,7 @@ export interface SseProgressEvent {
   progress: number
   message: string
   stories?: SseDiscoveredStory[]
+  graph?: ConceptGraph
 }
 
 export interface SseStatusEvent {
@@ -329,6 +331,7 @@ export async function searchStories(query: string): Promise<{
   stories: StoryCardData[]
   jobId: string | null
   chatId: string | null
+  graph: ConceptGraph | null
 }> {
   if (USE_MOCK) {
     const q = query.toLowerCase()
@@ -337,7 +340,7 @@ export async function searchStories(query: string): Promise<{
         s.title.toLowerCase().includes(q) ||
         s.summary?.toLowerCase().includes(q)
     )
-    return { stories: results, jobId: null, chatId: null }
+    return { stories: results, jobId: null, chatId: null, graph: null }
   }
   const data = await request<SearchResponse>(
     `/search?q=${encodeURIComponent(query)}`
@@ -351,7 +354,12 @@ export async function searchStories(query: string): Promise<{
     evidenceCount: s.evidenceCount,
     updatedAt: s.updatedAt,
   }))
-  return { stories: mapped, jobId: data.jobId, chatId: data.chatId }
+  return {
+    stories: mapped,
+    jobId: data.jobId,
+    chatId: data.chatId,
+    graph: data.graph,
+  }
 }
 
 export async function fetchChats(): Promise<ChatListRow[]> {
@@ -371,6 +379,10 @@ export async function fetchChatDetail(chatId: string): Promise<ChatDetail> {
       stories: [],
     }
   return request<ChatDetail>(`/chats/${encodeURIComponent(chatId)}`)
+}
+
+export async function fetchChatGraph(chatId: string): Promise<ConceptGraph> {
+  return request<ConceptGraph>(`/chats/${encodeURIComponent(chatId)}/graph`)
 }
 
 export async function deleteChat(chatId: string): Promise<void> {

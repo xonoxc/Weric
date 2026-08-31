@@ -2,12 +2,14 @@ import { useState, useEffect, useRef } from "react"
 import { listenForJobEvents, fetchJobStatus } from "~web/lib/api-client.ts"
 
 import type { SseDiscoveredStory } from "@weric/ui"
+import type { ConceptGraph } from "@weric/contracts"
 
 export interface JobState {
   active: boolean
   progress: number
   message: string
   stories: SseDiscoveredStory[]
+  graph: ConceptGraph | null
   status: "idle" | "running" | "completed" | "failed"
 }
 
@@ -21,6 +23,7 @@ export function useJobEvents(jobId: string | null) {
     progress: 0,
     message: "",
     stories: [],
+    graph: null,
     status: "idle",
   })
 
@@ -42,6 +45,7 @@ export function useJobEvents(jobId: string | null) {
       progress: 0,
       message: "Starting discovery...",
       stories: [],
+      graph: null,
       status: "running",
     })
 
@@ -94,6 +98,7 @@ export function useJobEvents(jobId: string | null) {
             stories: data.stories
               ? [...prev.stories, ...data.stories]
               : prev.stories,
+            graph: data.graph ? data.graph : prev.graph,
           }))
         },
         onStatus: data => {

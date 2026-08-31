@@ -352,3 +352,70 @@ export const chatStories = pgTable(
     index("idx_chat_stories_story_id").on(table.storyId),
   ]
 )
+
+export const concepts = pgTable(
+  "concepts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    chatId: uuid("chat_id")
+      .notNull()
+      .references(() => chats.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    summary: text("summary"),
+    positionX: real("position_x"),
+    positionY: real("position_y"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  table => [
+    index("idx_concepts_chat_id").on(table.chatId),
+    index("idx_concepts_name").on(table.name),
+  ]
+)
+export type DbConcept = typeof concepts.$inferSelect
+export type DbConceptInsert = typeof concepts.$inferInsert
+
+export const conceptEdges = pgTable(
+  "concept_edges",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    chatId: uuid("chat_id")
+      .notNull()
+      .references(() => chats.id, { onDelete: "cascade" }),
+    sourceConcept: uuid("source_concept")
+      .notNull()
+      .references(() => concepts.id, { onDelete: "cascade" }),
+    targetConcept: uuid("target_concept")
+      .notNull()
+      .references(() => concepts.id, { onDelete: "cascade" }),
+    label: text("label").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  table => [
+    index("idx_concept_edges_chat_id").on(table.chatId),
+    index("idx_concept_edges_source").on(table.sourceConcept),
+    index("idx_concept_edges_target").on(table.targetConcept),
+  ]
+)
+export type DbConceptEdge = typeof conceptEdges.$inferSelect
+export type DbConceptEdgeInsert = typeof conceptEdges.$inferInsert
+
+export const conceptStories = pgTable(
+  "concept_stories",
+  {
+    conceptId: uuid("concept_id")
+      .notNull()
+      .references(() => concepts.id, { onDelete: "cascade" }),
+    storyId: uuid("story_id")
+      .notNull()
+      .references(() => stories.id, { onDelete: "cascade" }),
+  },
+  table => [
+    primaryKey({ columns: [table.conceptId, table.storyId] }),
+    index("idx_concept_stories_concept_id").on(table.conceptId),
+    index("idx_concept_stories_story_id").on(table.storyId),
+  ]
+)

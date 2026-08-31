@@ -3,6 +3,7 @@ import {
   SummarySchema,
   ClassificationSchema,
   ExtractedEntitiesSchema,
+  SynthesizedGraphSchema,
 } from "./validation.ts"
 import { ValidationError, UnsupportedFeatureError } from "./errors.ts"
 
@@ -11,6 +12,7 @@ import type {
   Summary,
   Classification,
   ExtractedEntities,
+  SynthesizedGraph,
 } from "./validation.ts"
 import type { AIError } from "./errors.ts"
 
@@ -70,6 +72,35 @@ export class AIService {
             "You are an entity extractor. Identify people, organizations, locations, events, products, technologies, and topics mentioned in the text.",
         }
       )
+      .pipe(Effect.map(result => result.object))
+  }
+
+  synthesizeGraph(context: {
+    query: string
+    items: { id: string; title: string; summary: string }[]
+  }): Effect.Effect<SynthesizedGraph, AIError> {
+    const itemLines = context.items
+      .map(
+        (it, i) =>
+          `${i + 1}. [${it.id}] ${it.title}${it.summary ? ` — ${it.summary}` : ""}`
+      )
+      .join("\n")
+
+    const prompt = `You are synthesizing a concept flow-graph for the query "${context.query}".
+
+From the following discovered sources, distill a small set of distinct concepts (roughly 5 to 10).
+For each concept, provide a concise summary and the storyIds of the sources that best support it.
+Then output DIRECTED flow edges that describe conceptual dependency or sequence (for example "A leads to B" or "A builds on B").
+Edges reference concepts by their exact name.
+
+Sources:
+${itemLines}`
+
+    return this.provider
+      .generateStructured(prompt, SynthesizedGraphSchema, {
+        system:
+          "You produce a structured concept graph. Concept names must be concise and distinct. storyIds must reference only the ids provided. Edge source and target must match concept names exactly.",
+      })
       .pipe(Effect.map(result => result.object))
   }
 

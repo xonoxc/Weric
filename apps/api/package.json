@@ -10,7 +10,7 @@
     "start": "bun run dist/index.js",
     "check-types": "tsc --noEmit",
     "lint": "echo 'no linter configured'",
-    "test": "echo 'no tests yet'",
+    "test": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
@@ -29,6 +29,7 @@
   },
   "devDependencies": {
     "@types/bun": "^1.2.0",
-    "typescript": "5.9.2"
+    "typescript": "5.9.2",
+    "vitest": "^4.1.9"
   }
 }

@@ -1,5 +1,6 @@
 import { Context, Effect, Layer, Schema } from "effect"
 import { SearchService } from "~api/services/search.service"
+import { ConceptGraphSchema } from "@weric/contracts"
 
 import type { ApiVariables } from "~api/app"
 import type { Context as HonoCtx } from "hono"
@@ -33,6 +34,7 @@ const SearchResponse = Schema.Struct({
   }),
   jobId: Schema.optional(Schema.NullOr(Schema.String)),
   chatId: Schema.optional(Schema.NullOr(Schema.String)),
+  graph: Schema.optional(Schema.NullOr(ConceptGraphSchema)),
 })
 
 export interface SearchController {

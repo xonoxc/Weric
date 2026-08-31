@@ -11,6 +11,18 @@ export {
 export type { EvidenceSearchRow } from "./evidence.repository.ts"
 export { EntityRepository } from "./entity.repository.ts"
 export { RelationshipRepository } from "./relationship.repository.ts"
+export {
+  ConceptRepository,
+  ConceptRepositoryLive,
+} from "./concept.repository.ts"
+export {
+  ConceptEdgeRepository,
+  ConceptEdgeRepositoryLive,
+} from "./concept-edge.repository.ts"
+export {
+  ConceptStoryRepository,
+  ConceptStoryRepositoryLive,
+} from "./concept-story.repository.ts"
 export { UserRepository, UserRepositoryLive } from "./user.repository.ts"
 export {
   InteractionRepository,

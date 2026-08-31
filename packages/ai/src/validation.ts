@@ -39,3 +39,25 @@ export const ExtractedEntitiesSchema = Schema.Struct({
 export type ExtractedEntities = Schema.Schema.Type<
   typeof ExtractedEntitiesSchema
 >
+
+export const SynthesizedConceptSchema = Schema.Struct({
+  name: Schema.String.pipe(Schema.minLength(1)),
+  summary: Schema.String,
+  storyIds: Schema.Array(Schema.String),
+})
+export type SynthesizedConcept = Schema.Schema.Type<
+  typeof SynthesizedConceptSchema
+>
+
+export const SynthesizedEdgeSchema = Schema.Struct({
+  source: Schema.String.pipe(Schema.minLength(1)),
+  target: Schema.String.pipe(Schema.minLength(1)),
+  label: Schema.String,
+})
+export type SynthesizedEdge = Schema.Schema.Type<typeof SynthesizedEdgeSchema>
+
+export const SynthesizedGraphSchema = Schema.Struct({
+  concepts: Schema.Array(SynthesizedConceptSchema),
+  edges: Schema.Array(SynthesizedEdgeSchema),
+})
+export type SynthesizedGraph = Schema.Schema.Type<typeof SynthesizedGraphSchema>

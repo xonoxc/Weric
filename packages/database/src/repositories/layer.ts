@@ -7,6 +7,9 @@ import { StoryRepositoryLive } from "./story.repository"
 import { ChatRepositoryLive } from "./chat.repository"
 import { InteractionRepositoryLive } from "./interaction.repository"
 import { BookmarkRepositoryLive } from "./bookmark.repository"
+import { ConceptRepositoryLive } from "./concept.repository"
+import { ConceptEdgeRepositoryLive } from "./concept-edge.repository"
+import { ConceptStoryRepositoryLive } from "./concept-story.repository"
 
 export const RepositoryLiveLayer = Layer.mergeAll(
   StoryRepositoryLive,
@@ -16,7 +19,10 @@ export const RepositoryLiveLayer = Layer.mergeAll(
   InteractionRepositoryLive,
   InterestRepositoryLive,
   JobRepositoryLive,
-  BookmarkRepositoryLive
+  BookmarkRepositoryLive,
+  ConceptRepositoryLive,
+  ConceptEdgeRepositoryLive,
+  ConceptStoryRepositoryLive
 )
 
 export const RepositoryTestLayer = RepositoryLiveLayer

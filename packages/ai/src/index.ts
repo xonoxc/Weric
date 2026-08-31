@@ -19,10 +19,16 @@ export {
   ClassificationSchema,
   ExtractedEntitySchema,
   ExtractedEntitiesSchema,
+  SynthesizedConceptSchema,
+  SynthesizedEdgeSchema,
+  SynthesizedGraphSchema,
 } from "./validation.ts"
 export type {
   Summary,
   Classification,
   ExtractedEntity,
   ExtractedEntities,
+  SynthesizedConcept,
+  SynthesizedEdge,
+  SynthesizedGraph,
 } from "./validation.ts"

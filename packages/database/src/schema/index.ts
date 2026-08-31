@@ -13,4 +13,9 @@ export {
   interactions,
   bookmarks,
   jobs,
+  chats,
+  chatStories,
+  concepts,
+  conceptEdges,
+  conceptStories,
 } from "./tables.ts"

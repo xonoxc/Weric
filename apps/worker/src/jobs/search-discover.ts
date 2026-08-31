@@ -3,10 +3,15 @@ import {
   StoryRepository,
   EvidenceRepository,
   ChatRepository,
+  ConceptRepository,
+  ConceptEdgeRepository,
+  ConceptStoryRepository,
 } from "@weric/database"
 import { BrowserService } from "@weric/browser"
 import { AIService } from "@weric/ai"
+import { persistConceptGraph } from "~worker/graph.ts"
 
+import type { GraphPersistence } from "~worker/graph.ts"
 import type { FetchedPage } from "@weric/browser"
 import type { Summary } from "@weric/ai"
 import type { JobHandler } from "~worker/runtime.ts"
@@ -38,6 +43,9 @@ export function createSearchDiscoverHandler(
   storyRepo: StoryRepository,
   evidenceRepo: EvidenceRepository,
   chatRepo: ChatRepository,
+  conceptRepo: ConceptRepository,
+  conceptEdgeRepo: ConceptEdgeRepository,
+  conceptStoryRepo: ConceptStoryRepository,
   browser: BrowserService,
   ai: AIService,
   apiUrl: string
@@ -100,6 +108,11 @@ export function createSearchDiscoverHandler(
 
         const total = Math.min(results.length, 5)
         let succeeded = 0
+        const discoveredStories: {
+          id: string
+          title: string
+          summary: string
+        }[] = []
 
         const processResult = (
           result: (typeof results)[number],
@@ -165,6 +178,11 @@ export function createSearchDiscoverHandler(
                 )
               }
               succeeded++
+              discoveredStories.push({
+                id: existing.id,
+                title: existing.title,
+                summary: existing.summary ?? "",
+              })
               report(
                 stepProgress,
                 `Linked evidence to existing story: ${page.title.slice(0, 60)}`
@@ -188,6 +206,11 @@ export function createSearchDiscoverHandler(
                   )
                 }
                 succeeded++
+                discoveredStories.push({
+                  id: created.id,
+                  title: created.title,
+                  summary: created.summary ?? "",
+                })
                 report(stepProgress, `Discovered: ${page.title.slice(0, 60)}`, {
                   stories: [
                     {
@@ -224,6 +247,39 @@ export function createSearchDiscoverHandler(
           `[search_discover ${jobId}] discovered ${succeeded}/${total} source(s). failures:`,
           failures
         )
+
+        if (chatId && discoveredStories.length > 0) {
+          postProgress(jobId, {
+            progress: 0.92,
+            message: "Distilling concept flow-graph...",
+          })
+
+          const synthesis = yield* safe(
+            "synthesize concept graph",
+            ai.synthesizeGraph({
+              query,
+              items: discoveredStories,
+            })
+          )
+
+          if (synthesis) {
+            const graphRepo: GraphPersistence = {
+              createConcept: data => conceptRepo.create(data),
+              createEdge: data => conceptEdgeRepo.create(data),
+              linkStory: (conceptId, storyId) =>
+                conceptStoryRepo.link(conceptId, storyId),
+            }
+
+            const graph = yield* safe(
+              "persist concept graph",
+              persistConceptGraph(chatId, synthesis, graphRepo)
+            )
+
+            if (graph) {
+              postProgress(jobId, { progress: 0.97, graph })
+            }
+          }
+        }
 
         postProgress(jobId, {
           progress: 1,

@@ -9,6 +9,12 @@ import {
   JobRepositoryLive,
   ChatRepository,
   ChatRepositoryLive,
+  ConceptRepository,
+  ConceptRepositoryLive,
+  ConceptEdgeRepository,
+  ConceptEdgeRepositoryLive,
+  ConceptStoryRepository,
+  ConceptStoryRepositoryLive,
 } from "@weric/database"
 import { Context, Effect, Layer } from "effect"
 import { BrowserService } from "@weric/browser"
@@ -33,7 +39,10 @@ function buildRepos(db: Db) {
         StoryRepositoryLive,
         EvidenceRepositoryLive,
         JobRepositoryLive,
-        ChatRepositoryLive
+        ChatRepositoryLive,
+        ConceptRepositoryLive,
+        ConceptEdgeRepositoryLive,
+        ConceptStoryRepositoryLive
       )
     ).pipe(Effect.provide(databaseLayer), Effect.scoped)
   )
@@ -43,6 +52,9 @@ function buildRepos(db: Db) {
     evidenceRepo: Context.get(context, EvidenceRepository),
     jobRepo: Context.get(context, JobRepository),
     chatRepo: Context.get(context, ChatRepository),
+    conceptRepo: Context.get(context, ConceptRepository),
+    conceptEdgeRepo: Context.get(context, ConceptEdgeRepository),
+    conceptStoryRepo: Context.get(context, ConceptStoryRepository),
   }
 }
 
@@ -50,7 +62,15 @@ function buildRuntime(db: Db) {
   // Story/Interest/Interaction/User repos are Effect layers — build them once
   // into concrete service objects and pass those to the handlers. The
   // recommendation jobs wire their own layers from `db`.
-  const { storyRepo, evidenceRepo, jobRepo, chatRepo } = buildRepos(db)
+  const {
+    storyRepo,
+    evidenceRepo,
+    jobRepo,
+    chatRepo,
+    conceptRepo,
+    conceptEdgeRepo,
+    conceptStoryRepo,
+  } = buildRepos(db)
   const browser = new BrowserService()
   const ai = new AIService(groqProvider)
   const apiUrl = process.env.API_URL ?? "http://localhost:3000"
@@ -70,6 +90,9 @@ function buildRuntime(db: Db) {
         storyRepo,
         evidenceRepo,
         chatRepo,
+        conceptRepo,
+        conceptEdgeRepo,
+        conceptStoryRepo,
         browser,
         ai,
         apiUrl

@@ -5,11 +5,13 @@ import {
   JobRepository,
   ChatRepository,
 } from "@weric/database"
+import { GraphService } from "~api/services/graph.service"
 import { jobBus } from "~api/lib/job-bus.ts"
 import { defaultChatTitle } from "~api/controllers/chat.controller.ts"
 
 import type { RepositoryError } from "@weric/database"
 import type { StoryWithEvidenceCount, EvidenceSearchRow } from "@weric/database"
+import type { ConceptGraph } from "@weric/contracts"
 
 export interface SearchParams {
   q: string
@@ -30,6 +32,7 @@ export interface SearchResult {
   }
   jobId: string | null
   chatId: string | null
+  graph: ConceptGraph | null
 }
 
 export interface SearchServiceShape {
@@ -51,6 +54,7 @@ export const SearchServiceLive = Layer.effect(
     const evidenceRepo = yield* EvidenceRepository
     const jobRepo = yield* JobRepository
     const chatRepo = yield* ChatRepository
+    const graphService = yield* GraphService
 
     return {
       search: (params, userId) =>
@@ -109,6 +113,14 @@ export const SearchServiceLive = Layer.effect(
             })
           } catch {}
 
+          let graph: ConceptGraph | null = null
+          if (resolvedChatId) {
+            try {
+              const g = yield* graphService.getGraph(resolvedChatId)
+              graph = g.nodes.length > 0 ? g : null
+            } catch {}
+          }
+
           return {
             stories: storyResult?.data ?? [],
             evidence: (evidenceResult?.data ?? []).map(e => ({
@@ -123,6 +135,7 @@ export const SearchServiceLive = Layer.effect(
             },
             jobId,
             chatId: resolvedChatId,
+            graph,
           }
         }),
     }

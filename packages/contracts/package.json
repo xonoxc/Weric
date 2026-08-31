@@ -8,7 +8,7 @@
   "scripts": {
     "check-types": "tsc --noEmit",
     "lint": "echo 'no linter configured'",
-    "test": "echo 'no tests yet'",
+    "test": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
@@ -16,6 +16,7 @@
     "effect": "^3.22.1"
   },
   "devDependencies": {
-    "typescript": "5.9.2"
+    "typescript": "5.9.2",
+    "vitest": "^4.1.9"
   }
 }

@@ -20,6 +20,13 @@ export const JobProgressSchema = Schema.Struct({
     Schema.withDecodingDefault(() => "")
   ),
   stories: Schema.optional(Schema.Array(Schema.Unknown)),
+  graph: Schema.optional(
+    Schema.Struct({
+      nodes: Schema.Array(Schema.Unknown),
+      edges: Schema.Array(Schema.Unknown),
+      conceptStories: Schema.optional(Schema.Array(Schema.Unknown)),
+    })
+  ),
   status: Schema.optional(JobStatus),
 })
 
@@ -94,15 +101,19 @@ export const WorkerControllerLive = Layer.effect(
         ),
 
       jobProgress: ctx =>
-        Effect.sync(() => {
-          const body = Schema.decodeUnknownSync(JobProgressSchema)(
-            ctx.req.json()
-          )
+        Effect.gen(function* () {
+          const raw = yield* Effect.tryPromise({
+            try: () => ctx.req.json(),
+            catch: cause => new Error(String(cause)),
+          })
+
+          const body = Schema.decodeUnknownSync(JobProgressSchema)(raw)
 
           jobBus.sendToClient(body.jobId, "progress", {
             progress: body.progress,
             message: body.message,
             stories: body.stories,
+            graph: body.graph,
           })
 
           const terminal = Schema.decodeUnknownEither(TerminalJobStatus)(

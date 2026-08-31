@@ -7,6 +7,7 @@ import {
   toggleBookmark,
   fetchChats,
   fetchChatDetail,
+  fetchChatGraph,
   deleteChat,
 } from "~web/lib/api-client.ts"
 import { useSession, signOut } from "~web/lib/auth-client.ts"
@@ -14,6 +15,7 @@ import { useJobEvents } from "./useJobEvents.ts"
 
 import type { StoryCardData } from "@weric/ui"
 import type { ExpandableStory } from "~web/components/story-detail-panel.tsx"
+import type { ConceptGraph } from "@weric/contracts"
 
 interface PositionedStory extends StoryCardData {
   x: number
@@ -87,6 +89,12 @@ export function useHome() {
     enabled: !!selectedChatId,
   })
 
+  const chatGraphQuery = useQuery({
+    queryKey: ["chat-graph", selectedChatId],
+    queryFn: () => fetchChatGraph(selectedChatId!),
+    enabled: !!selectedChatId,
+  })
+
   const searchMutation = useMutation({
     mutationFn: (q: string) => searchStories(q),
     onSuccess: data => {
@@ -114,6 +122,9 @@ export function useHome() {
   useEffect(() => {
     if (jobStatus.status === "completed" && selectedChatId) {
       queryClient.invalidateQueries({ queryKey: ["chat", selectedChatId] })
+      queryClient.invalidateQueries({
+        queryKey: ["chat-graph", selectedChatId],
+      })
       queryClient.invalidateQueries({ queryKey: ["chats"] })
     }
   }, [jobStatus.status, selectedChatId, queryClient])
@@ -151,6 +162,8 @@ export function useHome() {
     deleteChatMutation.mutate(id)
   }
 
+  const isActiveSearch = activeSearchChatId === selectedChatId
+
   const stories = (() => {
     const all: StoryCardData[] = []
     const seen = new Set<string>()
@@ -161,8 +174,6 @@ export function useHome() {
         all.push(s)
       }
     }
-
-    const isActiveSearch = activeSearchChatId === selectedChatId
 
     if (selectedChatId) {
       for (const s of chatDetailQuery.data?.stories ?? []) push(s)
@@ -200,6 +211,14 @@ export function useHome() {
     }
 
     return layoutStories(all)
+  })()
+
+  const graph: ConceptGraph | null = (() => {
+    if (jobStatus.graph) return jobStatus.graph
+    if (isActiveSearch && searchMutation.data?.graph) {
+      return searchMutation.data.graph
+    }
+    return chatGraphQuery.data ?? null
   })()
 
   const loading =
@@ -249,6 +268,7 @@ export function useHome() {
 
   return {
     stories,
+    graph,
     loading,
     error: error
       ? error instanceof Error

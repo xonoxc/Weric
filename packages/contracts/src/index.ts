@@ -53,6 +53,23 @@ export type {
 } from "./relationship.ts"
 
 export {
+  ConceptSchema,
+  CreateConceptInputSchema,
+  ConceptEdgeSchema,
+  CreateConceptEdgeInputSchema,
+  ConceptStoryLinkSchema,
+  ConceptGraphSchema,
+} from "./concept.ts"
+export type {
+  Concept,
+  CreateConceptInput,
+  ConceptEdge,
+  CreateConceptEdgeInput,
+  ConceptStoryLink,
+  ConceptGraph,
+} from "./concept.ts"
+
+export {
   UserSchema,
   CreateUserInputSchema,
   UpdateUserInputSchema,

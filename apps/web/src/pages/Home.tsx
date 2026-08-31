@@ -3,6 +3,7 @@ import { useHome } from "~web/hooks/useHome.ts"
 import { Canvas, StoryCard, CommandBar, TopBar, JobStatusCard } from "@weric/ui"
 import { StoryDetailPanel } from "~web/components/story-detail-panel.tsx"
 import { ChatSidebar } from "~web/components/chat-sidebar"
+import { GraphCanvas } from "~web/components/graph/graph-canvas.tsx"
 import { UserMenu } from "~web/components/user-menu.tsx"
 import { ResizeHandle } from "~web/components/resize-handle.tsx"
 import { IconLayoutSidebar, IconLayoutSidebarFilled } from "@tabler/icons-react"
@@ -66,6 +67,7 @@ export default function Home() {
   const [detailOpen, setDetailOpen] = useState(false)
   const {
     stories,
+    graph,
     loading,
     error,
     hasSearched,
@@ -191,17 +193,21 @@ export default function Home() {
             }
             actions={topBarActions}
           />
-          <Canvas initialScale={0.85}>
-            {stories.map(s => (
-              <StoryCard
-                key={s.id}
-                story={s}
-                style={{ left: s.x, top: s.y }}
-                onExpand={handleExpand}
-                onBookmark={handleBookmark}
-              />
-            ))}
-          </Canvas>
+          {graph && graph.nodes.length > 0 ? (
+            <GraphCanvas graph={graph} />
+          ) : (
+            <Canvas initialScale={0.85}>
+              {stories.map(s => (
+                <StoryCard
+                  key={s.id}
+                  story={s}
+                  style={{ left: s.x, top: s.y }}
+                  onExpand={handleExpand}
+                  onBookmark={handleBookmark}
+                />
+              ))}
+            </Canvas>
+          )}
           {!loading && stories.length === 0 && !error && (
             <div style={emptyContainer}>
               <div style={emptyTitle}>Your knowledge space is empty</div>

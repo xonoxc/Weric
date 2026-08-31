@@ -5,12 +5,16 @@ import {
   EvidenceRepositoryLive,
   JobRepositoryLive,
   ChatRepositoryLive,
+  ConceptRepositoryLive,
+  ConceptEdgeRepositoryLive,
+  ConceptStoryRepositoryLive,
 } from "@weric/database"
 import {
   SearchController,
   SearchControllerLive,
 } from "~api/controllers/search.controller"
 import { SearchServiceLive } from "~api/services/search.service"
+import { GraphServiceLive } from "~api/services/graph.service"
 import { buildRouteContext, effectHandler } from "~api/lib/handler"
 import type { AppContext } from "~api/lib/app-context"
 
@@ -22,12 +26,16 @@ export function createSearchRoutes(base: AppContext) {
   const routeContext = buildRouteContext(
     SearchControllerLive.pipe(
       Layer.provide(SearchServiceLive),
+      Layer.provide(GraphServiceLive),
       Layer.provide(
         Layer.mergeAll(
           StoryRepositoryLive,
           EvidenceRepositoryLive,
           JobRepositoryLive,
-          ChatRepositoryLive
+          ChatRepositoryLive,
+          ConceptRepositoryLive,
+          ConceptEdgeRepositoryLive,
+          ConceptStoryRepositoryLive
         )
       )
     ),
