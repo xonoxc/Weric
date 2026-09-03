@@ -41,10 +41,7 @@ export function createLearnInterestsHandler(db: Db): JobHandler {
   return {
     type: "learn_interests",
 
-    handle(
-      _payload: Record<string, unknown>,
-      _jobId: string
-    ): Effect.Effect<void, unknown> {
+    handle() {
       return Effect.gen(function* () {
         const interactionRepo = yield* InteractionRepository
         const recommendationService = yield* RecommendationService

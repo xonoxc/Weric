@@ -54,7 +54,7 @@ export function createRebuildRecommendationsHandler(db: Db): JobHandler {
           { concurrency: 10 }
         )
 
-        console.log(
+        yield* Effect.logInfo(
           `[${jobId}] Rebuilt recommendations for ${users.length} users (${totalStories} total stories)`
         )
       }).pipe(Effect.provide(RecommendationLayer))

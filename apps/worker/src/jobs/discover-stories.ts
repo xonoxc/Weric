@@ -20,8 +20,7 @@ export function createDiscoverStoriesHandler(
   return {
     type: "discover_stories",
     handle(
-      payload: Record<string, unknown>,
-      _jobId: string
+      payload: Record<string, unknown>
     ): Effect.Effect<void, DiscoverStoriesError> {
       const url = payload.url as string | undefined
       if (!url) {

@@ -9,10 +9,7 @@ export function createCleanupEvidenceHandler(
   return {
     type: "cleanup_evidence",
 
-    handle(
-      _payload: Record<string, unknown>,
-      _jobId: string
-    ): Effect.Effect<void, Error> {
+    handle(): Effect.Effect<void, Error> {
       return Effect.gen(function* () {
         const { data: allEvidence } = yield* evidenceRepo
           .findMany({ page: 1, limit: 1000 })
@@ -22,13 +19,12 @@ export function createCleanupEvidenceHandler(
             )
           )
 
-        const cutoff = Date.now() - 90 * 86_400_000
         const stale = allEvidence.filter(
           (e: { discoveredAt: Date }) =>
-            new Date(e.discoveredAt).getTime() < cutoff
+            new Date(e.discoveredAt).getTime() < Date.now() - 90 * 86_400_000
         )
 
-        console.log(
+        yield* Effect.logInfo(
           `Cleanup: found ${stale.length} stale evidence items out of ${allEvidence.length}`
         )
       })

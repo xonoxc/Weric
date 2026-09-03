@@ -35,10 +35,7 @@ export function createRecomputeScoresHandler(db: Db): JobHandler {
   return {
     type: "recompute_scores",
 
-    handle(
-      _payload: Record<string, unknown>,
-      _jobId: string
-    ): Effect.Effect<void, unknown> {
+    handle() {
       return Effect.gen(function* () {
         const storyRepo = yield* StoryRepository
         const recommendationService = yield* RecommendationService
@@ -66,7 +63,7 @@ export function createRecomputeScoresHandler(db: Db): JobHandler {
         )
 
         if (users.length > 0) {
-          console.log(
+          yield* Effect.logInfo(
             `Recomputed scores across ${stories.length} stories for ${users.length} users: ${totalRanked} total ranked`
           )
         }
