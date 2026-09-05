@@ -3,7 +3,6 @@ export { loadDatabaseConfig, type DatabaseConfig } from "./config.ts"
 export * as schema from "./schema/tables.ts"
 export type { DbJob } from "./schema/tables.ts"
 
-export { DrizzleDB, DatabaseLiveLayer, DatabaseTestLayer } from "./layer.ts"
 export {
   StoryRepository,
   StoryRepositoryLive,
@@ -48,6 +47,17 @@ export type {
   ChatListRow,
   ChatDetail,
   RepositoryError,
+  StoryRepositoryShape,
+  EvidenceRepositoryShape,
+  ConceptRepositoryShape,
+  ConceptEdgeRepositoryShape,
+  ConceptStoryRepositoryShape,
+  UserRepositoryShape,
+  InteractionRepositoryShape,
+  BookmarkRepositoryShape,
+  JobRepositoryShape,
+  InterestRepositoryShape,
+  ChatRepositoryShape,
 } from "./repositories/index.ts"
 
-export { Database } from "./connection.ts"
+export { Database, DatabaseLive } from "./connection.ts"

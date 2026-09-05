@@ -1,4 +1,4 @@
-import { Context, Effect, Layer } from "effect"
+import { Effect } from "effect"
 import {
   ConceptRepository,
   ConceptEdgeRepository,
@@ -13,37 +13,36 @@ export interface GraphServiceShape {
   ) => Effect.Effect<ConceptGraph, RepositoryError>
 }
 
-export class GraphService extends Context.Tag("GraphService")<
-  GraphService,
-  GraphServiceShape
->() {}
+export class GraphService extends Effect.Service<GraphServiceShape>()(
+  "GraphService",
+  {
+    effect: Effect.gen(function* () {
+      const conceptRepo = yield* ConceptRepository
+      const edgeRepo = yield* ConceptEdgeRepository
+      const storyRepo = yield* ConceptStoryRepository
 
-export const GraphServiceLive = Layer.effect(
-  GraphService,
-  Effect.gen(function* () {
-    const conceptRepo = yield* ConceptRepository
-    const edgeRepo = yield* ConceptEdgeRepository
-    const storyRepo = yield* ConceptStoryRepository
+      return {
+        getGraph: chatId =>
+          Effect.gen(function* () {
+            const [nodes, edges] = yield* Effect.all([
+              conceptRepo.findByChat(chatId),
+              edgeRepo.findByChat(chatId),
+            ])
 
-    return {
-      getGraph: chatId =>
-        Effect.gen(function* () {
-          const [nodes, edges] = yield* Effect.all([
-            conceptRepo.findByChat(chatId),
-            edgeRepo.findByChat(chatId),
-          ])
+            const conceptStories: ConceptGraph["conceptStories"][number][] = []
 
-          const conceptStories: ConceptGraph["conceptStories"][number][] = []
-
-          for (const node of nodes) {
-            const storyIds = yield* storyRepo.findStoryIdsByConcept(node.id)
-            for (const storyId of storyIds) {
-              conceptStories.push({ conceptId: node.id, storyId })
+            for (const node of nodes) {
+              const storyIds = yield* storyRepo.findStoryIdsByConcept(node.id)
+              for (const storyId of storyIds) {
+                conceptStories.push({ conceptId: node.id, storyId })
+              }
             }
-          }
 
-          return { nodes, edges, conceptStories }
-        }),
-    }
-  })
-)
+            return { nodes, edges, conceptStories }
+          }),
+      } satisfies GraphServiceShape
+    }),
+  }
+) {}
+
+export const GraphServiceLive = GraphService.Default

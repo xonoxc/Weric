@@ -1,4 +1,4 @@
-import { Context, Effect, Layer } from "effect"
+import { Effect } from "effect"
 import { InteractionRepository } from "@weric/database"
 import { RecommendationService } from "@weric/recommendation"
 
@@ -22,35 +22,34 @@ export interface InteractionServiceShape {
   ) => Effect.Effect<InteractionRow, RepositoryError | RecommendationError>
 }
 
-export class InteractionService extends Context.Tag("InteractionService")<
-  InteractionService,
-  InteractionServiceShape
->() {}
+export class InteractionService extends Effect.Service<InteractionServiceShape>()(
+  "InteractionService",
+  {
+    effect: Effect.gen(function* () {
+      const repo = yield* InteractionRepository
+      const recommendationService = yield* RecommendationService
 
-export const InteractionServiceLive = Layer.effect(
-  InteractionService,
-  Effect.gen(function* () {
-    const repo = yield* InteractionRepository
-    const recommendationService = yield* RecommendationService
+      return {
+        create: input =>
+          Effect.gen(function* () {
+            const result = yield* repo.create({
+              userId: input.userId,
+              storyId: input.storyId,
+              interactionType: input.interactionType,
+              duration: input.duration ?? null,
+            })
 
-    return {
-      create: input =>
-        Effect.gen(function* () {
-          const result = yield* repo.create({
-            userId: input.userId,
-            storyId: input.storyId,
-            interactionType: input.interactionType,
-            duration: input.duration ?? null,
-          })
+            yield* recommendationService.updateInterests(
+              input.userId,
+              input.storyId,
+              input.interactionType
+            )
 
-          yield* recommendationService.updateInterests(
-            input.userId,
-            input.storyId,
-            input.interactionType
-          )
+            return result
+          }),
+      } satisfies InteractionServiceShape
+    }),
+  }
+) {}
 
-          return result
-        }),
-    }
-  })
-)
+export const InteractionServiceLive = InteractionService.Default

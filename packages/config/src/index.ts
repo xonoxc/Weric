@@ -1,4 +1,4 @@
-import { Config, Context, Effect, Layer, Schema } from "effect"
+import { Config, Effect, pipe, Schema } from "effect"
 import {
   DB_URL_REGEX,
   HTTP_URL_REGEX,
@@ -7,7 +7,8 @@ import {
 
 export const WericConfigSchema = Schema.Struct({
   database: Schema.Struct({
-    url: Schema.optional(Schema.String.pipe(Schema.pattern(DB_URL_REGEX))).pipe(
+    url: pipe(
+      Schema.optional(pipe(Schema.String, Schema.pattern(DB_URL_REGEX))),
       Schema.withDecodingDefault(() => DEFAULT_DATABASE_URL)
     ),
   }),
@@ -40,50 +41,60 @@ export const WericConfigSchema = Schema.Struct({
 })
 export type WericConfig = Schema.Schema.Type<typeof WericConfigSchema>
 
-export class WericConfigService extends Context.Tag("WericConfigService")<
-  WericConfigService,
-  WericConfig
->() {}
-
-const configFromEnv = Effect.gen(function* () {
-  const databaseUrl = yield* Config.string("DATABASE_URL").pipe(
-    Config.withDefault(DEFAULT_DATABASE_URL)
-  )
-  const jwtSecret = yield* Config.string("JWT_SECRET").pipe(
-    Config.withDefault("change-me-in-production")
-  )
-  const betterAuthSecret = yield* Config.string("BETTER_AUTH_SECRET").pipe(
-    Config.withDefault("change-me-in-production")
-  )
-  const betterAuthUrl = yield* Config.string("BETTER_AUTH_URL").pipe(
-    Config.withDefault("http://localhost:3000")
-  )
-  const port = yield* Config.number("API_PORT").pipe(Config.withDefault(3000))
-  const logLevel = yield* Config.string("LOG_LEVEL").pipe(
-    Config.withDefault("info")
-  )
-  const groqApiKey = yield* Config.string("GROQ_API_KEY").pipe(
-    Config.withDefault("")
-  )
-
-  return Schema.decodeUnknownSync(WericConfigSchema)({
-    database: { url: databaseUrl },
-    auth: { jwtSecret, betterAuthSecret, betterAuthUrl },
-    api: { port },
-    logging: { level: logLevel },
-    ai: {
+const configFromEnv = pipe(
+  Effect.all({
+    databaseUrl: pipe(
+      Config.string("DATABASE_URL"),
+      Config.withDefault(DEFAULT_DATABASE_URL)
+    ),
+    jwtSecret: pipe(
+      Config.string("JWT_SECRET"),
+      Config.withDefault("change-me-in-production")
+    ),
+    betterAuthSecret: pipe(
+      Config.string("BETTER_AUTH_SECRET"),
+      Config.withDefault("change-me-in-production")
+    ),
+    betterAuthUrl: pipe(
+      Config.string("BETTER_AUTH_URL"),
+      Config.withDefault("http://localhost:3000")
+    ),
+    port: pipe(Config.number("API_PORT"), Config.withDefault(3000)),
+    logLevel: pipe(Config.string("LOG_LEVEL"), Config.withDefault("info")),
+    groqApiKey: pipe(Config.string("GROQ_API_KEY"), Config.withDefault("")),
+  }),
+  Effect.map(
+    ({
+      databaseUrl,
+      jwtSecret,
+      betterAuthSecret,
+      betterAuthUrl,
+      port,
+      logLevel,
       groqApiKey,
-    },
-  })
-})
-
-export const ConfigLiveLayer: Layer.Layer<WericConfigService> = Layer.effect(
-  WericConfigService,
-  Effect.orDie(configFromEnv)
+    }) =>
+      Schema.decodeUnknownSync(WericConfigSchema)({
+        database: { url: databaseUrl },
+        auth: { jwtSecret, betterAuthSecret, betterAuthUrl },
+        api: { port },
+        logging: { level: logLevel },
+        ai: { groqApiKey },
+      })
+  )
 )
 
+export class WericConfigService extends Effect.Service<WericConfig>()(
+  "WericConfigService",
+  {
+    effect: Effect.orDie(configFromEnv),
+  }
+) {}
+
+export const ConfigLiveLayer = WericConfigService.Default
+
 export function loadDatabaseUrl(url?: string): string {
-  const DatabaseUrlSchema = Schema.String.pipe(Schema.pattern(DB_URL_REGEX))
+  const DatabaseUrlSchema = pipe(Schema.String, Schema.pattern(DB_URL_REGEX))
+
   return Schema.decodeUnknownSync(DatabaseUrlSchema)(
     url ?? process.env.DATABASE_URL ?? DEFAULT_DATABASE_URL
   )

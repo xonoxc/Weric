@@ -1,4 +1,4 @@
-import { Context, Effect, Layer } from "effect"
+import { Effect } from "effect"
 import {
   StoryRepository,
   EvidenceRepository,
@@ -42,102 +42,101 @@ export interface SearchServiceShape {
   ) => Effect.Effect<SearchResult, RepositoryError>
 }
 
-export class SearchService extends Context.Tag("SearchService")<
-  SearchService,
-  SearchServiceShape
->() {}
+export class SearchService extends Effect.Service<SearchServiceShape>()(
+  "SearchService",
+  {
+    effect: Effect.gen(function* () {
+      const storyRepo = yield* StoryRepository
+      const evidenceRepo = yield* EvidenceRepository
+      const jobRepo = yield* JobRepository
+      const chatRepo = yield* ChatRepository
+      const graphService = yield* GraphService
 
-export const SearchServiceLive = Layer.effect(
-  SearchService,
-  Effect.gen(function* () {
-    const storyRepo = yield* StoryRepository
-    const evidenceRepo = yield* EvidenceRepository
-    const jobRepo = yield* JobRepository
-    const chatRepo = yield* ChatRepository
-    const graphService = yield* GraphService
+      return {
+        search: (params, userId) =>
+          Effect.gen(function* () {
+            let storyResult: {
+              data: StoryWithEvidenceCount[]
+              total: number
+            } | null = null
+            let evidenceResult: {
+              data: EvidenceSearchRow[]
+              total: number
+            } | null = null
 
-    return {
-      search: (params, userId) =>
-        Effect.gen(function* () {
-          let storyResult: {
-            data: StoryWithEvidenceCount[]
-            total: number
-          } | null = null
-          let evidenceResult: {
-            data: EvidenceSearchRow[]
-            total: number
-          } | null = null
-
-          if (params.type === "all" || params.type === "stories") {
-            storyResult = yield* storyRepo.searchStories(params.q, {
-              page: params.page,
-              limit: params.limit,
-            })
-          }
-
-          if (params.type === "all" || params.type === "evidence") {
-            evidenceResult = yield* evidenceRepo.searchEvidence(params.q, {
-              page: params.page,
-              limit: params.limit,
-            })
-          }
-
-          let resolvedChatId: string | null = null
-          try {
-            if (params.chatId) {
-              const chat = yield* chatRepo.findById(params.chatId)
-              if (chat) resolvedChatId = chat.id
-            } else {
-              const chat = yield* chatRepo.create({
-                title: defaultChatTitle(),
-                query: params.q,
-                userId: userId ?? null,
+            if (params.type === "all" || params.type === "stories") {
+              storyResult = yield* storyRepo.searchStories(params.q, {
+                page: params.page,
+                limit: params.limit,
               })
-              resolvedChatId = chat.id
             }
-          } catch {}
 
-          let jobId: string | null = null
+            if (params.type === "all" || params.type === "evidence") {
+              evidenceResult = yield* evidenceRepo.searchEvidence(params.q, {
+                page: params.page,
+                limit: params.limit,
+              })
+            }
 
-          try {
-            const job = yield* jobRepo.create({
-              type: "search_discover",
-              payload: { query: params.q, chatId: resolvedChatId },
-            })
-            jobId = job.id
-
-            jobBus.sendJobToWorker({
-              id: job.id,
-              type: job.type,
-              payload: job.payload,
-            })
-          } catch {}
-
-          let graph: ConceptGraph | null = null
-          if (resolvedChatId) {
+            let resolvedChatId: string | null = null
             try {
-              const g = yield* graphService.getGraph(resolvedChatId)
-              graph = g.nodes.length > 0 ? g : null
+              if (params.chatId) {
+                const chat = yield* chatRepo.findById(params.chatId)
+                if (chat) resolvedChatId = chat.id
+              } else {
+                const chat = yield* chatRepo.create({
+                  title: defaultChatTitle(),
+                  query: params.q,
+                  userId: userId ?? null,
+                })
+                resolvedChatId = chat.id
+              }
             } catch {}
-          }
 
-          return {
-            stories: storyResult?.data ?? [],
-            evidence: (evidenceResult?.data ?? []).map(e => ({
-              ...e,
-              content: e.content.slice(0, 500),
-            })),
-            meta: {
-              page: params.page,
-              limit: params.limit,
-              storyTotal: storyResult?.total ?? 0,
-              evidenceTotal: evidenceResult?.total ?? 0,
-            },
-            jobId,
-            chatId: resolvedChatId,
-            graph,
-          }
-        }),
-    }
-  })
-)
+            let jobId: string | null = null
+
+            try {
+              const job = yield* jobRepo.create({
+                type: "search_discover",
+                payload: { query: params.q, chatId: resolvedChatId },
+              })
+              jobId = job.id
+
+              jobBus.sendJobToWorker({
+                id: job.id,
+                type: job.type,
+                payload: job.payload,
+              })
+            } catch {}
+
+            let graph: ConceptGraph | null = null
+            if (resolvedChatId) {
+              try {
+                const g = yield* graphService.getGraph(resolvedChatId)
+                graph = g.nodes.length > 0 ? g : null
+              } catch {}
+            }
+
+            return {
+              stories: storyResult?.data ?? [],
+              evidence: (evidenceResult?.data ?? []).map(e => ({
+                ...e,
+                content: e.content.slice(0, 500),
+              })),
+              meta: {
+                page: params.page,
+                limit: params.limit,
+                storyTotal: storyResult?.total ?? 0,
+                evidenceTotal: evidenceResult?.total ?? 0,
+              },
+              jobId,
+              chatId: resolvedChatId,
+              graph,
+            }
+          }),
+      } satisfies SearchServiceShape
+    }),
+  }
+) {}
+
+export const SearchServiceLive = SearchService.Default

@@ -1,5 +1,5 @@
 import { Hono } from "hono"
-import { Effect, Layer } from "effect"
+import { Effect, Layer, pipe } from "effect"
 import {
   StoryRepositoryLive,
   EvidenceRepositoryLive,
@@ -24,7 +24,8 @@ export function createSearchRoutes(base: AppContext) {
   const router = new Hono<{ Variables: ApiVariables }>()
 
   const routeContext = buildRouteContext(
-    SearchControllerLive.pipe(
+    pipe(
+      SearchControllerLive,
       Layer.provide(SearchServiceLive),
       Layer.provide(GraphServiceLive),
       Layer.provide(

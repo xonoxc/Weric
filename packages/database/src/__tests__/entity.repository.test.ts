@@ -6,13 +6,14 @@ import {
   StoryRepositoryLive,
 } from "~db/repositories/story.repository.ts"
 import { getTestDb, cleanDatabase } from "~db/__tests__/helpers.ts"
+import type { StoryRepositoryShape } from "~db/repositories/story.repository.ts"
 
 import { Database } from "~db/connection.ts"
 import type { Db } from "~db/connection.ts"
 
 describe("EntityRepository", () => {
   let repo: EntityRepository
-  let storyRepo: StoryRepository
+  let storyRepo: StoryRepositoryShape
 
   beforeEach(async () => {
     await cleanDatabase()

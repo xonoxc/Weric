@@ -1,4 +1,4 @@
-import { Effect, Schedule } from "effect"
+import { Effect, pipe, Schedule } from "effect"
 
 export function withRetry<A, E>(
   effect: Effect.Effect<A, E>,
@@ -8,9 +8,12 @@ export function withRetry<A, E>(
   }
 ): Effect.Effect<A, E> {
   const { maxRetries = 3, delay = 500 } = options ?? {}
-  const policy = Schedule.exponential(delay, 2.0).pipe(
+
+  const policy = pipe(
+    Schedule.exponential(delay, 2.0),
     Schedule.compose(Schedule.recurs(maxRetries))
   )
+
   return Effect.retry(effect, policy)
 }
 
@@ -23,9 +26,12 @@ export function withRetryWhile<A, E>(
   }
 ): Effect.Effect<A, E> {
   const { maxRetries = 3, delay = 500 } = options ?? {}
-  const policy = Schedule.exponential(delay, 2.0).pipe(
+
+  const policy = pipe(
+    Schedule.exponential(delay, 2.0),
     Schedule.compose(Schedule.recurs(maxRetries))
   )
+
   return effect.pipe(
     Effect.catchAll((error: E) =>
       predicate(error) ? effect.pipe(Effect.retry(policy)) : Effect.fail(error)

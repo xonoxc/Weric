@@ -5,5 +5,7 @@ export interface DatabaseConfig {
 }
 
 export function loadDatabaseConfig(url?: string): DatabaseConfig {
-  return { url: loadDatabaseUrl(url) }
+  return {
+    url: loadDatabaseUrl(url),
+  }
 }

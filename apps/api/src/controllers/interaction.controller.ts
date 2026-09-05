@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Schema } from "effect"
+import { Effect, Schema } from "effect"
 import { InteractionService } from "~api/services/interaction.service"
 import { requireUser } from "~api/lib/validation"
 
@@ -16,47 +16,47 @@ const InteractionResponse = Schema.Struct({
   createdAt: Schema.Date,
 })
 
-export interface InteractionController {
+export interface InteractionControllerShape {
   readonly create: (
     c: HonoCtx<{ Variables: ApiVariables }>
   ) => Effect.Effect<Response, unknown>
 }
 
-export const InteractionController = Context.GenericTag<InteractionController>(
-  "InteractionController"
-)
+export class InteractionController extends Effect.Service<InteractionControllerShape>()(
+  "InteractionController",
+  {
+    effect: Effect.gen(function* () {
+      const service = yield* InteractionService
 
-export const InteractionControllerLive = Layer.effect(
-  InteractionController,
-  Effect.gen(function* () {
-    const service = yield* InteractionService
+      return {
+        create: ctx =>
+          Effect.gen(function* () {
+            const user = requireUser(ctx)
 
-    return {
-      create: ctx =>
-        Effect.gen(function* () {
-          const user = requireUser(ctx)
+            const reqBody = yield* Effect.tryPromise({
+              try: () => ctx.req.json(),
+              catch: cause => new Error(String(cause)),
+            })
 
-          const reqBody = yield* Effect.tryPromise({
-            try: () => ctx.req.json(),
-            catch: cause => new Error(String(cause)),
-          })
+            const body = Schema.decodeUnknownSync(CreateInteractionInputSchema)(
+              reqBody
+            )
 
-          const body = Schema.decodeUnknownSync(CreateInteractionInputSchema)(
-            reqBody
-          )
+            const result = yield* service.create({
+              userId: user.id,
+              storyId: body.storyId,
+              interactionType: body.interactionType,
+              duration: body.duration ?? null,
+            })
 
-          const result = yield* service.create({
-            userId: user.id,
-            storyId: body.storyId,
-            interactionType: body.interactionType,
-            duration: body.duration ?? null,
-          })
+            return ctx.json(
+              Schema.decodeUnknownSync(InteractionResponse)(result),
+              201
+            )
+          }),
+      } satisfies InteractionControllerShape
+    }),
+  }
+) {}
 
-          return ctx.json(
-            Schema.decodeUnknownSync(InteractionResponse)(result),
-            201
-          )
-        }),
-    }
-  })
-)
+export const InteractionControllerLive = InteractionController.Default

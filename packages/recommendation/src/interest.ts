@@ -1,4 +1,4 @@
-import { Context, Effect, Layer } from "effect"
+import { Effect } from "effect"
 import { STOP_WORDS } from "@weric/shared"
 import { ScoringError } from "./errors.ts"
 
@@ -45,7 +45,7 @@ export interface TopicScore {
   score: number
 }
 
-export interface InterestLearner {
+export interface InterestLearnerShape {
   readonly extractTopics: (story: StoryWithEvidenceCount) => TopicScore[]
 
   readonly updateFromInteraction: (
@@ -59,118 +59,121 @@ export interface InterestLearner {
   ) => Effect.Effect<void, RecommendationError>
 }
 
-export const InterestLearner =
-  Context.GenericTag<InterestLearner>("InterestLearner")
+export class InterestLearner extends Effect.Service<InterestLearnerShape>()(
+  "InterestLearner",
+  {
+    effect: Effect.gen(function* () {
+      const interestRepo = yield* InterestRepository
 
-export const InterestLearnerLive = Layer.effect(
-  InterestLearner,
-  Effect.gen(function* () {
-    const interestRepo = yield* InterestRepository
+      const tokenize = (text: string): string[] =>
+        text
+          .toLowerCase()
+          .replace(/[^a-z0-9\s'-]/g, "")
+          .split(/\s+/)
+          .filter(w => w.length > 3 && !STOP_WORDS.has(w))
 
-    const tokenize = (text: string): string[] =>
-      text
-        .toLowerCase()
-        .replace(/[^a-z0-9\s'-]/g, "")
-        .split(/\s+/)
-        .filter(w => w.length > 3 && !STOP_WORDS.has(w))
+      const extractTopics = (story: StoryWithEvidenceCount): TopicScore[] => {
+        const titleWords = tokenize(story.title)
+        const summaryWords = tokenize(story.summary)
 
-    const extractTopics = (story: StoryWithEvidenceCount): TopicScore[] => {
-      const titleWords = tokenize(story.title)
-      const summaryWords = tokenize(story.summary)
+        const wordScores = new Map<string, number>()
 
-      const wordScores = new Map<string, number>()
-
-      for (const word of titleWords) {
-        const boost = BOOST_WORDS.has(word) ? 2 : 1
-        wordScores.set(word, (wordScores.get(word) ?? 0) + 0.3 * boost)
-      }
-
-      for (const word of summaryWords) {
-        if (wordScores.has(word)) {
-          wordScores.set(word, wordScores.get(word)! + 0.1)
-        } else {
-          wordScores.set(word, 0.1)
-        }
-      }
-
-      return [...wordScores.entries()]
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, MAX_TOPICS)
-        .map(([topic, score]) => ({
-          topic,
-          score: Math.min(1, score),
-        }))
-    }
-
-    const updateFromInteraction = (
-      userId: string,
-      story: StoryWithEvidenceCount,
-      interactionType: string
-    ): Effect.Effect<void, RecommendationError> =>
-      Effect.gen(function* () {
-        const boost = INTERACTION_BOOST[interactionType]
-
-        if (boost === undefined) {
-          return
+        for (const word of titleWords) {
+          const boost = BOOST_WORDS.has(word) ? 2 : 1
+          wordScores.set(word, (wordScores.get(word) ?? 0) + 0.3 * boost)
         }
 
-        const topics = extractTopics(story)
-
-        if (topics.length === 0) {
-          return
-        }
-
-        const existing = yield* interestRepo
-          .findByUserId(userId)
-          .pipe(Effect.mapError(toScoringError("Failed to fetch interests")))
-
-        const existingMap = new Map(existing.map(i => [i.topic, i.score]))
-
-        for (const { topic, score } of topics) {
-          const current = existingMap.get(topic) ?? 0
-
-          const updated = Math.max(
-            0,
-            Math.min(1, current * DECAY_FACTOR + score * boost)
-          )
-
-          yield* interestRepo
-            .upsert(userId, topic, updated)
-            .pipe(Effect.mapError(toScoringError("Failed to upsert interest")))
-        }
-      })
-
-    const decayAll = (
-      userId: string
-    ): Effect.Effect<void, RecommendationError> =>
-      Effect.gen(function* () {
-        const existing = yield* interestRepo
-          .findByUserId(userId)
-          .pipe(Effect.mapError(toScoringError("Failed to fetch interests")))
-
-        for (const interest of existing) {
-          const decayed = interest.score * DECAY_FACTOR
-
-          if (decayed < 0.01) {
-            yield* interestRepo
-              .deleteByTopic(userId, interest.topic)
-              .pipe(
-                Effect.mapError(toScoringError("Failed to delete interest"))
-              )
+        for (const word of summaryWords) {
+          if (wordScores.has(word)) {
+            wordScores.set(word, wordScores.get(word)! + 0.1)
           } else {
+            wordScores.set(word, 0.1)
+          }
+        }
+
+        return [...wordScores.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, MAX_TOPICS)
+          .map(([topic, score]) => ({
+            topic,
+            score: Math.min(1, score),
+          }))
+      }
+
+      const updateFromInteraction = (
+        userId: string,
+        story: StoryWithEvidenceCount,
+        interactionType: string
+      ): Effect.Effect<void, RecommendationError> =>
+        Effect.gen(function* () {
+          const boost = INTERACTION_BOOST[interactionType]
+
+          if (boost === undefined) {
+            return
+          }
+
+          const topics = extractTopics(story)
+
+          if (topics.length === 0) {
+            return
+          }
+
+          const existing = yield* interestRepo
+            .findByUserId(userId)
+            .pipe(Effect.mapError(toScoringError("Failed to fetch interests")))
+
+          const existingMap = new Map(existing.map(i => [i.topic, i.score]))
+
+          for (const { topic, score } of topics) {
+            const current = existingMap.get(topic) ?? 0
+
+            const updated = Math.max(
+              0,
+              Math.min(1, current * DECAY_FACTOR + score * boost)
+            )
+
             yield* interestRepo
-              .upsert(userId, interest.topic, decayed)
+              .upsert(userId, topic, updated)
               .pipe(
                 Effect.mapError(toScoringError("Failed to upsert interest"))
               )
           }
-        }
-      })
+        })
 
-    return {
-      extractTopics,
-      updateFromInteraction,
-      decayAll,
-    }
-  })
-)
+      const decayAll = (
+        userId: string
+      ): Effect.Effect<void, RecommendationError> =>
+        Effect.gen(function* () {
+          const existing = yield* interestRepo
+            .findByUserId(userId)
+            .pipe(Effect.mapError(toScoringError("Failed to fetch interests")))
+
+          for (const interest of existing) {
+            const decayed = interest.score * DECAY_FACTOR
+
+            if (decayed < 0.01) {
+              yield* interestRepo
+                .deleteByTopic(userId, interest.topic)
+                .pipe(
+                  Effect.mapError(toScoringError("Failed to delete interest"))
+                )
+            } else {
+              yield* interestRepo
+                .upsert(userId, interest.topic, decayed)
+                .pipe(
+                  Effect.mapError(toScoringError("Failed to upsert interest"))
+                )
+            }
+          }
+        })
+
+      return {
+        extractTopics,
+        updateFromInteraction,
+        decayAll,
+      } satisfies InterestLearnerShape
+    }),
+  }
+) {}
+
+export const InterestLearnerLive = InterestLearner.Default

@@ -1,4 +1,4 @@
-import { Context, Effect, Layer } from "effect"
+import { Effect } from "effect"
 import { createAuth } from "@weric/auth"
 import { Database } from "@weric/database"
 
@@ -8,17 +8,16 @@ export interface AuthServiceShape {
   readonly auth: Auth
 }
 
-export class AuthService extends Context.Tag("AuthService")<
-  AuthService,
-  AuthServiceShape
->() {}
+export class AuthService extends Effect.Service<AuthServiceShape>()(
+  "AuthService",
+  {
+    effect: Effect.gen(function* () {
+      const db = yield* Database
+      return {
+        auth: createAuth(db),
+      } satisfies AuthServiceShape
+    }),
+  }
+) {}
 
-export const AuthServiceLive = Layer.effect(
-  AuthService,
-  Effect.gen(function* () {
-    const db = yield* Database
-    return {
-      auth: createAuth(db),
-    }
-  })
-)
+export const AuthServiceLive = AuthService.Default

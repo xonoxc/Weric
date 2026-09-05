@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Schema } from "effect"
+import { Effect, Schema } from "effect"
 import { BookmarkService } from "~api/services/bookmark.service"
 import { requireUser } from "~api/lib/validation"
 
@@ -17,7 +17,7 @@ const BookmarkResponse = Schema.Struct({
 
 const StoryIdParam = Schema.Struct({ storyId: Schema.UUID })
 
-export interface BookmarkController {
+export interface BookmarkControllerShape {
   readonly list: (
     c: HonoCtx<{ Variables: ApiVariables }>
   ) => Effect.Effect<Response, unknown>
@@ -31,54 +31,55 @@ export interface BookmarkController {
   ) => Effect.Effect<Response, unknown>
 }
 
-export const BookmarkController =
-  Context.GenericTag<BookmarkController>("BookmarkController")
+export class BookmarkController extends Effect.Service<BookmarkControllerShape>()(
+  "BookmarkController",
+  {
+    effect: Effect.gen(function* () {
+      const service = yield* BookmarkService
 
-export const BookmarkControllerLive = Layer.effect(
-  BookmarkController,
-  Effect.gen(function* () {
-    const service = yield* BookmarkService
+      return {
+        list: ctx =>
+          Effect.gen(function* () {
+            const user = requireUser(ctx)
 
-    return {
-      list: ctx =>
-        Effect.gen(function* () {
-          const user = requireUser(ctx)
+            const data = yield* service.listByUser(user.id)
 
-          const data = yield* service.listByUser(user.id)
+            return ctx.json({ data })
+          }),
 
-          return ctx.json({ data })
-        }),
+        create: ctx =>
+          Effect.gen(function* () {
+            const user = requireUser(ctx)
 
-      create: ctx =>
-        Effect.gen(function* () {
-          const user = requireUser(ctx)
+            const rawBody = yield* Effect.tryPromise({
+              try: () => ctx.req.json(),
+              catch: cause => new Error(String(cause)),
+            })
 
-          const rawBody = yield* Effect.tryPromise({
-            try: () => ctx.req.json(),
-            catch: cause => new Error(String(cause)),
-          })
+            const { storyId } = Schema.decodeUnknownSync(
+              CreateBookmarkInputSchema
+            )(rawBody)
 
-          const { storyId } = Schema.decodeUnknownSync(
-            CreateBookmarkInputSchema
-          )(rawBody)
+            const result = yield* service.create(user.id, storyId)
 
-          const result = yield* service.create(user.id, storyId)
+            return ctx.json(Schema.encodeSync(BookmarkResponse)(result), 201)
+          }),
 
-          return ctx.json(Schema.encodeSync(BookmarkResponse)(result), 201)
-        }),
+        remove: ctx =>
+          Effect.gen(function* () {
+            const user = requireUser(ctx)
 
-      remove: ctx =>
-        Effect.gen(function* () {
-          const user = requireUser(ctx)
+            const { storyId } = Schema.decodeUnknownSync(StoryIdParam)(
+              ctx.req.param()
+            )
 
-          const { storyId } = Schema.decodeUnknownSync(StoryIdParam)(
-            ctx.req.param()
-          )
+            yield* service.remove(user.id, storyId)
 
-          yield* service.remove(user.id, storyId)
+            return ctx.json({ success: true })
+          }),
+      } satisfies BookmarkControllerShape
+    }),
+  }
+) {}
 
-          return ctx.json({ success: true })
-        }),
-    }
-  })
-)
+export const BookmarkControllerLive = BookmarkController.Default

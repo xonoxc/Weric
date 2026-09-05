@@ -1,4 +1,4 @@
-import { Context, Effect, Layer } from "effect"
+import { Effect } from "effect"
 import { ChatRepository } from "@weric/database"
 import { chats } from "~db/schema/tables.ts"
 
@@ -29,22 +29,21 @@ export interface ChatServiceShape {
   readonly delete: (id: string) => Effect.Effect<void, RepositoryError>
 }
 
-export class ChatService extends Context.Tag("ChatService")<
-  ChatService,
-  ChatServiceShape
->() {}
+export class ChatService extends Effect.Service<ChatServiceShape>()(
+  "ChatService",
+  {
+    effect: Effect.gen(function* () {
+      const repo = yield* ChatRepository
 
-export const ChatServiceLive = Layer.effect(
-  ChatService,
-  Effect.gen(function* () {
-    const repo = yield* ChatRepository
+      return {
+        findByUser: userId => repo.findByUser(userId),
+        create: data => repo.create(data),
+        findById: id => repo.findById(id),
+        findByIdWithStories: id => repo.findByIdWithStories(id),
+        delete: id => repo.delete(id),
+      } satisfies ChatServiceShape
+    }),
+  }
+) {}
 
-    return {
-      findByUser: userId => repo.findByUser(userId),
-      create: data => repo.create(data),
-      findById: id => repo.findById(id),
-      findByIdWithStories: id => repo.findByIdWithStories(id),
-      delete: id => repo.delete(id),
-    }
-  })
-)
+export const ChatServiceLive = ChatService.Default

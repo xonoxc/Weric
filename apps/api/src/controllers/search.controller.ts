@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Schema } from "effect"
+import { Effect, Schema } from "effect"
 import { SearchService } from "~api/services/search.service"
 import { ConceptGraphSchema } from "@weric/contracts"
 
@@ -37,39 +37,42 @@ const SearchResponse = Schema.Struct({
   graph: Schema.optional(Schema.NullOr(ConceptGraphSchema)),
 })
 
-export interface SearchController {
+export interface SearchControllerShape {
   readonly search: (
     c: HonoCtx<{ Variables: ApiVariables }>
   ) => Effect.Effect<Response, unknown>
 }
 
-export const SearchController =
-  Context.GenericTag<SearchController>("SearchController")
+export class SearchController extends Effect.Service<SearchControllerShape>()(
+  "SearchController",
+  {
+    effect: Effect.gen(function* () {
+      const service = yield* SearchService
 
-export const SearchControllerLive = Layer.effect(
-  SearchController,
-  Effect.gen(function* () {
-    const service = yield* SearchService
+      return {
+        search: ctx =>
+          Effect.gen(function* () {
+            const user = ctx.get("user")
+            const parsed = Schema.decodeUnknownSync(SearchQuery)(
+              ctx.req.query()
+            )
 
-    return {
-      search: ctx =>
-        Effect.gen(function* () {
-          const user = ctx.get("user")
-          const parsed = Schema.decodeUnknownSync(SearchQuery)(ctx.req.query())
+            const result = yield* service.search(
+              {
+                q: parsed.q,
+                type: parsed.type,
+                page: parsed.page,
+                limit: parsed.limit,
+                chatId: parsed.chatId,
+              },
+              user?.id ?? null
+            )
 
-          const result = yield* service.search(
-            {
-              q: parsed.q,
-              type: parsed.type,
-              page: parsed.page,
-              limit: parsed.limit,
-              chatId: parsed.chatId,
-            },
-            user?.id ?? null
-          )
+            return ctx.json(Schema.encode(SearchResponse)(result))
+          }),
+      } satisfies SearchControllerShape
+    }),
+  }
+) {}
 
-          return ctx.json(Schema.encode(SearchResponse)(result))
-        }),
-    }
-  })
-)
+export const SearchControllerLive = SearchController.Default

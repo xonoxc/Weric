@@ -1,4 +1,4 @@
-import { Context, Data, Effect, Layer } from "effect"
+import { Data, Effect, pipe } from "effect"
 import { Interest } from "packages/contracts/src"
 import { InterestRepository } from "~db/repositories"
 
@@ -17,37 +17,35 @@ export interface InterestServiceShape {
   ) => Effect.Effect<Interest[], InterestError>
 }
 
-export class InterestService extends Context.Tag("InterestService")<
-  InterestService,
-  InterestServiceShape
->() {}
+export class InterestService extends Effect.Service<InterestServiceShape>()(
+  "InterestService",
+  {
+    effect: Effect.gen(function* () {
+      const repo = yield* InterestRepository
 
-export const InterestServiceLive = Layer.effect(
-  InterestService,
-  Effect.gen(function* () {
-    const repo = yield* InterestRepository
-
-    return {
-      getUserInterests: userId =>
-        repo
-          .findByUserId(userId)
-          .pipe(Effect.mapError(error => new InterestError({ cause: error }))),
-
-      setInterests: (userId, topics) =>
-        Effect.gen(function* () {
-          for (const topic of topics) {
-            yield* repo.upsert(userId, topic, 1.0)
-          }
-
-          return yield* repo.findByUserId(userId)
-        }).pipe(
-          Effect.mapError(
-            error =>
-              new InterestError({
-                cause: error,
-              })
+      return {
+        getUserInterests: userId => {
+          return pipe(
+            repo.findByUserId(userId),
+            Effect.mapError(error => new InterestError({ cause: error }))
           )
-        ),
-    }
-  })
-)
+        },
+
+        setInterests: (userId, topics) =>
+          pipe(
+            Effect.gen(function* () {
+              for (const topic of topics) {
+                yield* repo.upsert(userId, topic, 1.0)
+              }
+
+              return yield* repo.findByUserId(userId)
+            }),
+
+            Effect.mapError(error => new InterestError({ cause: error }))
+          ),
+      } satisfies InterestServiceShape
+    }),
+  }
+) {}
+
+export const InterestServiceLive = InterestService.Default

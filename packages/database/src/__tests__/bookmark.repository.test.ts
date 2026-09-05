@@ -13,9 +13,10 @@ import { getTestDb, cleanDatabase } from "~db/__tests__/helpers.ts"
 import { users } from "~db/schema/tables.ts"
 
 import type { Db } from "~db/connection.ts"
+import type { BookmarkRepositoryShape } from "~db/repositories/bookmark.repository.ts"
 
 describe("BookmarkRepository", () => {
-  let repo: BookmarkRepository
+  let repo: BookmarkRepositoryShape
   let userId: string
   let storyId: string
 

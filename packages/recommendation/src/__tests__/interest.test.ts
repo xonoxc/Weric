@@ -1,6 +1,8 @@
 import { describe, expect, it, beforeAll } from "vitest"
 import { InterestLearner, InterestLearnerLive } from "~rec/interest.ts"
+import type { InterestLearnerShape } from "~rec/interest.ts"
 import { InterestRepository } from "@weric/database"
+import type { InterestRepositoryShape } from "@weric/database"
 import { Effect, Layer } from "effect"
 
 import type { StoryWithEvidenceCount } from "@weric/database"
@@ -25,7 +27,7 @@ function makeStory(
 
 describe("InterestLearner", () => {
   describe("extractTopics", () => {
-    let learner: InterestLearner
+    let learner: InterestLearnerShape
 
     beforeAll(async () => {
       learner = await Effect.runPromise(
@@ -34,7 +36,7 @@ describe("InterestLearner", () => {
         }).pipe(
           Effect.provide(InterestLearnerLive),
           Effect.provide(
-            Layer.succeed(InterestRepository, {} as InterestRepository)
+            Layer.succeed(InterestRepository, {} as InterestRepositoryShape)
           )
         )
       )

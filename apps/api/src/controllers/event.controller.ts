@@ -1,4 +1,4 @@
-import { Context, Effect, Layer } from "effect"
+import { Effect } from "effect"
 import { JobService } from "~api/services/job.service"
 import { jobBus } from "~api/lib/job-bus.ts"
 import { streamSSE } from "hono/streaming"
@@ -8,7 +8,7 @@ import type { Context as HonoCtx } from "hono"
 import type { StreamWriter } from "~api/lib/job-bus.ts"
 import type { RepositoryError } from "@weric/database"
 
-export interface EventController {
+export interface EventControllerShape {
   readonly getJob: (
     c: HonoCtx<{ Variables: ApiVariables }>
   ) => Effect.Effect<Response, unknown>
@@ -18,83 +18,84 @@ export interface EventController {
   ) => Effect.Effect<Response, unknown>
 }
 
-export const EventController =
-  Context.GenericTag<EventController>("EventController")
+export class EventController extends Effect.Service<EventControllerShape>()(
+  "EventController",
+  {
+    effect: Effect.gen(function* () {
+      const jobService = yield* JobService
 
-export const EventControllerLive = Layer.effect(
-  EventController,
-  Effect.gen(function* () {
-    const jobService = yield* JobService
+      return {
+        getJob: ctx =>
+          Effect.gen(function* () {
+            const id = ctx.req.param("id")!
+            const job = yield* jobService.findById(id)
 
-    return {
-      getJob: ctx =>
-        Effect.gen(function* () {
-          const id = ctx.req.param("id")!
-          const job = yield* jobService.findById(id)
+            if (!job) {
+              return ctx.json(
+                {
+                  error: "Job not found",
+                },
+                404
+              )
+            }
 
-          if (!job) {
-            return ctx.json(
-              {
-                error: "Job not found",
-              },
-              404
-            )
-          }
+            return ctx.json(job)
+          }),
 
-          return ctx.json(job)
-        }),
+        streamEvents: ctx =>
+          Effect.sync(() => {
+            const jobId = ctx.req.query("jobId")?.trim()
+            if (!jobId) {
+              return ctx.json(
+                {
+                  error: "jobId query parameter is required",
+                },
+                400
+              )
+            }
 
-      streamEvents: ctx =>
-        Effect.sync(() => {
-          const jobId = ctx.req.query("jobId")?.trim()
-          if (!jobId) {
-            return ctx.json(
-              {
-                error: "jobId query parameter is required",
-              },
-              400
-            )
-          }
+            return streamSSE(ctx, async stream => {
+              const closeRef = { current: false }
 
-          return streamSSE(ctx, async stream => {
-            const closeRef = { current: false }
+              stream.onAbort(() => {
+                closeRef.current = true
+                jobBus.unregisterClient(jobId)
+              })
 
-            stream.onAbort(() => {
-              closeRef.current = true
+              const writer: StreamWriter = {
+                send: (event, data) => {
+                  if (!closeRef.current) {
+                    stream
+                      .writeSSE({
+                        data: JSON.stringify(data),
+                        event,
+                      })
+                      .catch(() => {})
+                  }
+                },
+                close: () => (closeRef.current = true),
+                onAbort: cb => stream.onAbort(cb),
+              }
+
+              jobBus.registerClient(jobId, writer)
+
+              const clientKeepalive = setInterval(() => {
+                stream.write(": keepalive\n\n").catch(() => {})
+              }, 5_000)
+
+              while (!closeRef.current) {
+                await new Promise(r => setTimeout(r, 500))
+              }
+
+              clearInterval(clientKeepalive)
+
               jobBus.unregisterClient(jobId)
+              stream.close()
             })
+          }),
+      } satisfies EventControllerShape
+    }),
+  }
+) {}
 
-            const writer: StreamWriter = {
-              send: (event, data) => {
-                if (!closeRef.current) {
-                  stream
-                    .writeSSE({
-                      data: JSON.stringify(data),
-                      event,
-                    })
-                    .catch(() => {})
-                }
-              },
-              close: () => (closeRef.current = true),
-              onAbort: cb => stream.onAbort(cb),
-            }
-
-            jobBus.registerClient(jobId, writer)
-
-            const clientKeepalive = setInterval(() => {
-              stream.write(": keepalive\n\n").catch(() => {})
-            }, 5_000)
-
-            while (!closeRef.current) {
-              await new Promise(r => setTimeout(r, 500))
-            }
-
-            clearInterval(clientKeepalive)
-
-            jobBus.unregisterClient(jobId)
-            stream.close()
-          })
-        }),
-    }
-  })
-)
+export const EventControllerLive = EventController.Default

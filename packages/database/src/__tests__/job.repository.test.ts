@@ -5,12 +5,13 @@ import {
   JobRepositoryLive,
 } from "~db/repositories/job.repository.ts"
 import { getTestDb, cleanDatabase } from "~db/__tests__/helpers.ts"
+import type { JobRepositoryShape } from "~db/repositories/job.repository.ts"
 
 import { Database } from "~db/connection.ts"
 import type { Db } from "~db/connection.ts"
 
 describe("JobRepository", () => {
-  let repo: JobRepository
+  let repo: JobRepositoryShape
 
   beforeEach(async () => {
     await cleanDatabase()

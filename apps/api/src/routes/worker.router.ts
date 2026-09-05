@@ -1,5 +1,5 @@
 import { Hono } from "hono"
-import { Effect, Layer } from "effect"
+import { Effect, Layer, pipe } from "effect"
 import { JobRepositoryLive } from "@weric/database"
 import {
   WorkerController,
@@ -15,7 +15,8 @@ export function createWorkerRoutes(base: AppContext) {
   const router = new Hono<{ Variables: ApiVariables }>()
 
   const routeContext = buildRouteContext(
-    WorkerControllerLive.pipe(
+    pipe(
+      WorkerControllerLive,
       Layer.provide(JobServiceLive),
       Layer.provide(JobRepositoryLive)
     ),

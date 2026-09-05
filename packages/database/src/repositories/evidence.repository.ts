@@ -1,4 +1,4 @@
-import { Context, Effect, Layer } from "effect"
+import { Effect } from "effect"
 import { desc, eq, sql } from "drizzle-orm"
 import { DbEvidence, evidence } from "~db/schema/tables.ts"
 import { ConflictError, tryDb } from "./errors.ts"
@@ -19,7 +19,7 @@ export interface EvidenceSearchRow {
   discoveredAt: string
 }
 
-export interface EvidenceRepository {
+export interface EvidenceRepositoryShape {
   readonly create: (data: {
     source: string
     url: string
@@ -57,143 +57,144 @@ export interface EvidenceRepository {
   >
 }
 
-export const EvidenceRepository =
-  Context.GenericTag<EvidenceRepository>("EvidenceRepository")
+export class EvidenceRepository extends Effect.Service<EvidenceRepositoryShape>()(
+  "EvidenceRepository",
+  {
+    effect: Effect.gen(function* () {
+      const db = yield* Database
 
-export const EvidenceRepositoryLive = Layer.effect(
-  EvidenceRepository,
-  Effect.gen(function* () {
-    const db = yield* Database
+      return {
+        create: data => {
+          return Effect.tryPromise({
+            try: async () => {
+              const [row] = await db
+                .insert(evidence)
+                .values({
+                  source: data.source,
+                  url: data.url,
+                  author: data.author ?? null,
+                  title: data.title,
+                  content: data.content,
+                  metadata: (data.metadata ?? {}) as Record<string, unknown>,
+                  publishedAt: data.publishedAt ?? null,
+                })
+                .returning()
+              return row!
+            },
+            catch: cause => {
+              if (
+                typeof cause === "object" &&
+                cause !== null &&
+                "code" in cause &&
+                (cause as { code: string }).code === "23505"
+              ) {
+                return new ConflictError(
+                  `Evidence with url '${data.url}' already exists`
+                )
+              }
+              return new ConflictError(String(cause))
+            },
+          })
+        },
 
-    return {
-      create: data => {
-        return Effect.tryPromise({
-          try: async () => {
+        findById: id => {
+          return tryDb(async () => {
             const [row] = await db
-              .insert(evidence)
-              .values({
-                source: data.source,
-                url: data.url,
-                author: data.author ?? null,
-                title: data.title,
-                content: data.content,
-                metadata: (data.metadata ?? {}) as Record<string, unknown>,
-                publishedAt: data.publishedAt ?? null,
-              })
-              .returning()
-            return row!
-          },
-          catch: cause => {
-            if (
-              typeof cause === "object" &&
-              cause !== null &&
-              "code" in cause &&
-              (cause as { code: string }).code === "23505"
-            ) {
-              return new ConflictError(
-                `Evidence with url '${data.url}' already exists`
-              )
-            }
-            return new ConflictError(String(cause))
-          },
-        })
-      },
+              .select()
+              .from(evidence)
+              .where(eq(evidence.id, id))
+              .limit(1)
+            return row ?? null
+          })
+        },
 
-      findById: id => {
-        return tryDb(async () => {
-          const [row] = await db
-            .select()
-            .from(evidence)
-            .where(eq(evidence.id, id))
-            .limit(1)
-          return row ?? null
-        })
-      },
+        findByUrl: url => {
+          return tryDb(async () => {
+            const [row] = await db
+              .select()
+              .from(evidence)
+              .where(eq(evidence.url, url))
+              .limit(1)
+            return row ?? null
+          })
+        },
 
-      findByUrl: url => {
-        return tryDb(async () => {
-          const [row] = await db
-            .select()
-            .from(evidence)
-            .where(eq(evidence.url, url))
-            .limit(1)
-          return row ?? null
-        })
-      },
-
-      findBySource: (source, limit = 50) => {
-        return tryDb(() =>
-          db
-            .select()
-            .from(evidence)
-            .where(eq(evidence.source, source))
-            .orderBy(desc(evidence.discoveredAt))
-            .limit(limit)
-        )
-      },
-
-      findMany: options => {
-        return tryDb(async () => {
-          const page = options.page ?? 1
-          const limit = Math.min(options.limit ?? 20, 100)
-          const offset = (page - 1) * limit
-
-          const [data, countResult] = await Promise.all([
+        findBySource: (source, limit = 50) => {
+          return tryDb(() =>
             db
               .select()
               .from(evidence)
+              .where(eq(evidence.source, source))
               .orderBy(desc(evidence.discoveredAt))
               .limit(limit)
-              .offset(offset),
-            db.select({ count: sql<number>`count(*)` }).from(evidence),
-          ])
+          )
+        },
 
-          return {
-            data,
-            total: Number(countResult[0]?.count ?? 0),
-          }
-        })
-      },
+        findMany: options => {
+          return tryDb(async () => {
+            const page = options.page ?? 1
+            const limit = Math.min(options.limit ?? 20, 100)
+            const offset = (page - 1) * limit
 
-      searchEvidence: (query, options = {}) => {
-        return tryDb(async () => {
-          const page = options.page ?? 1
-          const limit = Math.min(options.limit ?? 100, 100)
-          const offset = (page - 1) * limit
-          const pattern = `%${query}%`
+            const [data, countResult] = await Promise.all([
+              db
+                .select()
+                .from(evidence)
+                .orderBy(desc(evidence.discoveredAt))
+                .limit(limit)
+                .offset(offset),
+              db.select({ count: sql<number>`count(*)` }).from(evidence),
+            ])
 
-          const condition = sql`(${evidence.title} ILIKE ${pattern} OR ${evidence.content} ILIKE ${pattern})`
+            return {
+              data,
+              total: Number(countResult[0]?.count ?? 0),
+            }
+          })
+        },
 
-          const rows = await db
-            .select({
-              id: evidence.id,
-              source: evidence.source,
-              url: evidence.url,
-              author: evidence.author,
-              title: evidence.title,
-              content: evidence.content,
-              publishedAt: sql<
-                string | null
-              >`to_char(${evidence.publishedAt}, ${TSFMT})`,
-              discoveredAt: sql<string>`to_char(${evidence.discoveredAt}, ${TSFMT})`,
-            })
-            .from(evidence)
-            .where(condition)
-            .orderBy(desc(evidence.discoveredAt))
-            .limit(limit)
-            .offset(offset)
+        searchEvidence: (query, options = {}) => {
+          return tryDb(async () => {
+            const page = options.page ?? 1
+            const limit = Math.min(options.limit ?? 100, 100)
+            const offset = (page - 1) * limit
+            const pattern = `%${query}%`
 
-          const [totalResult] = await db
-            .select({ count: sql<number>`count(*)::int` })
-            .from(evidence)
-            .where(condition)
+            const condition = sql`(${evidence.title} ILIKE ${pattern} OR ${evidence.content} ILIKE ${pattern})`
 
-          return {
-            data: rows as EvidenceSearchRow[],
-            total: totalResult?.count ?? 0,
-          }
-        })
-      },
-    }
-  })
-)
+            const rows = await db
+              .select({
+                id: evidence.id,
+                source: evidence.source,
+                url: evidence.url,
+                author: evidence.author,
+                title: evidence.title,
+                content: evidence.content,
+                publishedAt: sql<
+                  string | null
+                >`to_char(${evidence.publishedAt}, ${TSFMT})`,
+                discoveredAt: sql<string>`to_char(${evidence.discoveredAt}, ${TSFMT})`,
+              })
+              .from(evidence)
+              .where(condition)
+              .orderBy(desc(evidence.discoveredAt))
+              .limit(limit)
+              .offset(offset)
+
+            const [totalResult] = await db
+              .select({ count: sql<number>`count(*)::int` })
+              .from(evidence)
+              .where(condition)
+
+            return {
+              data: rows as EvidenceSearchRow[],
+              total: totalResult?.count ?? 0,
+            }
+          })
+        },
+      } satisfies EvidenceRepositoryShape
+    }),
+  }
+) {}
+
+export const EvidenceRepositoryLive = EvidenceRepository.Default

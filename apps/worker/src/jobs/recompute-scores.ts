@@ -1,4 +1,4 @@
-import { Effect, Layer } from "effect"
+import { Effect, Layer, pipe } from "effect"
 import {
   Database,
   StoryRepository,
@@ -36,38 +36,46 @@ export function createRecomputeScoresHandler(db: Db): JobHandler {
     type: "recompute_scores",
 
     handle() {
-      return Effect.gen(function* () {
-        const storyRepo = yield* StoryRepository
-        const recommendationService = yield* RecommendationService
-        const userRepo = yield* UserRepository
+      return pipe(
+        Effect.gen(function* () {
+          const storyRepo = yield* StoryRepository
+          const recommendationService = yield* RecommendationService
+          const userRepo = yield* UserRepository
 
-        const { data: stories } = yield* storyRepo.findPublishedFeed({
-          page: 1,
-          limit: 100,
-        })
+          const { data: stories } = yield* storyRepo.findPublishedFeed({
+            page: 1,
+            limit: 100,
+          })
 
-        const users = yield* userRepo.findAll()
+          const users = yield* userRepo.findAll()
 
-        let totalRanked = 0
+          let totalRanked = 0
 
-        yield* Effect.forEach(
-          users,
-          user =>
-            recommendationService.generateFeed(user.id, { limit: 50 }).pipe(
-              Effect.catchAll(() => Effect.succeed(null)),
-              Effect.tap(feed => {
-                if (feed) totalRanked += feed.data.length
-              })
-            ),
-          { concurrency: 10 }
-        )
-
-        if (users.length > 0) {
-          yield* Effect.logInfo(
-            `Recomputed scores across ${stories.length} stories for ${users.length} users: ${totalRanked} total ranked`
+          yield* Effect.forEach(
+            users,
+            user =>
+              pipe(
+                recommendationService.generateFeed(user.id, {
+                  limit: 50,
+                }),
+                Effect.catchAll(() => Effect.succeed(null)),
+                Effect.tap(feed => {
+                  if (feed) totalRanked += feed.data.length
+                })
+              ),
+            { concurrency: 10 }
           )
-        }
-      }).pipe(Effect.provide(RecommendationLayer))
+
+          if (users.length > 0) {
+            yield* Effect.logInfo("Recomputed resources", {
+              stories: stories.length,
+              users: users.length,
+              totalRanked,
+            })
+          }
+        }),
+        Effect.provide(RecommendationLayer)
+      )
     },
   }
 }

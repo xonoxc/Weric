@@ -1,4 +1,4 @@
-import { Context, Effect, Layer } from "effect"
+import { Effect } from "effect"
 import { RecommendationService } from "@weric/recommendation"
 import type { FeedOptions } from "@weric/recommendation"
 
@@ -12,19 +12,18 @@ export interface FeedServiceShape {
   ) => Effect.Effect<Feed, RecommendationError>
 }
 
-export class FeedService extends Context.Tag("FeedService")<
-  FeedService,
-  FeedServiceShape
->() {}
+export class FeedService extends Effect.Service<FeedServiceShape>()(
+  "FeedService",
+  {
+    effect: Effect.gen(function* () {
+      const recommendationService = yield* RecommendationService
 
-export const FeedServiceLive = Layer.effect(
-  FeedService,
-  Effect.gen(function* () {
-    const recommendationService = yield* RecommendationService
+      return {
+        generateFeed: (userId, options) =>
+          recommendationService.generateFeed(userId, options),
+      } satisfies FeedServiceShape
+    }),
+  }
+) {}
 
-    return {
-      generateFeed: (userId, options) =>
-        recommendationService.generateFeed(userId, options),
-    }
-  })
-)
+export const FeedServiceLive = FeedService.Default

@@ -1,4 +1,4 @@
-import { Context, Effect, Layer } from "effect"
+import { Effect } from "effect"
 import { and, desc, eq, sql } from "drizzle-orm"
 import {
   stories,
@@ -57,7 +57,7 @@ export interface StoryDetail {
   }>
 }
 
-export interface StoryRepository {
+export interface StoryRepositoryShape {
   readonly create: (data: {
     title: string
     slug: string
@@ -145,340 +145,341 @@ export interface StoryRepository {
   readonly delete: (id: string) => Effect.Effect<void, RepositoryError>
 }
 
-export const StoryRepository =
-  Context.GenericTag<StoryRepository>("StoryRepository")
+export class StoryRepository extends Effect.Service<StoryRepositoryShape>()(
+  "StoryRepository",
+  {
+    effect: Effect.gen(function* () {
+      const db = yield* Database
 
-export const StoryRepositoryLive = Layer.effect(
-  StoryRepository,
-  Effect.gen(function* () {
-    const db = yield* Database
+      return {
+        create(data) {
+          return tryDb(async () => {
+            const [story] = await db
+              .insert(stories)
+              .values({
+                title: data.title,
+                slug: data.slug,
+                summary: data.summary ?? null,
+              })
+              .returning()
 
-    return {
-      create(data) {
-        return tryDb(async () => {
-          const [story] = await db
-            .insert(stories)
-            .values({
-              title: data.title,
-              slug: data.slug,
-              summary: data.summary ?? null,
-            })
-            .returning()
+            if (!story) throw new Error("Failed to create story")
 
-          if (!story) throw new Error("Failed to create story")
-
-          if (data.evidenceIds?.length) {
-            await db.insert(storyEvidence).values(
-              data.evidenceIds.map(evidenceId => ({
-                storyId: story.id,
-                evidenceId,
-              }))
-            )
-          }
-
-          return story
-        })
-      },
-
-      addEvidence(storyId, evidenceId) {
-        return tryDb(() =>
-          db
-            .insert(storyEvidence)
-            .values({ storyId, evidenceId })
-            .onConflictDoNothing()
-        )
-      },
-
-      findById(id) {
-        return tryDb(async () => {
-          const [row] = await db
-            .select()
-            .from(stories)
-            .where(eq(stories.id, id))
-            .limit(1)
-          return row ?? null
-        })
-      },
-
-      findBySlug(slug) {
-        return tryDb(async () => {
-          const [row] = await db
-            .select()
-            .from(stories)
-            .where(eq(stories.slug, slug))
-            .limit(1)
-          return row ?? null
-        })
-      },
-
-      findMany(options = {}) {
-        return tryDb(async () => {
-          const page = options.page ?? 1
-          const limit = Math.min(options.limit ?? 20, 100)
-          const offset = (page - 1) * limit
-
-          const conditions = []
-          if (options.status) {
-            conditions.push(
-              eq(
-                stories.status,
-                options.status as "draft" | "published" | "archived"
+            if (data.evidenceIds?.length) {
+              await db.insert(storyEvidence).values(
+                data.evidenceIds.map(evidenceId => ({
+                  storyId: story.id,
+                  evidenceId,
+                }))
               )
-            )
-          }
-          const where = conditions.length > 0 ? and(...conditions) : undefined
+            }
 
-          const [data, countResult] = await Promise.all([
+            return story
+          })
+        },
+
+        addEvidence(storyId, evidenceId) {
+          return tryDb(() =>
             db
+              .insert(storyEvidence)
+              .values({ storyId, evidenceId })
+              .onConflictDoNothing()
+          )
+        },
+
+        findById(id) {
+          return tryDb(async () => {
+            const [row] = await db
               .select()
+              .from(stories)
+              .where(eq(stories.id, id))
+              .limit(1)
+            return row ?? null
+          })
+        },
+
+        findBySlug(slug) {
+          return tryDb(async () => {
+            const [row] = await db
+              .select()
+              .from(stories)
+              .where(eq(stories.slug, slug))
+              .limit(1)
+            return row ?? null
+          })
+        },
+
+        findMany(options = {}) {
+          return tryDb(async () => {
+            const page = options.page ?? 1
+            const limit = Math.min(options.limit ?? 20, 100)
+            const offset = (page - 1) * limit
+
+            const conditions = []
+            if (options.status) {
+              conditions.push(
+                eq(
+                  stories.status,
+                  options.status as "draft" | "published" | "archived"
+                )
+              )
+            }
+            const where = conditions.length > 0 ? and(...conditions) : undefined
+
+            const [data, countResult] = await Promise.all([
+              db
+                .select()
+                .from(stories)
+                .where(where)
+                .orderBy(desc(stories.createdAt))
+                .limit(limit)
+                .offset(offset),
+              db
+                .select({ count: sql<number>`count(*)` })
+                .from(stories)
+                .where(where),
+            ])
+
+            return {
+              data,
+              total: Number(countResult[0]?.count ?? 0),
+            }
+          })
+        },
+
+        findManyWithEvidenceCount(options = {}) {
+          return tryDb(async () => {
+            const page = options.page ?? 1
+            const limit = Math.min(options.limit ?? 100, 100)
+            const offset = (page - 1) * limit
+
+            const conditions: ReturnType<typeof eq>[] = []
+            if (options.status) {
+              conditions.push(
+                eq(
+                  stories.status,
+                  options.status as "draft" | "published" | "archived"
+                )
+              )
+            }
+            const where = conditions.length > 0 ? and(...conditions) : undefined
+
+            const rows = await db
+              .select({
+                id: stories.id,
+                title: stories.title,
+                slug: stories.slug,
+                summary: sql<string>`COALESCE(${stories.summary}, '')`,
+                confidence: sql<number>`COALESCE(${stories.confidence}, 0)`,
+                status: stories.status,
+                createdAt: sql<string>`to_char(${stories.createdAt}, ${TSFMT})`,
+                updatedAt: sql<string>`to_char(${stories.updatedAt}, ${TSFMT})`,
+                evidenceCount: sql<number>`
+                (
+                  SELECT count(*)::int
+                  FROM ${storyEvidence}
+                  WHERE ${storyEvidence.storyId} = ${stories.id}
+                )
+              `,
+              })
               .from(stories)
               .where(where)
               .orderBy(desc(stories.createdAt))
               .limit(limit)
-              .offset(offset),
-            db
-              .select({ count: sql<number>`count(*)` })
+              .offset(offset)
+
+            const [totalResult] = await db
+              .select({ count: sql<number>`count(*)::int` })
               .from(stories)
-              .where(where),
-          ])
+              .where(where)
 
-          return {
-            data,
-            total: Number(countResult[0]?.count ?? 0),
-          }
-        })
-      },
+            return {
+              data: rows as StoryWithEvidenceCount[],
+              total: totalResult?.count ?? 0,
+            }
+          })
+        },
 
-      findManyWithEvidenceCount(options = {}) {
-        return tryDb(async () => {
-          const page = options.page ?? 1
-          const limit = Math.min(options.limit ?? 100, 100)
-          const offset = (page - 1) * limit
+        findBySlugWithDetails(slug) {
+          return tryDb(async () => {
+            const [storyRow] = await db
+              .select({
+                id: stories.id,
+                title: stories.title,
+                slug: stories.slug,
+                summary: stories.summary,
+                confidence: stories.confidence,
+                status: stories.status,
+                createdAt: sql<string>`to_char(${stories.createdAt}, ${TSFMT})`,
+                updatedAt: sql<string>`to_char(${stories.updatedAt}, ${TSFMT})`,
+              })
+              .from(stories)
+              .where(eq(stories.slug, slug))
+              .limit(1)
 
-          const conditions: ReturnType<typeof eq>[] = []
-          if (options.status) {
-            conditions.push(
-              eq(
-                stories.status,
-                options.status as "draft" | "published" | "archived"
-              )
+            if (!storyRow) return null
+
+            const evidenceRows = await db
+              .select({
+                id: evidence.id,
+                source: evidence.source,
+                url: evidence.url,
+                author: evidence.author,
+                title: evidence.title,
+                publishedAt: sql<string | null>`
+                to_char(${evidence.publishedAt}, ${TSFMT})
+              `,
+              })
+              .from(storyEvidence)
+              .innerJoin(evidence, eq(storyEvidence.evidenceId, evidence.id))
+              .where(eq(storyEvidence.storyId, storyRow.id))
+
+            const entityRows = await db
+              .select({
+                id: entities.id,
+                name: entities.name,
+                type: entities.type,
+              })
+              .from(storyEntities)
+              .innerJoin(entities, eq(storyEntities.entityId, entities.id))
+              .where(eq(storyEntities.storyId, storyRow.id))
+
+            return {
+              ...storyRow,
+              evidence: evidenceRows as StoryDetail["evidence"],
+              entities: entityRows as StoryDetail["entities"],
+            }
+          })
+        },
+
+        searchStories(query, options = {}) {
+          return tryDb(async () => {
+            const page = options.page ?? 1
+            const limit = Math.min(options.limit ?? 100, 100)
+            const offset = (page - 1) * limit
+            const pattern = `%${query}%`
+
+            const condition = sql`
+            (
+              ${stories.title} ILIKE ${pattern}
+              OR COALESCE(${stories.summary}, '') ILIKE ${pattern}
             )
-          }
-          const where = conditions.length > 0 ? and(...conditions) : undefined
+          `
 
-          const rows = await db
-            .select({
-              id: stories.id,
-              title: stories.title,
-              slug: stories.slug,
-              summary: sql<string>`COALESCE(${stories.summary}, '')`,
-              confidence: sql<number>`COALESCE(${stories.confidence}, 0)`,
-              status: stories.status,
-              createdAt: sql<string>`to_char(${stories.createdAt}, ${TSFMT})`,
-              updatedAt: sql<string>`to_char(${stories.updatedAt}, ${TSFMT})`,
-              evidenceCount: sql<number>`
-              (
-                SELECT count(*)::int
-                FROM ${storyEvidence}
-                WHERE ${storyEvidence.storyId} = ${stories.id}
-              )
-            `,
-            })
-            .from(stories)
-            .where(where)
-            .orderBy(desc(stories.createdAt))
-            .limit(limit)
-            .offset(offset)
+            const rows = await db
+              .select({
+                id: stories.id,
+                title: stories.title,
+                slug: stories.slug,
+                summary: sql<string>`COALESCE(${stories.summary}, '')`,
+                confidence: sql<number>`COALESCE(${stories.confidence}, 0)`,
+                status: stories.status,
+                createdAt: sql<string>`to_char(${stories.createdAt}, ${TSFMT})`,
+                updatedAt: sql<string>`to_char(${stories.updatedAt}, ${TSFMT})`,
+                evidenceCount: sql<number>`
+                (
+                  SELECT count(*)::int
+                  FROM ${storyEvidence}
+                  WHERE ${storyEvidence.storyId} = ${stories.id}
+                )
+              `,
+              })
+              .from(stories)
+              .where(condition)
+              .orderBy(desc(stories.confidence))
+              .limit(limit)
+              .offset(offset)
 
-          const [totalResult] = await db
-            .select({ count: sql<number>`count(*)::int` })
-            .from(stories)
-            .where(where)
+            const [totalResult] = await db
+              .select({ count: sql<number>`count(*)::int` })
+              .from(stories)
+              .where(condition)
 
-          return {
-            data: rows as StoryWithEvidenceCount[],
-            total: totalResult?.count ?? 0,
-          }
-        })
-      },
+            return {
+              data: rows as StoryWithEvidenceCount[],
+              total: totalResult?.count ?? 0,
+            }
+          })
+        },
 
-      findBySlugWithDetails(slug) {
-        return tryDb(async () => {
-          const [storyRow] = await db
-            .select({
-              id: stories.id,
-              title: stories.title,
-              slug: stories.slug,
-              summary: stories.summary,
-              confidence: stories.confidence,
-              status: stories.status,
-              createdAt: sql<string>`to_char(${stories.createdAt}, ${TSFMT})`,
-              updatedAt: sql<string>`to_char(${stories.updatedAt}, ${TSFMT})`,
-            })
-            .from(stories)
-            .where(eq(stories.slug, slug))
-            .limit(1)
+        findPublishedFeed(options = {}) {
+          return tryDb(async () => {
+            const page = options.page ?? 1
+            const limit = Math.min(options.limit ?? 50, 100)
+            const offset = (page - 1) * limit
 
-          if (!storyRow) return null
+            const rows = await db
+              .select({
+                id: stories.id,
+                title: stories.title,
+                slug: stories.slug,
+                summary: sql<string>`COALESCE(${stories.summary}, '')`,
+                confidence: sql<number>`COALESCE(${stories.confidence}, 0)`,
+                status: stories.status,
+                createdAt: sql<string>`to_char(${stories.createdAt}, ${TSFMT})`,
+                updatedAt: sql<string>`to_char(${stories.updatedAt}, ${TSFMT})`,
+                evidenceCount: sql<number>`
+                (
+                  SELECT count(*)::int
+                  FROM ${storyEvidence}
+                  WHERE ${storyEvidence.storyId} = ${stories.id}
+                )
+              `,
+              })
+              .from(stories)
+              .where(eq(stories.status, "published"))
+              .orderBy(desc(stories.confidence), desc(stories.createdAt))
+              .limit(limit)
+              .offset(offset)
 
-          const evidenceRows = await db
-            .select({
-              id: evidence.id,
-              source: evidence.source,
-              url: evidence.url,
-              author: evidence.author,
-              title: evidence.title,
-              publishedAt: sql<string | null>`
-              to_char(${evidence.publishedAt}, ${TSFMT})
-            `,
-            })
-            .from(storyEvidence)
-            .innerJoin(evidence, eq(storyEvidence.evidenceId, evidence.id))
-            .where(eq(storyEvidence.storyId, storyRow.id))
+            const [totalResult] = await db
+              .select({ count: sql<number>`count(*)::int` })
+              .from(stories)
+              .where(eq(stories.status, "published"))
 
-          const entityRows = await db
-            .select({
-              id: entities.id,
-              name: entities.name,
-              type: entities.type,
-            })
-            .from(storyEntities)
-            .innerJoin(entities, eq(storyEntities.entityId, entities.id))
-            .where(eq(storyEntities.storyId, storyRow.id))
+            return {
+              data: rows as StoryWithEvidenceCount[],
+              total: totalResult?.count ?? 0,
+            }
+          })
+        },
 
-          return {
-            ...storyRow,
-            evidence: evidenceRows as StoryDetail["evidence"],
-            entities: entityRows as StoryDetail["entities"],
-          }
-        })
-      },
+        update(id, data) {
+          return tryDb(async () => {
+            const [existing] = await db
+              .select()
+              .from(stories)
+              .where(eq(stories.id, id))
+              .limit(1)
 
-      searchStories(query, options = {}) {
-        return tryDb(async () => {
-          const page = options.page ?? 1
-          const limit = Math.min(options.limit ?? 100, 100)
-          const offset = (page - 1) * limit
-          const pattern = `%${query}%`
+            if (!existing) throw new NotFoundError("Story", id)
 
-          const condition = sql`
-          (
-            ${stories.title} ILIKE ${pattern}
-            OR COALESCE(${stories.summary}, '') ILIKE ${pattern}
-          )
-        `
+            const [row] = await db
+              .update(stories)
+              .set({ ...data, updatedAt: new Date() })
+              .where(eq(stories.id, id))
+              .returning()
 
-          const rows = await db
-            .select({
-              id: stories.id,
-              title: stories.title,
-              slug: stories.slug,
-              summary: sql<string>`COALESCE(${stories.summary}, '')`,
-              confidence: sql<number>`COALESCE(${stories.confidence}, 0)`,
-              status: stories.status,
-              createdAt: sql<string>`to_char(${stories.createdAt}, ${TSFMT})`,
-              updatedAt: sql<string>`to_char(${stories.updatedAt}, ${TSFMT})`,
-              evidenceCount: sql<number>`
-              (
-                SELECT count(*)::int
-                FROM ${storyEvidence}
-                WHERE ${storyEvidence.storyId} = ${stories.id}
-              )
-            `,
-            })
-            .from(stories)
-            .where(condition)
-            .orderBy(desc(stories.confidence))
-            .limit(limit)
-            .offset(offset)
+            return row!
+          })
+        },
 
-          const [totalResult] = await db
-            .select({ count: sql<number>`count(*)::int` })
-            .from(stories)
-            .where(condition)
+        delete(id) {
+          return tryDb(async () => {
+            const [existing] = await db
+              .select()
+              .from(stories)
+              .where(eq(stories.id, id))
+              .limit(1)
 
-          return {
-            data: rows as StoryWithEvidenceCount[],
-            total: totalResult?.count ?? 0,
-          }
-        })
-      },
+            if (!existing) throw new NotFoundError("Story", id)
 
-      findPublishedFeed(options = {}) {
-        return tryDb(async () => {
-          const page = options.page ?? 1
-          const limit = Math.min(options.limit ?? 50, 100)
-          const offset = (page - 1) * limit
+            await db.delete(stories).where(eq(stories.id, id))
+          })
+        },
+      } satisfies StoryRepositoryShape
+    }),
+  }
+) {}
 
-          const rows = await db
-            .select({
-              id: stories.id,
-              title: stories.title,
-              slug: stories.slug,
-              summary: sql<string>`COALESCE(${stories.summary}, '')`,
-              confidence: sql<number>`COALESCE(${stories.confidence}, 0)`,
-              status: stories.status,
-              createdAt: sql<string>`to_char(${stories.createdAt}, ${TSFMT})`,
-              updatedAt: sql<string>`to_char(${stories.updatedAt}, ${TSFMT})`,
-              evidenceCount: sql<number>`
-              (
-                SELECT count(*)::int
-                FROM ${storyEvidence}
-                WHERE ${storyEvidence.storyId} = ${stories.id}
-              )
-            `,
-            })
-            .from(stories)
-            .where(eq(stories.status, "published"))
-            .orderBy(desc(stories.confidence), desc(stories.createdAt))
-            .limit(limit)
-            .offset(offset)
-
-          const [totalResult] = await db
-            .select({ count: sql<number>`count(*)::int` })
-            .from(stories)
-            .where(eq(stories.status, "published"))
-
-          return {
-            data: rows as StoryWithEvidenceCount[],
-            total: totalResult?.count ?? 0,
-          }
-        })
-      },
-
-      update(id, data) {
-        return tryDb(async () => {
-          const [existing] = await db
-            .select()
-            .from(stories)
-            .where(eq(stories.id, id))
-            .limit(1)
-
-          if (!existing) throw new NotFoundError("Story", id)
-
-          const [row] = await db
-            .update(stories)
-            .set({ ...data, updatedAt: new Date() })
-            .where(eq(stories.id, id))
-            .returning()
-
-          return row!
-        })
-      },
-
-      delete(id) {
-        return tryDb(async () => {
-          const [existing] = await db
-            .select()
-            .from(stories)
-            .where(eq(stories.id, id))
-            .limit(1)
-
-          if (!existing) throw new NotFoundError("Story", id)
-
-          await db.delete(stories).where(eq(stories.id, id))
-        })
-      },
-    }
-  })
-)
+export const StoryRepositoryLive = StoryRepository.Default

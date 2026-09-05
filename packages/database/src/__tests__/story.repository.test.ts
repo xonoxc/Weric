@@ -5,6 +5,7 @@ import {
   StoryRepositoryLive,
 } from "~db/repositories/story.repository.ts"
 import { getTestDb, cleanDatabase } from "~db/__tests__/helpers.ts"
+import type { StoryRepositoryShape } from "~db/repositories/story.repository.ts"
 
 import { Database } from "~db/connection.ts"
 import type { Db } from "~db/connection.ts"
@@ -12,7 +13,7 @@ import type { Db } from "~db/connection.ts"
 const NON_EXISTENT_ID = "00000000-0000-0000-0000-000000000000"
 
 describe("StoryRepository", () => {
-  let repo: StoryRepository
+  let repo: StoryRepositoryShape
 
   beforeEach(async () => {
     await cleanDatabase()

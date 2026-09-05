@@ -1,4 +1,4 @@
-import { Context, Effect, Layer } from "effect"
+import { Effect } from "effect"
 import { BookmarkRepository } from "@weric/database"
 import { bookmarks } from "~db/schema/tables.ts"
 
@@ -23,20 +23,19 @@ export interface BookmarkServiceShape {
   ) => Effect.Effect<void, RepositoryError>
 }
 
-export class BookmarkService extends Context.Tag("BookmarkService")<
-  BookmarkService,
-  BookmarkServiceShape
->() {}
+export class BookmarkService extends Effect.Service<BookmarkServiceShape>()(
+  "BookmarkService",
+  {
+    effect: Effect.gen(function* () {
+      const repo = yield* BookmarkRepository
 
-export const BookmarkServiceLive = Layer.effect(
-  BookmarkService,
-  Effect.gen(function* () {
-    const repo = yield* BookmarkRepository
+      return {
+        listByUser: userId => repo.findByUserWithStories(userId),
+        create: (userId, storyId) => repo.create(userId, storyId),
+        remove: (userId, storyId) => repo.delete(userId, storyId),
+      } satisfies BookmarkServiceShape
+    }),
+  }
+) {}
 
-    return {
-      listByUser: userId => repo.findByUserWithStories(userId),
-      create: (userId, storyId) => repo.create(userId, storyId),
-      remove: (userId, storyId) => repo.delete(userId, storyId),
-    }
-  })
-)
+export const BookmarkServiceLive = BookmarkService.Default

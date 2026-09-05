@@ -1,5 +1,4 @@
-import { Context, Effect, Layer } from "effect"
-import { Schema } from "effect"
+import { Effect, Schema } from "effect"
 import { StoryRepository, EvidenceRepository } from "@weric/database"
 import { evidence } from "~db/schema/tables.ts"
 import { CreateEvidenceInputSchema, EvidenceSource } from "@weric/contracts"
@@ -36,26 +35,25 @@ export interface StoryServiceShape {
   ) => Effect.Effect<EvidenceRow, RepositoryError>
 }
 
-export class StoryService extends Context.Tag("StoryService")<
-  StoryService,
-  StoryServiceShape
->() {}
+export class StoryService extends Effect.Service<StoryServiceShape>()(
+  "StoryService",
+  {
+    effect: Effect.gen(function* () {
+      const storyRepo = yield* StoryRepository
+      const evidenceRepo = yield* EvidenceRepository
 
-export const StoryServiceLive = Layer.effect(
-  StoryService,
-  Effect.gen(function* () {
-    const storyRepo = yield* StoryRepository
-    const evidenceRepo = yield* EvidenceRepository
+      return {
+        listStories: options => storyRepo.findManyWithEvidenceCount(options),
 
-    return {
-      listStories: options => storyRepo.findManyWithEvidenceCount(options),
+        getStoryBySlug: slug => storyRepo.findBySlugWithDetails(slug),
 
-      getStoryBySlug: slug => storyRepo.findBySlugWithDetails(slug),
+        createEvidence: input => evidenceRepo.create(input),
+      } satisfies StoryServiceShape
+    }),
+  }
+) {}
 
-      createEvidence: input => evidenceRepo.create(input),
-    }
-  })
-)
+export const StoryServiceLive = StoryService.Default
 
 export const parseCreateEvidence = (raw: unknown) => {
   const parsed = Schema.decodeUnknownSync(CreateEvidenceInputSchema)(raw)

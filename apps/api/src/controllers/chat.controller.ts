@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Schema } from "effect"
+import { Effect, Schema } from "effect"
 import { ChatService } from "~api/services/chat.service"
 import { requireUser } from "~api/lib/validation"
 
@@ -15,7 +15,7 @@ const ChatIdParam = Schema.Struct({
   id: Schema.String.pipe(Schema.minLength(1)),
 })
 
-export interface ChatController {
+export interface ChatControllerShape {
   readonly list: (
     c: HonoCtx<{ Variables: ApiVariables }>
   ) => Effect.Effect<Response, unknown>
@@ -33,103 +33,108 @@ export interface ChatController {
   ) => Effect.Effect<Response, unknown>
 }
 
-export const ChatController =
-  Context.GenericTag<ChatController>("ChatController")
+export class ChatController extends Effect.Service<ChatControllerShape>()(
+  "ChatController",
+  {
+    effect: Effect.gen(function* () {
+      const service = yield* ChatService
 
-export const ChatControllerLive = Layer.effect(
-  ChatController,
-  Effect.gen(function* () {
-    const service = yield* ChatService
+      const owned = (
+        chat: { userId: string | null } | null,
+        user: { id: string }
+      ): boolean => !!chat && chat.userId === user.id
 
-    const owned = (
-      chat: { userId: string | null } | null,
-      user: { id: string }
-    ): boolean => !!chat && chat.userId === user.id
+      return {
+        list: ctx =>
+          Effect.gen(function* () {
+            const user = requireUser(ctx)
 
-    return {
-      list: ctx =>
-        Effect.gen(function* () {
-          const user = requireUser(ctx)
+            const data = yield* service.findByUser(user.id)
 
-          const data = yield* service.findByUser(user.id)
-
-          return ctx.json({
-            data,
-            meta: {
-              total: data.length,
-            },
-          })
-        }),
-
-      create: ctx =>
-        Effect.gen(function* () {
-          const user = requireUser(ctx)
-
-          const rawBody = yield* Effect.tryPromise({
-            try: () => ctx.req.json(),
-            catch: cause => new Error(String(cause)),
-          })
-
-          const body = Schema.decodeUnknownSync(CreateChatRequest)(rawBody)
-
-          const chat = yield* service.create({
-            title: defaultChatTitle(),
-            query: body.query ?? null,
-            userId: user.id,
-          })
-
-          return ctx.json(chat, 201)
-        }),
-
-      getById: ctx =>
-        Effect.gen(function* () {
-          const user = requireUser(ctx)
-          const { id } = Schema.decodeUnknownSync(ChatIdParam)(ctx.req.param())
-
-          const chat = yield* service.findById(id)
-          if (!owned(chat, user)) {
-            return ctx.json(
-              {
-                error: {
-                  code: "NOT_FOUND",
-                  message: "Chat not found",
-                },
+            return ctx.json({
+              data,
+              meta: {
+                total: data.length,
               },
-              404
+            })
+          }),
+
+        create: ctx =>
+          Effect.gen(function* () {
+            const user = requireUser(ctx)
+
+            const rawBody = yield* Effect.tryPromise({
+              try: () => ctx.req.json(),
+              catch: cause => new Error(String(cause)),
+            })
+
+            const body = Schema.decodeUnknownSync(CreateChatRequest)(rawBody)
+
+            const chat = yield* service.create({
+              title: defaultChatTitle(),
+              query: body.query ?? null,
+              userId: user.id,
+            })
+
+            return ctx.json(chat, 201)
+          }),
+
+        getById: ctx =>
+          Effect.gen(function* () {
+            const user = requireUser(ctx)
+            const { id } = Schema.decodeUnknownSync(ChatIdParam)(
+              ctx.req.param()
             )
-          }
 
-          const detail = yield* service.findByIdWithStories(id)
-          return ctx.json(detail)
-        }),
-
-      remove: ctx =>
-        Effect.gen(function* () {
-          const user = requireUser(ctx)
-          const { id } = Schema.decodeUnknownSync(ChatIdParam)(ctx.req.param())
-
-          const chat = yield* service.findById(id)
-          if (!owned(chat, user)) {
-            return ctx.json(
-              {
-                error: {
-                  code: "NOT_FOUND",
-                  message: "Chat not found",
+            const chat = yield* service.findById(id)
+            if (!owned(chat, user)) {
+              return ctx.json(
+                {
+                  error: {
+                    code: "NOT_FOUND",
+                    message: "Chat not found",
+                  },
                 },
-              },
-              404
+                404
+              )
+            }
+
+            const detail = yield* service.findByIdWithStories(id)
+            return ctx.json(detail)
+          }),
+
+        remove: ctx =>
+          Effect.gen(function* () {
+            const user = requireUser(ctx)
+            const { id } = Schema.decodeUnknownSync(ChatIdParam)(
+              ctx.req.param()
             )
-          }
 
-          yield* service.delete(id)
+            const chat = yield* service.findById(id)
+            if (!owned(chat, user)) {
+              return ctx.json(
+                {
+                  error: {
+                    code: "NOT_FOUND",
+                    message: "Chat not found",
+                  },
+                },
+                404
+              )
+            }
 
-          return ctx.json({
-            ok: true,
-          })
-        }),
-    }
-  })
-)
+            yield* service.delete(id)
+
+            return ctx.json({
+              ok: true,
+            })
+          }),
+      } satisfies ChatControllerShape
+    }),
+  }
+) {}
+
+export const ChatControllerLive = ChatController.Default
 
 export function defaultChatTitle(date = new Date()): string {
   return date.toLocaleString(undefined, {

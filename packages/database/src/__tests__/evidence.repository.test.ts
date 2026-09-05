@@ -5,6 +5,7 @@ import {
   EvidenceRepositoryLive,
 } from "~db/repositories/evidence.repository.ts"
 import { getTestDb, cleanDatabase } from "~db/__tests__/helpers.ts"
+import type { EvidenceRepositoryShape } from "~db/repositories/evidence.repository.ts"
 
 import { Database } from "~db/connection.ts"
 import type { Db } from "~db/connection.ts"
@@ -12,12 +13,13 @@ import type { Db } from "~db/connection.ts"
 const NON_EXISTENT_ID = "00000000-0000-0000-0000-000000000000"
 
 describe("EvidenceRepository", () => {
-  let repo: EvidenceRepository
+  let repo: EvidenceRepositoryShape
 
   beforeEach(async () => {
     await cleanDatabase()
     const db: Db = getTestDb()
     const DatabaseLayer = Layer.succeed(Database, db)
+
     repo = Effect.runSync(
       Effect.gen(function* () {
         return yield* EvidenceRepository
@@ -66,6 +68,7 @@ describe("EvidenceRepository", () => {
         content: "First content",
       })
     )
+
     const error = await Effect.runPromise(
       repo
         .create({
@@ -76,6 +79,7 @@ describe("EvidenceRepository", () => {
         })
         .pipe(Effect.flip)
     )
+
     expect(error._tag).toBe("ConflictError")
   })
 
@@ -89,6 +93,7 @@ describe("EvidenceRepository", () => {
       })
     )
     const found = await Effect.runPromise(repo.findById(created.id))
+
     expect(found).not.toBeNull()
     expect(found!.id).toBe(created.id)
   })
@@ -100,6 +105,7 @@ describe("EvidenceRepository", () => {
 
   it("finds evidence by url", async () => {
     const url = "https://example.com/by-url"
+
     await Effect.runPromise(
       repo.create({
         source: "news",
@@ -108,7 +114,9 @@ describe("EvidenceRepository", () => {
         content: "Content",
       })
     )
+
     const found = await Effect.runPromise(repo.findByUrl(url))
+
     expect(found).not.toBeNull()
     expect(found!.url).toBe(url)
   })
@@ -122,6 +130,7 @@ describe("EvidenceRepository", () => {
         content: "Content 1",
       })
     )
+
     await Effect.runPromise(
       repo.create({
         source: "twitter",
@@ -144,6 +153,7 @@ describe("EvidenceRepository", () => {
         content: "Content",
       })
     )
+
     await Effect.runPromise(
       repo.create({
         source: "news",
@@ -152,6 +162,7 @@ describe("EvidenceRepository", () => {
         content: "Content",
       })
     )
+
     await Effect.runPromise(
       repo.create({
         source: "news",
@@ -162,6 +173,7 @@ describe("EvidenceRepository", () => {
     )
 
     const result = await Effect.runPromise(repo.findMany({ page: 1, limit: 2 }))
+
     expect(result.data.length).toBe(2)
     expect(result.total).toBe(3)
   })

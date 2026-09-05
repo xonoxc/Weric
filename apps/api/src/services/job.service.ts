@@ -1,4 +1,4 @@
-import { Context, Effect, Layer } from "effect"
+import { Effect } from "effect"
 import { JobRepository } from "@weric/database"
 import { Job } from "@weric/contracts"
 
@@ -10,19 +10,18 @@ export interface JobServiceShape {
   readonly findPending: () => Effect.Effect<Job[], RepositoryError>
 }
 
-export class JobService extends Context.Tag("JobService")<
-  JobService,
-  JobServiceShape
->() {}
+export class JobService extends Effect.Service<JobServiceShape>()(
+  "JobService",
+  {
+    effect: Effect.gen(function* () {
+      const repo = yield* JobRepository
 
-export const JobServiceLive = Layer.effect(
-  JobService,
-  Effect.gen(function* () {
-    const repo = yield* JobRepository
+      return {
+        findById: id => repo.findById(id),
+        findPending: () => repo.findPending(),
+      } satisfies JobServiceShape
+    }),
+  }
+) {}
 
-    return {
-      findById: id => repo.findById(id),
-      findPending: () => repo.findPending(),
-    }
-  })
-)
+export const JobServiceLive = JobService.Default

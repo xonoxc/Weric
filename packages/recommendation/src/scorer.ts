@@ -1,4 +1,4 @@
-import { Context, Layer } from "effect"
+import { Effect } from "effect"
 
 import type { StoryWithEvidenceCount, InterestRow } from "@weric/database"
 
@@ -11,7 +11,7 @@ export interface ScoredStory {
   finalScore: number
 }
 
-export interface StoryScorer {
+export interface StoryScorerShape {
   readonly scoreMany: (
     stories: StoryWithEvidenceCount[],
     interests: InterestRow[],
@@ -25,45 +25,50 @@ export interface StoryScorer {
   ) => ScoredStory
 }
 
-export const StoryScorer = Context.GenericTag<StoryScorer>("StoryScorer")
+const scoreOne = (
+  story: StoryWithEvidenceCount,
+  interests: InterestRow[],
+  interactedStoryIds: Set<string>
+): ScoredStory => {
+  const freshnessScore = computeFreshness(story.createdAt)
+  const qualityScore = computeQuality(story)
+  const interestScore = computeInterestMatch(story, interests)
+  const interactionPenalty = interactedStoryIds.has(story.id) ? 0.3 : 0
 
-export const StoryScorerLive = Layer.succeed(StoryScorer, {
-  scoreMany: function (
-    stories: StoryWithEvidenceCount[],
-    interests: InterestRow[],
-    interactedStoryIds: Set<string>
-  ): ScoredStory[] {
-    return stories.map(story =>
-      this.scoreOne(story, interests, interactedStoryIds)
-    )
-  },
+  const finalScore =
+    freshnessScore * 0.15 +
+    qualityScore * 0.35 +
+    interestScore * 0.4 +
+    (1 - interactionPenalty) * 0.1
 
-  scoreOne: function (
-    story: StoryWithEvidenceCount,
-    interests: InterestRow[],
-    interactedStoryIds: Set<string>
-  ): ScoredStory {
-    const freshnessScore = computeFreshness(story.createdAt)
-    const qualityScore = computeQuality(story)
-    const interestScore = computeInterestMatch(story, interests)
-    const interactionPenalty = interactedStoryIds.has(story.id) ? 0.3 : 0
+  return {
+    story,
+    freshnessScore,
+    qualityScore,
+    interestScore,
+    interactionPenalty,
+    finalScore: Math.max(0, Math.min(1, finalScore)),
+  }
+}
 
-    const finalScore =
-      freshnessScore * 0.15 +
-      qualityScore * 0.35 +
-      interestScore * 0.4 +
-      (1 - interactionPenalty) * 0.1
+const scoreMany = (
+  stories: StoryWithEvidenceCount[],
+  interests: InterestRow[],
+  interactedStoryIds: Set<string>
+): ScoredStory[] =>
+  stories.map(story => scoreOne(story, interests, interactedStoryIds))
 
-    return {
-      story,
-      freshnessScore,
-      qualityScore,
-      interestScore,
-      interactionPenalty,
-      finalScore: Math.max(0, Math.min(1, finalScore)),
-    }
-  },
-})
+export class StoryScorer extends Effect.Service<StoryScorerShape>()(
+  "StoryScorer",
+  {
+    effect: Effect.sync(() => ({
+      scoreMany,
+      scoreOne,
+    })),
+  }
+) {}
+
+export const StoryScorerLive = StoryScorer.Default
 
 function computeFreshness(createdAt: string): number {
   const created = new Date(createdAt).getTime()

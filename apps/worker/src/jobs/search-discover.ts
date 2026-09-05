@@ -1,20 +1,20 @@
 import { Effect } from "effect"
-import {
-  StoryRepository,
-  EvidenceRepository,
-  ChatRepository,
-  ConceptRepository,
-  ConceptEdgeRepository,
-  ConceptStoryRepository,
-} from "@weric/database"
 import { BrowserService } from "@weric/browser"
 import { AIService } from "@weric/ai"
 import { persistConceptGraph } from "~worker/graph.ts"
 
+import type { JobHandler } from "~worker/runtime.ts"
+import type {
+  StoryRepositoryShape,
+  EvidenceRepositoryShape,
+  ChatRepositoryShape,
+  ConceptRepositoryShape,
+  ConceptEdgeRepositoryShape,
+  ConceptStoryRepositoryShape,
+} from "@weric/database"
 import type { GraphPersistence } from "~worker/graph.ts"
 import type { FetchedPage } from "@weric/browser"
 import type { Summary } from "@weric/ai"
-import type { JobHandler } from "~worker/runtime.ts"
 
 function describeError(error: unknown): string {
   if (error instanceof Error) return error.message
@@ -40,12 +40,12 @@ function toSlug(title: string): string {
 }
 
 export function createSearchDiscoverHandler(
-  storyRepo: StoryRepository,
-  evidenceRepo: EvidenceRepository,
-  chatRepo: ChatRepository,
-  conceptRepo: ConceptRepository,
-  conceptEdgeRepo: ConceptEdgeRepository,
-  conceptStoryRepo: ConceptStoryRepository,
+  storyRepo: StoryRepositoryShape,
+  evidenceRepo: EvidenceRepositoryShape,
+  chatRepo: ChatRepositoryShape,
+  conceptRepo: ConceptRepositoryShape,
+  conceptEdgeRepo: ConceptEdgeRepositoryShape,
+  conceptStoryRepo: ConceptStoryRepositoryShape,
   browser: BrowserService,
   ai: AIService,
   apiUrl: string

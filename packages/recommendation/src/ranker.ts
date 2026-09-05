@@ -1,5 +1,5 @@
-import { Context, Effect, Layer } from "effect"
-import { FeedDiversifier, FeedDiversifierLive } from "./diversifier.ts"
+import { Effect } from "effect"
+import { FeedDiversifier } from "./diversifier.ts"
 
 import type { ScoredStory } from "./scorer.ts"
 import type { StoryWithEvidenceCount } from "@weric/database"
@@ -10,44 +10,52 @@ export interface RankedFeed {
   reasons: Map<string, string | undefined>
 }
 
-export interface FeedRanker {
+export interface FeedRankerShape {
   readonly rank: (scoredStories: ScoredStory[], limit: number) => RankedFeed
 }
 
-export const FeedRanker = Context.GenericTag<FeedRanker>("FeedRanker")
+export class FeedRanker extends Effect.Service<FeedRankerShape>()(
+  "FeedRanker",
+  {
+    effect: Effect.gen(function* () {
+      const diversifier = yield* FeedDiversifier
 
-export const FeedRankerLive = Layer.effect(
-  FeedRanker,
-  Effect.gen(function* () {
-    const diversifier = yield* FeedDiversifier
+      const rank = (
+        scoredStories: ScoredStory[],
+        limit: number
+      ): RankedFeed => {
+        const sorted = [...scoredStories].sort(
+          (a, b) => b.finalScore - a.finalScore
+        )
+        const diversified = diversifier.diversify(sorted, limit)
 
-    const rank = (scoredStories: ScoredStory[], limit: number): RankedFeed => {
-      const sorted = [...scoredStories].sort(
-        (a, b) => b.finalScore - a.finalScore
-      )
-      const diversified = diversifier.diversify(sorted, limit)
+        const scores = new Map<string, number>()
+        const reasons = new Map<string, string | undefined>()
 
-      const scores = new Map<string, number>()
-      const reasons = new Map<string, string | undefined>()
+        for (const s of diversified) {
+          scores.set(s.story.id, s.finalScore)
 
-      for (const s of diversified) {
-        scores.set(s.story.id, s.finalScore)
+          const parts: string[] = []
+          if (s.freshnessScore > 0.7) parts.push("recent")
+          if (s.qualityScore > 0.7) parts.push("high quality")
+          if (s.interestScore > 0.3) parts.push("matches your interests")
 
-        const parts: string[] = []
-        if (s.freshnessScore > 0.7) parts.push("recent")
-        if (s.qualityScore > 0.7) parts.push("high quality")
-        if (s.interestScore > 0.3) parts.push("matches your interests")
+          reasons.set(
+            s.story.id,
+            parts.length > 0 ? parts.join(", ") : undefined
+          )
+        }
 
-        reasons.set(s.story.id, parts.length > 0 ? parts.join(", ") : undefined)
+        return {
+          items: diversified.map(s => s.story),
+          scores,
+          reasons,
+        }
       }
 
-      return {
-        items: diversified.map(s => s.story),
-        scores,
-        reasons,
-      }
-    }
+      return { rank } satisfies FeedRankerShape
+    }),
+  }
+) {}
 
-    return { rank }
-  })
-)
+export const FeedRankerLive = FeedRanker.Default

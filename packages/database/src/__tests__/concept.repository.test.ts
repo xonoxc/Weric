@@ -6,6 +6,9 @@ import { ConceptEdgeRepository } from "~db/repositories/concept-edge.repository.
 import { ConceptEdgeRepositoryLive } from "~db/repositories/concept-edge.repository.ts"
 import { ConceptStoryRepository } from "~db/repositories/concept-story.repository.ts"
 import { ConceptStoryRepositoryLive } from "~db/repositories/concept-story.repository.ts"
+import type { ConceptRepositoryShape } from "~db/repositories/concept.repository.ts"
+import type { ConceptEdgeRepositoryShape } from "~db/repositories/concept-edge.repository.ts"
+import type { ConceptStoryRepositoryShape } from "~db/repositories/concept-story.repository.ts"
 import { chats, stories } from "~db/schema/tables.ts"
 import { Database } from "~db/connection.ts"
 import { getTestDb, cleanDatabase } from "~db/__tests__/helpers.ts"
@@ -45,14 +48,16 @@ function withDb(db: Db) {
     ConceptStoryRepositoryLive
   )
   return lives.pipe(Layer.provide(DatabaseLayer)) as Layer.Layer<
-    ConceptRepository | ConceptEdgeRepository | ConceptStoryRepository
+    | ConceptRepositoryShape
+    | ConceptEdgeRepositoryShape
+    | ConceptStoryRepositoryShape
   >
 }
 
 interface Services {
-  concepts: ConceptRepository
-  edges: ConceptEdgeRepository
-  storyLinks: ConceptStoryRepository
+  concepts: ConceptRepositoryShape
+  edges: ConceptEdgeRepositoryShape
+  storyLinks: ConceptStoryRepositoryShape
 }
 
 describe("ConceptRepository", () => {

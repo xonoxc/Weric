@@ -1,25 +1,28 @@
-import { Effect } from "effect"
-import { StoryRepository, EvidenceRepository } from "@weric/database"
+import { Effect, Data } from "effect"
 import { BrowserService } from "@weric/browser"
 
 import type { JobHandler } from "~worker/runtime.ts"
+import type {
+  StoryRepositoryShape,
+  EvidenceRepositoryShape,
+} from "@weric/database"
 
 export function createRefreshStoryHandler(
-  storyRepo: StoryRepository,
-  evidenceRepo: EvidenceRepository,
+  storyRepo: StoryRepositoryShape,
+  evidenceRepo: EvidenceRepositoryShape,
   browser: BrowserService
 ): JobHandler {
   return {
     type: "refresh_story",
 
-    handle(
-      payload: Record<string, unknown>,
-      _jobId: string
-    ): Effect.Effect<void, Error> {
+    handle(payload: Record<string, unknown>): Effect.Effect<void, Error> {
       const storyId = payload.storyId as string | undefined
       if (!storyId) {
         return Effect.fail(
-          new Error("refresh_story requires a 'storyId' in payload")
+          new StoryFetchError({
+            storyId: storyId ?? "",
+            cause: "Missing story id",
+          })
         )
       }
 
@@ -64,3 +67,18 @@ export function createRefreshStoryHandler(
     },
   }
 }
+
+class MissingStoryIdError extends Data.TaggedError("MissingStoryIdError")<{
+  message: string
+}> {}
+
+class StoryFetchError extends Data.TaggedError("StoryFetchError")<{
+  storyId: string
+  cause: unknown
+}> {}
+
+class StoryRefreshError extends Data.TaggedError("StoryRefreshError")<{
+  storyId: string
+  url: string
+  cause: unknown
+}> {}

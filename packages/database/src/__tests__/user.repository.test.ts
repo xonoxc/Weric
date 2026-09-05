@@ -6,6 +6,7 @@ import {
 } from "~db/repositories/user.repository.ts"
 import { getTestDb, cleanDatabase } from "~db/__tests__/helpers.ts"
 import { users } from "~db/schema/tables.ts"
+import type { UserRepositoryShape } from "~db/repositories/user.repository.ts"
 
 import { Database } from "~db/connection.ts"
 import type { Db } from "~db/connection.ts"
@@ -13,7 +14,7 @@ import type { Db } from "~db/connection.ts"
 const NON_EXISTENT_ID = "00000000-0000-0000-0000-000000000000"
 
 describe("UserRepository", () => {
-  let repo: UserRepository
+  let repo: UserRepositoryShape
   let db: Db
 
   beforeEach(async () => {

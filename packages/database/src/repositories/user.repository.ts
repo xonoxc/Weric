@@ -1,4 +1,4 @@
-import { Context, Effect, Layer } from "effect"
+import { Effect } from "effect"
 import { eq } from "drizzle-orm"
 import { users } from "~db/schema/tables.ts"
 import { tryDb } from "./errors.ts"
@@ -7,7 +7,7 @@ import { Database } from "~db/connection.ts"
 
 import { RepositoryError, NotFoundError } from "./errors.ts"
 
-export interface UserRepository {
+export interface UserRepositoryShape {
   readonly findAll: () => Effect.Effect<
     (typeof users.$inferSelect)[],
     RepositoryError
@@ -35,69 +35,70 @@ export interface UserRepository {
   ) => Effect.Effect<typeof users.$inferSelect, RepositoryError>
 }
 
-export const UserRepository =
-  Context.GenericTag<UserRepository>("UserRepository")
+export class UserRepository extends Effect.Service<UserRepositoryShape>()(
+  "UserRepository",
+  {
+    effect: Effect.gen(function* () {
+      const db = yield* Database
 
-export const UserRepositoryLive = Layer.effect(
-  UserRepository,
-  Effect.gen(function* () {
-    const db = yield* Database
+      return {
+        findAll: () => tryDb(() => db.select().from(users)),
 
-    return {
-      findAll: () => tryDb(() => db.select().from(users)),
+        findById: id => {
+          return tryDb(async () => {
+            const [row] = await db
+              .select()
+              .from(users)
+              .where(eq(users.id, id))
+              .limit(1)
+            return row ?? null
+          })
+        },
 
-      findById: id => {
-        return tryDb(async () => {
-          const [row] = await db
-            .select()
-            .from(users)
-            .where(eq(users.id, id))
-            .limit(1)
-          return row ?? null
-        })
-      },
+        findByEmail: email => {
+          return tryDb(async () => {
+            const [row] = await db
+              .select()
+              .from(users)
+              .where(eq(users.email, email))
+              .limit(1)
+            return row ?? null
+          })
+        },
 
-      findByEmail: email => {
-        return tryDb(async () => {
-          const [row] = await db
-            .select()
-            .from(users)
-            .where(eq(users.email, email))
-            .limit(1)
-          return row ?? null
-        })
-      },
+        findByUsername: username => {
+          return tryDb(async () => {
+            const [row] = await db
+              .select()
+              .from(users)
+              .where(eq(users.username, username))
+              .limit(1)
+            return row ?? null
+          })
+        },
 
-      findByUsername: username => {
-        return tryDb(async () => {
-          const [row] = await db
-            .select()
-            .from(users)
-            .where(eq(users.username, username))
-            .limit(1)
-          return row ?? null
-        })
-      },
+        update: (id, data) => {
+          return tryDb(async () => {
+            const [existing] = await db
+              .select()
+              .from(users)
+              .where(eq(users.id, id))
+              .limit(1)
 
-      update: (id, data) => {
-        return tryDb(async () => {
-          const [existing] = await db
-            .select()
-            .from(users)
-            .where(eq(users.id, id))
-            .limit(1)
+            if (!existing) throw new NotFoundError("User", id)
 
-          if (!existing) throw new NotFoundError("User", id)
+            const [row] = await db
+              .update(users)
+              .set(data)
+              .where(eq(users.id, id))
+              .returning()
 
-          const [row] = await db
-            .update(users)
-            .set(data)
-            .where(eq(users.id, id))
-            .returning()
+            return row!
+          })
+        },
+      } satisfies UserRepositoryShape
+    }),
+  }
+) {}
 
-          return row!
-        })
-      },
-    }
-  })
-)
+export const UserRepositoryLive = UserRepository.Default

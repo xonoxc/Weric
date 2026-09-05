@@ -1,6 +1,6 @@
 import type { MiddlewareHandler } from "hono"
-import type { Auth, AuthUser, AuthSession } from "@weric/auth"
 import type { ApiVariables } from "~api/app.ts"
+import type { Auth, AuthUser, AuthSession } from "@weric/auth"
 
 export function createSessionMiddleware(
   auth: Auth

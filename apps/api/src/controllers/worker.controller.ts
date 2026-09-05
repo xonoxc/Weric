@@ -1,8 +1,7 @@
-import { Context, Effect, Layer } from "effect"
+import { Effect, Schema } from "effect"
 import { JobService } from "~api/services/job.service"
 import { jobBus } from "~api/lib/job-bus.ts"
 import { JobStatus } from "@weric/contracts"
-import { Schema } from "effect"
 import { streamSSE } from "hono/streaming"
 
 import type { ApiVariables } from "~api/app"
@@ -32,7 +31,7 @@ export const JobProgressSchema = Schema.Struct({
 
 const TerminalJobStatus = Schema.Literal("completed", "failed")
 
-export interface WorkerController {
+export interface WorkerControllerShape {
   readonly streamEvents: (
     c: HonoCtx<{ Variables: ApiVariables }>
   ) => Effect.Effect<Response, unknown>
@@ -42,92 +41,93 @@ export interface WorkerController {
   ) => Effect.Effect<Response, unknown>
 }
 
-export const WorkerController =
-  Context.GenericTag<WorkerController>("WorkerController")
+export class WorkerController extends Effect.Service<WorkerControllerShape>()(
+  "WorkerController",
+  {
+    effect: Effect.gen(function* () {
+      const jobService = yield* JobService
 
-export const WorkerControllerLive = Layer.effect(
-  WorkerController,
-  Effect.gen(function* () {
-    const jobService = yield* JobService
+      return {
+        streamEvents: ctx =>
+          Effect.sync(() =>
+            streamSSE(ctx, async stream => {
+              const writer: StreamWriter = {
+                send: (event, data) => {
+                  stream
+                    .writeSSE({
+                      data: JSON.stringify(data),
+                      event,
+                    })
+                    .catch(() => {})
+                },
+                close: () => {},
+                onAbort: cb => {
+                  stream.onAbort(cb)
+                },
+              }
 
-    return {
-      streamEvents: ctx =>
-        Effect.sync(() =>
-          streamSSE(ctx, async stream => {
-            const writer: StreamWriter = {
-              send: (event, data) => {
-                stream
-                  .writeSSE({
-                    data: JSON.stringify(data),
-                    event,
-                  })
-                  .catch(() => {})
-              },
-              close: () => {},
-              onAbort: cb => {
-                stream.onAbort(cb)
-              },
-            }
+              const pendingJobs = await Effect.runPromise(
+                jobService.findPending()
+              ).catch(() => [])
 
-            const pendingJobs = await Effect.runPromise(
-              jobService.findPending()
-            ).catch(() => [])
+              if (pendingJobs.length > 0) {
+                writer.send(
+                  "init",
+                  pendingJobs.map(j => ({
+                    id: j.id,
+                    type: j.type,
+                    payload: j.payload,
+                  }))
+                )
+              }
 
-            if (pendingJobs.length > 0) {
-              writer.send(
-                "init",
-                pendingJobs.map(j => ({
-                  id: j.id,
-                  type: j.type,
-                  payload: j.payload,
-                }))
-              )
-            }
+              const keepalive = setInterval(() => {
+                stream.write(": keepalive\n\n").catch(() => {})
+              }, 5_000)
 
-            const keepalive = setInterval(() => {
-              stream.write(": keepalive\n\n").catch(() => {})
-            }, 5_000)
+              jobBus.registerWorker(writer)
 
-            jobBus.registerWorker(writer)
-
-            await new Promise<void>(resolve => {
-              stream.onAbort(() => {
-                clearInterval(keepalive)
-                jobBus.unregisterWorker(writer)
-                resolve()
+              await new Promise<void>(resolve => {
+                stream.onAbort(() => {
+                  clearInterval(keepalive)
+                  jobBus.unregisterWorker(writer)
+                  resolve()
+                })
               })
             })
-          })
-        ),
+          ),
 
-      jobProgress: ctx =>
-        Effect.gen(function* () {
-          const raw = yield* Effect.tryPromise({
-            try: () => ctx.req.json(),
-            catch: cause => new Error(String(cause)),
-          })
-
-          const body = Schema.decodeUnknownSync(JobProgressSchema)(raw)
-
-          jobBus.sendToClient(body.jobId, "progress", {
-            progress: body.progress,
-            message: body.message,
-            stories: body.stories,
-            graph: body.graph,
-          })
-
-          const terminal = Schema.decodeUnknownEither(TerminalJobStatus)(
-            body.status
-          )
-          if (terminal._tag === "Right") {
-            jobBus.sendToClient(body.jobId, "status", {
-              status: terminal.right,
+        jobProgress: ctx =>
+          Effect.gen(function* () {
+            const raw = yield* Effect.tryPromise({
+              try: () => ctx.req.json(),
+              catch: cause => new Error(String(cause)),
             })
-            jobBus.closeClient(body.jobId)
-          }
 
-          return ctx.json({ ok: true })
-        }),
-    }
-  })
-)
+            const body = Schema.decodeUnknownSync(JobProgressSchema)(raw)
+
+            jobBus.sendToClient(body.jobId, "progress", {
+              progress: body.progress,
+              message: body.message,
+              stories: body.stories,
+              graph: body.graph,
+            })
+
+            const terminal = Schema.decodeUnknownEither(TerminalJobStatus)(
+              body.status
+            )
+            if (terminal._tag === "Right") {
+              jobBus.sendToClient(body.jobId, "status", {
+                status: terminal.right,
+              })
+              jobBus.closeClient(body.jobId)
+            }
+
+            return ctx.json({ ok: true })
+          }),
+      } satisfies WorkerControllerShape
+    }),
+  }
+) {}
+
+export const WorkerControllerLive = WorkerController.Default

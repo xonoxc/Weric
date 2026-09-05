@@ -1,4 +1,4 @@
-import { Context, Effect, Layer } from "effect"
+import { Effect, Layer } from "effect"
 import pino from "pino"
 
 export interface Logger {
@@ -29,10 +29,9 @@ export interface Logger {
   readonly child: (bindings: Record<string, unknown>) => Logger
 }
 
-export class LoggerService extends Context.Tag("LoggerService")<
-  LoggerService,
-  Logger
->() {}
+export class LoggerService extends Effect.Service<Logger>()("LoggerService", {
+  effect: Effect.sync(() => createPinoLoggerInstance()),
+}) {}
 
 function createPinoLoggerInstance(): Logger {
   const instance: pino.Logger = pino({
@@ -74,10 +73,7 @@ function createPinoLoggerFrom(instance: pino.Logger): Logger {
   }
 }
 
-export const LoggerLiveLayer: Layer.Layer<LoggerService> = Layer.effect(
-  LoggerService,
-  Effect.sync(() => createPinoLoggerInstance())
-)
+export const LoggerLiveLayer = LoggerService.Default
 
 export function createTestLogger(): Logger {
   return {
@@ -91,7 +87,4 @@ export function createTestLogger(): Logger {
   }
 }
 
-export const LoggerTestLayer: Layer.Layer<LoggerService> = Layer.effect(
-  LoggerService,
-  Effect.sync(() => createTestLogger())
-)
+export const LoggerTestLayer = Layer.succeed(LoggerService, createTestLogger())

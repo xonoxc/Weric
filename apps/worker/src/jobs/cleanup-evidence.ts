@@ -1,10 +1,10 @@
 import { Effect } from "effect"
-import { EvidenceRepository } from "@weric/database"
 
 import type { JobHandler } from "~worker/runtime.ts"
+import type { EvidenceRepositoryShape } from "@weric/database"
 
 export function createCleanupEvidenceHandler(
-  evidenceRepo: EvidenceRepository
+  evidenceRepo: EvidenceRepositoryShape
 ): JobHandler {
   return {
     type: "cleanup_evidence",
@@ -24,9 +24,10 @@ export function createCleanupEvidenceHandler(
             new Date(e.discoveredAt).getTime() < Date.now() - 90 * 86_400_000
         )
 
-        yield* Effect.logInfo(
-          `Cleanup: found ${stale.length} stale evidence items out of ${allEvidence.length}`
-        )
+        yield* Effect.logInfo("Cleanup: found ", {
+          stageEvidences: stale.length,
+          totalEvidences: allEvidence.length,
+        })
       })
     },
   }

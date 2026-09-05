@@ -1,5 +1,5 @@
 import { Hono } from "hono"
-import { Effect, Layer } from "effect"
+import { Effect, Layer, pipe } from "effect"
 import {
   BookmarkRepositoryLive,
   ChatRepositoryLive,
@@ -20,7 +20,8 @@ export function createProfileRoutes(base: AppContext) {
   const router = new Hono<{ Variables: ApiVariables }>()
 
   const routeContext = buildRouteContext(
-    ProfileControllerLive.pipe(
+    pipe(
+      ProfileControllerLive,
       Layer.provide(ProfileServiceLive),
       Layer.provide(
         Layer.mergeAll(

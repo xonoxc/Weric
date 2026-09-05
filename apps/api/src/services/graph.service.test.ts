@@ -1,13 +1,11 @@
 import { describe, expect, it } from "vitest"
-import { Effect, Layer } from "effect"
+import { Effect, Layer, pipe } from "effect"
 import {
   ConceptRepository,
   ConceptEdgeRepository,
   ConceptStoryRepository,
 } from "@weric/database"
 import { GraphService, GraphServiceLive } from "~api/services/graph.service"
-
-import type { ConceptGraph } from "@weric/contracts"
 
 interface ConceptLike {
   id: string
@@ -95,10 +93,10 @@ describe("GraphService.getGraph", () => {
     const { conceptRepo, edgeRepo, storyLinkRepo } = fakeRepos()
 
     const service = await Effect.runPromise(
-      Effect.gen(function* () {
-        const svc = yield* GraphService
-        return svc
-      }).pipe(
+      pipe(
+        Effect.gen(function* () {
+          return yield* GraphService
+        }),
         Effect.provide(
           GraphServiceLive.pipe(
             Layer.provide(

@@ -1,9 +1,12 @@
 import { Data, Effect, Schedule } from "effect"
-import { StoryRepository, EvidenceRepository } from "@weric/database"
 import { BrowserService } from "@weric/browser"
 import { AIService } from "@weric/ai"
 
 import type { JobHandler } from "~worker/runtime.ts"
+import type {
+  StoryRepositoryShape,
+  EvidenceRepositoryShape,
+} from "@weric/database"
 
 export class DiscoverStoriesError extends Data.TaggedError(
   "DiscoverStoriesError"
@@ -12,8 +15,8 @@ export class DiscoverStoriesError extends Data.TaggedError(
 }> {}
 
 export function createDiscoverStoriesHandler(
-  storyRepo: StoryRepository,
-  evidenceRepo: EvidenceRepository,
+  storyRepo: StoryRepositoryShape,
+  evidenceRepo: EvidenceRepositoryShape,
   browser: BrowserService,
   ai: AIService
 ): JobHandler {

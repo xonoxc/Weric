@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Schema } from "effect"
+import { Effect, Schema } from "effect"
 import { GraphService } from "~api/services/graph.service"
 import { ChatService } from "~api/services/chat.service"
 import { requireUser } from "~api/lib/validation"
@@ -11,48 +11,53 @@ const ChatIdParam = Schema.Struct({
   id: Schema.String.pipe(Schema.minLength(1)),
 })
 
-export interface GraphController {
+export interface GraphControllerShape {
   readonly getById: (
     c: HonoCtx<{ Variables: ApiVariables }>
   ) => Effect.Effect<Response, unknown>
 }
 
-export const GraphController =
-  Context.GenericTag<GraphController>("GraphController")
+export class GraphController extends Effect.Service<GraphControllerShape>()(
+  "GraphController",
+  {
+    effect: Effect.gen(function* () {
+      const graphService = yield* GraphService
+      const chatService = yield* ChatService
 
-export const GraphControllerLive = Layer.effect(
-  GraphController,
-  Effect.gen(function* () {
-    const graphService = yield* GraphService
-    const chatService = yield* ChatService
+      const owned = (
+        chat: { userId: string | null } | null,
+        user: { id: string }
+      ): boolean => !!chat && chat.userId === user.id
 
-    const owned = (
-      chat: { userId: string | null } | null,
-      user: { id: string }
-    ): boolean => !!chat && chat.userId === user.id
-
-    return {
-      getById: ctx =>
-        Effect.gen(function* () {
-          const user = requireUser(ctx)
-          const { id } = Schema.decodeUnknownSync(ChatIdParam)(ctx.req.param())
-
-          const chat = yield* chatService.findById(id)
-          if (!owned(chat, user)) {
-            return ctx.json(
-              {
-                error: {
-                  code: "NOT_FOUND",
-                  message: "Chat not found",
-                },
-              },
-              404
+      return {
+        getById: ctx =>
+          Effect.gen(function* () {
+            const user = requireUser(ctx)
+            const { id } = Schema.decodeUnknownSync(ChatIdParam)(
+              ctx.req.param()
             )
-          }
 
-          const graph = yield* graphService.getGraph(id)
-          return ctx.json(Schema.encode(ConceptGraphSchema)(graph))
-        }),
-    }
-  })
-)
+            const chat = yield* chatService.findById(id)
+
+            if (!owned(chat, user)) {
+              return ctx.json(
+                {
+                  error: {
+                    code: "NOT_FOUND",
+                    message: "Chat not found",
+                  },
+                },
+                404
+              )
+            }
+
+            const graph = yield* graphService.getGraph(id)
+
+            return ctx.json(Schema.encode(ConceptGraphSchema)(graph))
+          }),
+      } satisfies GraphControllerShape
+    }),
+  }
+) {}
+
+export const GraphControllerLive = GraphController.Default

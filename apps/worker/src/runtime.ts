@@ -1,5 +1,6 @@
 import { Effect } from "effect"
-import { JobRepository } from "@weric/database"
+
+import type { JobRepositoryShape } from "@weric/database"
 
 export interface JobHandler {
   type: string
@@ -23,7 +24,7 @@ export class WorkerRuntime {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
 
   constructor(
-    private readonly jobRepo: JobRepository,
+    private readonly jobRepo: JobRepositoryShape,
     private readonly handlers: JobHandler[],
     private readonly options: {
       apiUrl?: string

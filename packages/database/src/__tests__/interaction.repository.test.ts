@@ -10,12 +10,13 @@ import {
 } from "~db/repositories/story.repository.ts"
 import { getTestDb, cleanDatabase } from "~db/__tests__/helpers.ts"
 import { users } from "~db/schema/tables.ts"
+import type { InteractionRepositoryShape } from "~db/repositories/interaction.repository.ts"
 
 import { Database } from "~db/connection.ts"
 import type { Db } from "~db/connection.ts"
 
 describe("InteractionRepository", () => {
-  let repo: InteractionRepository
+  let repo: InteractionRepositoryShape
   let userId: string
   let storyId: string
 

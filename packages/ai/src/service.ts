@@ -1,4 +1,4 @@
-import { Effect, Schema } from "effect"
+import { Effect, pipe, Schema } from "effect"
 import {
   SummarySchema,
   ClassificationSchema,
@@ -86,15 +86,17 @@ export class AIService {
       )
       .join("\n")
 
-    const prompt = `You are synthesizing a concept flow-graph for the query "${context.query}".
+    const prompt = `
+        You are synthesizing a concept flow-graph for the query "${context.query}".
 
-From the following discovered sources, distill a small set of distinct concepts (roughly 5 to 10).
-For each concept, provide a concise summary and the storyIds of the sources that best support it.
-Then output DIRECTED flow edges that describe conceptual dependency or sequence (for example "A leads to B" or "A builds on B").
-Edges reference concepts by their exact name.
+		From the following discovered sources, distill a small set of distinct concepts (roughly 5 to 10).
+		For each concept, provide a concise summary and the storyIds of the sources that best support it.
+		Then output DIRECTED flow edges that describe conceptual dependency or sequence (for example "A leads to B" or "A builds on B").
+		Edges reference concepts by their exact name.
 
-Sources:
-${itemLines}`
+		Sources:
+		${itemLines}
+    `
 
     return this.provider
       .generateStructured(prompt, SynthesizedGraphSchema, {
@@ -122,18 +124,21 @@ ${itemLines}`
       validationMessage?: string
     }
   ): Effect.Effect<T, AIError> {
-    return this.provider.generateStructured(prompt, schema, options).pipe(
+    return pipe(
+      this.provider.generateStructured(prompt, schema, options),
+
       Effect.map(result => result.object),
-      Effect.catchAll(error =>
-        Effect.fail(
+      Effect.catchAll(error => {
+        const message =
+          options?.validationMessage ?? "Failed to generate structured output"
+
+        return Effect.fail(
           new ValidationError({
-            message:
-              options?.validationMessage ??
-              "Failed to generate structured output",
+            message,
             cause: error,
           })
         )
-      )
+      })
     )
   }
 }
