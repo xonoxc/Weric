@@ -3,6 +3,7 @@ import { JobService } from "~api/services/job.service"
 import { jobBus } from "~api/lib/job-bus.ts"
 import { JobStatus } from "@weric/contracts"
 import { streamSSE } from "hono/streaming"
+import { parseReqBody } from "@weric/utils"
 
 import type { ApiVariables } from "~api/app"
 import type { Context as HonoCtx } from "hono"
@@ -99,10 +100,7 @@ export class WorkerController extends Effect.Service<WorkerControllerShape>()(
 
         jobProgress: ctx =>
           Effect.gen(function* () {
-            const raw = yield* Effect.tryPromise({
-              try: () => ctx.req.json(),
-              catch: cause => new Error(String(cause)),
-            })
+            const raw = yield* parseReqBody(ctx.req)
 
             const body = Schema.decodeUnknownSync(JobProgressSchema)(raw)
 

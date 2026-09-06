@@ -1,6 +1,7 @@
 import { Effect, Schema } from "effect"
 import { ChatService } from "~api/services/chat.service"
 import { requireUser } from "~api/lib/validation"
+import { parseReqBody } from "@weric/utils"
 
 import type { ApiVariables } from "~api/app"
 import type { Context as HonoCtx } from "hono"
@@ -63,10 +64,7 @@ export class ChatController extends Effect.Service<ChatControllerShape>()(
           Effect.gen(function* () {
             const user = requireUser(ctx)
 
-            const rawBody = yield* Effect.tryPromise({
-              try: () => ctx.req.json(),
-              catch: cause => new Error(String(cause)),
-            })
+            const rawBody = yield* parseReqBody(ctx.req)
 
             const body = Schema.decodeUnknownSync(CreateChatRequest)(rawBody)
 

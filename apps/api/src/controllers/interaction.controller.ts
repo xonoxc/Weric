@@ -32,11 +32,7 @@ export class InteractionController extends Effect.Service<InteractionControllerS
         create: ctx =>
           Effect.gen(function* () {
             const user = requireUser(ctx)
-
-            const reqBody = yield* Effect.tryPromise({
-              try: () => ctx.req.json(),
-              catch: cause => new Error(String(cause)),
-            })
+            const reqBody = yield* parseReqBody(ctx.req)
 
             const body = Schema.decodeUnknownSync(CreateInteractionInputSchema)(
               reqBody

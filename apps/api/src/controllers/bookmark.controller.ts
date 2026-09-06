@@ -1,6 +1,7 @@
 import { Effect, Schema } from "effect"
 import { BookmarkService } from "~api/services/bookmark.service"
 import { requireUser } from "~api/lib/validation"
+import { parseReqBody } from "@weric/utils"
 
 import type { ApiVariables } from "~api/app"
 import type { Context as HonoCtx } from "hono"
@@ -51,10 +52,7 @@ export class BookmarkController extends Effect.Service<BookmarkControllerShape>(
           Effect.gen(function* () {
             const user = requireUser(ctx)
 
-            const rawBody = yield* Effect.tryPromise({
-              try: () => ctx.req.json(),
-              catch: cause => new Error(String(cause)),
-            })
+            const rawBody = yield* parseReqBody(ctx.req)
 
             const { storyId } = Schema.decodeUnknownSync(
               CreateBookmarkInputSchema

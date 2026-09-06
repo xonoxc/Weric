@@ -1,6 +1,7 @@
 import { Effect, Schema } from "effect"
 import { StoryService, parseCreateEvidence } from "~api/services/story.service"
 import { requireUser } from "~api/lib/validation"
+import { parseReqBody } from "@weric/utils"
 
 import type { ApiVariables } from "~api/app"
 import type { Context as HonoCtx } from "hono"
@@ -85,10 +86,7 @@ export class StoryController extends Effect.Service<StoryControllerShape>()(
         createEvidence: ctx =>
           Effect.gen(function* () {
             requireUser(ctx)
-            const raw = yield* Effect.tryPromise({
-              try: () => ctx.req.json(),
-              catch: cause => new Error(String(cause)),
-            })
+            const raw = yield* parseReqBody(ctx.req)
 
             const input = parseCreateEvidence(raw)
 

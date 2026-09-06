@@ -33,6 +33,7 @@
         "@weric/recommendation": "workspace:*",
         "@weric/shared": "workspace:*",
         "@weric/story-engine": "workspace:*",
+        "@weric/utils": "workspace:*",
         "drizzle-orm": "^0.40.0",
         "effect": "^3.22.1",
         "hono": "^4.7.0",
@@ -256,6 +257,16 @@
       "devDependencies": {
         "@types/react": "19.2.2",
         "@types/react-dom": "19.2.2",
+        "typescript": "5.9.2",
+      },
+    },
+    "packages/utils": {
+      "name": "@weric/utils",
+      "version": "0.1.0",
+      "dependencies": {
+        "effect": "^3.22.1",
+      },
+      "devDependencies": {
         "typescript": "5.9.2",
       },
     },
@@ -822,6 +833,8 @@
     "@weric/story-engine": ["@weric/story-engine@workspace:packages/story-engine"],
 
     "@weric/ui": ["@weric/ui@workspace:packages/ui"],
+
+    "@weric/utils": ["@weric/utils@workspace:packages/utils"],
 
     "@weric/web": ["@weric/web@workspace:apps/web"],
 
