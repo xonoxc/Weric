@@ -1,5 +1,5 @@
-import { describe, expect, it, beforeAll } from "vitest"
-import { Effect, Option } from "effect"
+import { describe, expect, it } from "@effect/vitest"
+import { Effect, Layer, Option } from "effect"
 import { FeedRanker, FeedRankerLive } from "~rec/ranker.ts"
 import { FeedDiversifierLive } from "~rec/diversifier.ts"
 
@@ -33,83 +33,103 @@ function makeScored(
   }
 }
 
+const rankerLayer = FeedRankerLive.pipe(Layer.provide(FeedDiversifierLive))
+
 describe("FeedRanker", () => {
-  let ranker: import("~rec/ranker.ts").FeedRanker
+  it.effect("returns empty items when given no stories", () =>
+    Effect.gen(function* () {
+      const ranker = yield* FeedRanker
 
-  beforeAll(async () => {
-    ranker = (await Effect.runPromise(
-      Effect.gen(function* () {
-        return yield* FeedRanker
-      }).pipe(
-        Effect.provide(FeedRankerLive),
-        Effect.provide(FeedDiversifierLive)
-      )
-    )) as never
-  })
+      const result = ranker.rank([], 10)
 
-  it("returns empty items when given no stories", () => {
-    const result = ranker.rank([], 10)
-    expect(result.items).toHaveLength(0)
-    expect(result.scores.size).toBe(0)
-    expect(result.reasons.size).toBe(0)
-  })
+      expect(result.items).toHaveLength(0)
+      expect(result.scores.size).toBe(0)
 
-  it("sorts stories by final score descending", () => {
-    const items = [
-      makeScored("s1", "Story One", { finalScore: 0.3 }),
-      makeScored("s2", "Story Two", { finalScore: 0.9 }),
-      makeScored("s3", "Story Three", { finalScore: 0.6 }),
-    ]
-    const result = ranker.rank(items, 3)
-    expect(result.items).toHaveLength(3)
-    expect(result.items[0]!.id).toBe("s2")
-    expect(result.items[1]!.id).toBe("s3")
-    expect(result.items[2]!.id).toBe("s1")
-  })
+      expect(result.reasons.size).toBe(0)
+    }).pipe(Effect.provide(rankerLayer))
+  )
 
-  it("respects the limit", () => {
-    const items = [
-      makeScored("s1", "Story One", { finalScore: 0.5 }),
-      makeScored("s2", "Story Two", { finalScore: 0.5 }),
-      makeScored("s3", "Story Three", { finalScore: 0.5 }),
-      makeScored("s4", "Story Four", { finalScore: 0.5 }),
-    ]
-    const result = ranker.rank(items, 2)
-    expect(result.items.length).toBeLessThanOrEqual(2)
-  })
+  it.effect("sorts stories by final score descending", () =>
+    Effect.gen(function* () {
+      const ranker = yield* FeedRanker
 
-  it("generates reasons for high-scoring stories", () => {
-    const items = [
-      makeScored("s1", "Fresh News", {
-        freshnessScore: 0.9,
-        qualityScore: 0.5,
-        interestScore: 0.1,
-        finalScore: 0.7,
-      }),
-      makeScored("s2", "Old News", {
-        freshnessScore: 0.1,
-        qualityScore: 0.5,
-        interestScore: 0.1,
-        finalScore: 0.3,
-      }),
-    ]
-    const result = ranker.rank(items, 2)
-    expect(Option.getOrElse(result.reasons.get("s1"), () => "")).toBe("recent")
-    expect(Option.isNone(result.reasons.get("s2")!)).toBe(true)
-  })
+      const items = [
+        makeScored("s1", "Story One", { finalScore: 0.3 }),
+        makeScored("s2", "Story Two", { finalScore: 0.9 }),
+        makeScored("s3", "Story Three", { finalScore: 0.6 }),
+      ]
+      const result = ranker.rank(items, 3)
 
-  it("combines multiple reasons", () => {
-    const items = [
-      makeScored("s1", "Fresh Quality Story", {
-        freshnessScore: 0.9,
-        qualityScore: 0.8,
-        interestScore: 0.2,
-        finalScore: 0.9,
-      }),
-    ]
-    const result = ranker.rank(items, 1)
-    expect(Option.getOrElse(result.reasons.get("s1"), () => "")).toBe(
-      "recent, high quality"
-    )
-  })
+      expect(result.items).toHaveLength(3)
+      expect(result.items[0]!.id).toBe("s2")
+      expect(result.items[1]!.id).toBe("s3")
+
+      expect(result.items[2]!.id).toBe("s1")
+    }).pipe(Effect.provide(rankerLayer))
+  )
+
+  it.effect("respects the limit", () =>
+    Effect.gen(function* () {
+      const ranker = yield* FeedRanker
+
+      const items = [
+        makeScored("s1", "Story One", { finalScore: 0.5 }),
+        makeScored("s2", "Story Two", { finalScore: 0.5 }),
+        makeScored("s3", "Story Three", { finalScore: 0.5 }),
+        makeScored("s4", "Story Four", { finalScore: 0.5 }),
+      ]
+      const result = ranker.rank(items, 2)
+
+      expect(result.items.length).toBeLessThanOrEqual(2)
+    }).pipe(Effect.provide(rankerLayer))
+  )
+
+  it.effect("generates reasons for high-scoring stories", () =>
+    Effect.gen(function* () {
+      const ranker = yield* FeedRanker
+
+      const items = [
+        makeScored("s1", "Fresh News", {
+          freshnessScore: 0.9,
+          qualityScore: 0.5,
+          interestScore: 0.1,
+          finalScore: 0.7,
+        }),
+        makeScored("s2", "Old News", {
+          freshnessScore: 0.1,
+          qualityScore: 0.5,
+          interestScore: 0.1,
+          finalScore: 0.3,
+        }),
+      ]
+      const result = ranker.rank(items, 2)
+
+      expect(
+        Option.getOrElse(result.reasons.get("s1") ?? Option.none(), () => "")
+      ).toBe("recent")
+
+      expect(Option.isNone(result.reasons.get("s2")!)).toBe(true)
+    }).pipe(Effect.provide(rankerLayer))
+  )
+
+  it.effect("combines multiple reasons", () =>
+    Effect.gen(function* () {
+      const ranker = yield* FeedRanker
+
+      const items = [
+        makeScored("s1", "Fresh Quality Story", {
+          freshnessScore: 0.9,
+          qualityScore: 0.8,
+          interestScore: 0.2,
+          finalScore: 0.9,
+        }),
+      ]
+
+      const result = ranker.rank(items, 1)
+
+      expect(
+        Option.getOrElse(result.reasons.get("s1") ?? Option.none(), () => "")
+      ).toBe("recent, high quality")
+    }).pipe(Effect.provide(rankerLayer))
+  )
 })

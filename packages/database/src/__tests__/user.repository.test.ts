@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from "vitest"
+import { describe, expect, it, beforeEach } from "@effect/vitest"
 import { Effect, Layer, Option } from "effect"
 import {
   UserRepository,
@@ -6,33 +6,26 @@ import {
 } from "~db/repositories/user.repository.ts"
 import { getTestDb, cleanDatabase } from "~db/__tests__/helpers.ts"
 import { users } from "~db/schema/tables.ts"
-import type { UserRepositoryShape } from "~db/repositories/user.repository.ts"
 
 import { Database } from "~db/connection.ts"
 import type { Db } from "~db/connection.ts"
 
 const NON_EXISTENT_ID = "00000000-0000-0000-0000-000000000000"
 
-describe("UserRepository", () => {
-  let repo: UserRepositoryShape
-  let db: Db
+const databaseLayer = Layer.effect(
+  Database,
+  Effect.sync(() => getTestDb())
+)
+const userRepoLayer = Layer.mergeAll(
+  databaseLayer,
+  UserRepositoryLive.pipe(Layer.provide(databaseLayer))
+)
 
-  beforeEach(async () => {
-    await cleanDatabase()
-    db = getTestDb()
-    const DatabaseLayer = Layer.succeed(Database, db)
-    repo = Effect.runSync(
-      Effect.gen(function* () {
-        return yield* UserRepository
-      }).pipe(
-        Effect.provide(UserRepositoryLive.pipe(Layer.provide(DatabaseLayer)))
-      )
-    )
-  })
-
-  async function createTestUser(
-    overrides: Partial<typeof users.$inferInsert> = {}
-  ) {
+function insertTestUser(
+  db: Db,
+  overrides: Partial<typeof users.$inferInsert> = {}
+): Effect.Effect<typeof users.$inferSelect> {
+  return Effect.promise(async () => {
     const [row] = await db
       .insert(users)
       .values({
@@ -43,42 +36,79 @@ describe("UserRepository", () => {
         ...overrides,
       })
       .returning()
+
     return row!
-  }
-
-  it("finds user by id", async () => {
-    const created = await createTestUser()
-    const found = await Effect.runPromise(repo.findById(created.id))
-    expect(Option.isSome(found)).toBe(true)
-    expect(Option.getOrThrow(found).id).toBe(created.id)
   })
+}
 
-  it("returns null when user not found by id", async () => {
-    const result = await Effect.runPromise(repo.findById(NON_EXISTENT_ID))
-    expect(Option.isNone(result)).toBe(true)
-  })
+describe("UserRepository", () => {
+  beforeEach(() => cleanDatabase())
 
-  it("finds user by email", async () => {
-    await createTestUser({ email: "byemail@example.com", username: "byemail" })
-    const found = await Effect.runPromise(
-      repo.findByEmail("byemail@example.com")
-    )
-    expect(Option.isSome(found)).toBe(true)
-    expect(Option.getOrThrow(found).email).toBe("byemail@example.com")
-  })
+  it.effect("finds user by id", () =>
+    Effect.gen(function* () {
+      const repo = yield* UserRepository
+      const db = yield* Database
 
-  it("updates a user", async () => {
-    const created = await createTestUser()
-    const updated = await Effect.runPromise(
-      repo.update(created.id, { username: "newusername" })
-    )
-    expect(updated.username).toBe("newusername")
-  })
+      const created = yield* insertTestUser(db)
 
-  it("throws NotFoundError when updating non-existent user", async () => {
-    const error = await Effect.runPromise(
-      repo.update(NON_EXISTENT_ID, { username: "nope" }).pipe(Effect.flip)
-    )
-    expect(error._tag).toBe("NotFoundError")
-  })
+      const found = yield* repo.findById(created.id)
+      expect(Option.isSome(found)).toBe(true)
+
+      expect(Option.getOrThrow(found).id).toBe(created.id)
+    }).pipe(Effect.provide(userRepoLayer))
+  )
+
+  it.effect("returns none when user not found by id", () =>
+    Effect.gen(function* () {
+      const repo = yield* UserRepository
+
+      const result = yield* repo.findById(NON_EXISTENT_ID)
+
+      expect(Option.isNone(result)).toBe(true)
+    }).pipe(Effect.provide(userRepoLayer))
+  )
+
+  it.effect("finds user by email", () =>
+    Effect.gen(function* () {
+      const repo = yield* UserRepository
+      const db = yield* Database
+
+      yield* insertTestUser(db, {
+        email: "byemail@example.com",
+        username: "byemail",
+      })
+
+      const found = yield* repo.findByEmail("byemail@example.com")
+      expect(Option.isSome(found)).toBe(true)
+
+      expect(Option.getOrThrow(found).email).toBe("byemail@example.com")
+    }).pipe(Effect.provide(userRepoLayer))
+  )
+
+  it.effect("updates a user", () =>
+    Effect.gen(function* () {
+      const repo = yield* UserRepository
+      const db = yield* Database
+
+      const created = yield* insertTestUser(db)
+
+      const updated = yield* repo.update(created.id, {
+        username: "newusername",
+      })
+
+      expect(updated.username).toBe("newusername")
+    }).pipe(Effect.provide(userRepoLayer))
+  )
+
+  it.effect("throws NotFoundError when updating non-existent user", () =>
+    Effect.gen(function* () {
+      const repo = yield* UserRepository
+
+      const error = yield* repo
+        .update(NON_EXISTENT_ID, { username: "nope" })
+        .pipe(Effect.flip)
+
+      expect(error._tag).toBe("NotFoundError")
+    }).pipe(Effect.provide(userRepoLayer))
+  )
 })

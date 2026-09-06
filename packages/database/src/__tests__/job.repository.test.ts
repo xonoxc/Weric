@@ -1,125 +1,142 @@
-import { describe, expect, it, beforeEach } from "vitest"
+import { describe, expect, it, beforeEach } from "@effect/vitest"
 import { Effect, Layer, Option } from "effect"
 import {
   JobRepository,
   JobRepositoryLive,
 } from "~db/repositories/job.repository.ts"
 import { getTestDb, cleanDatabase } from "~db/__tests__/helpers.ts"
-import type { JobRepositoryShape } from "~db/repositories/job.repository.ts"
 
 import { Database } from "~db/connection.ts"
-import type { Db } from "~db/connection.ts"
+
+const databaseLayer = Layer.effect(
+  Database,
+  Effect.sync(() => getTestDb())
+)
+
+const jobRepoLayer = Layer.mergeAll(
+  databaseLayer,
+  JobRepositoryLive.pipe(Layer.provide(databaseLayer))
+)
 
 describe("JobRepository", () => {
-  let repo: JobRepositoryShape
+  beforeEach(() => cleanDatabase())
 
-  beforeEach(async () => {
-    await cleanDatabase()
-    const db: Db = getTestDb()
-    const DatabaseLayer = Layer.succeed(Database, db)
-    repo = Effect.runSync(
-      Effect.gen(function* () {
-        return yield* JobRepository
-      }).pipe(
-        Effect.provide(JobRepositoryLive.pipe(Layer.provide(DatabaseLayer)))
-      )
-    )
-  })
+  it.effect("creates a job", () =>
+    Effect.gen(function* () {
+      const repo = yield* JobRepository
 
-  it("creates a job", async () => {
-    const job = await Effect.runPromise(
-      repo.create({
+      const job = yield* repo.create({
         type: "discover_stories",
         payload: Option.none(),
         scheduledAt: Option.none(),
       })
-    )
-    expect(job.type).toBe("discover_stories")
-    expect(job.status).toBe("pending")
-    expect(job.retries).toBe(0)
-  })
+      expect(job.type).toBe("discover_stories")
 
-  it("creates a job with payload", async () => {
-    const job = await Effect.runPromise(
-      repo.create({
+      expect(job.status).toBe("pending")
+      expect(job.retries).toBe(0)
+    }).pipe(Effect.provide(jobRepoLayer))
+  )
+
+  it.effect("creates a job with payload", () =>
+    Effect.gen(function* () {
+      const repo = yield* JobRepository
+
+      const job = yield* repo.create({
         type: "refresh_story",
         payload: Option.some({ url: "https://example.com" }),
         scheduledAt: Option.none(),
       })
-    )
-    expect(job.payload).toEqual({ url: "https://example.com" })
-  })
 
-  it("creates a scheduled job", async () => {
-    const future = new Date(Date.now() + 3600000)
-    const job = await Effect.runPromise(
-      repo.create({
+      expect(job.payload).toEqual({ url: "https://example.com" })
+    }).pipe(Effect.provide(jobRepoLayer))
+  )
+
+  it.effect("creates a scheduled job", () =>
+    Effect.gen(function* () {
+      const repo = yield* JobRepository
+
+      const future = new Date(Date.now() + 3600000)
+
+      const job = yield* repo.create({
         type: "cleanup_evidence",
         payload: Option.none(),
         scheduledAt: Option.some(future),
       })
-    )
-    expect(job.scheduledAt).toBeInstanceOf(Date)
-  })
 
-  it("finds pending jobs", async () => {
-    await Effect.runPromise(
-      repo.create({
+      expect(job.scheduledAt).toBeInstanceOf(Date)
+    }).pipe(Effect.provide(jobRepoLayer))
+  )
+
+  it.effect("finds pending jobs", () =>
+    Effect.gen(function* () {
+      const repo = yield* JobRepository
+
+      yield* repo.create({
         type: "discover_stories",
         payload: Option.none(),
         scheduledAt: Option.none(),
       })
-    )
-    await Effect.runPromise(
-      repo.create({
+      yield* repo.create({
         type: "search_discover",
         payload: Option.none(),
         scheduledAt: Option.none(),
       })
-    )
 
-    const pending = await Effect.runPromise(repo.findPending())
-    expect(pending.length).toBe(2)
-  })
+      const pending = yield* repo.findPending()
 
-  it("does not return running jobs as pending", async () => {
-    const job = await Effect.runPromise(
-      repo.create({
+      expect(pending.length).toBe(2)
+    }).pipe(Effect.provide(jobRepoLayer))
+  )
+
+  it.effect("does not return running jobs as pending", () =>
+    Effect.gen(function* () {
+      const repo = yield* JobRepository
+
+      const job = yield* repo.create({
         type: "refresh_story",
         payload: Option.none(),
         scheduledAt: Option.none(),
       })
-    )
-    await Effect.runPromise(repo.updateStatus(job.id, "running"))
 
-    const pending = await Effect.runPromise(repo.findPending())
-    const match = pending.find(j => j.id === job.id)
-    expect(match).toBeUndefined()
-  })
+      yield* repo.updateStatus(job.id, "running")
 
-  it("updates job status", async () => {
-    const job = await Effect.runPromise(
-      repo.create({
+      const pending = yield* repo.findPending()
+
+      const match = pending.find(j => j.id === job.id)
+      expect(match).toBeUndefined()
+    }).pipe(Effect.provide(jobRepoLayer))
+  )
+
+  it.effect("updates job status", () =>
+    Effect.gen(function* () {
+      const repo = yield* JobRepository
+
+      const job = yield* repo.create({
         type: "rebuild_recommendations",
         payload: Option.none(),
         scheduledAt: Option.none(),
       })
-    )
-    await Effect.runPromise(repo.updateStatus(job.id, "completed"))
 
-    const pending = await Effect.runPromise(repo.findPending())
-    const match = pending.find(j => j.id === job.id)
-    expect(match).toBeUndefined()
-  })
+      yield* repo.updateStatus(job.id, "completed")
 
-  it("increments retries without error", async () => {
-    const job = await Effect.runPromise(
-      repo.create({
+      const pending = yield* repo.findPending()
+
+      const match = pending.find(j => j.id === job.id)
+      expect(match).toBeUndefined()
+    }).pipe(Effect.provide(jobRepoLayer))
+  )
+
+  it.effect("increments retries without error", () =>
+    Effect.gen(function* () {
+      const repo = yield* JobRepository
+
+      const job = yield* repo.create({
         type: "learn_interests",
         payload: Option.none(),
         scheduledAt: Option.none(),
       })
-    )
-    await Effect.runPromise(repo.incrementRetries(job.id))
-  })
+
+      yield* repo.incrementRetries(job.id)
+    }).pipe(Effect.provide(jobRepoLayer))
+  )
 })

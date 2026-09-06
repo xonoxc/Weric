@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "@effect/vitest"
 import { Effect, Option } from "effect"
 import { persistConceptGraph } from "../graph.ts"
 
@@ -78,51 +78,53 @@ const sample: SynthesizedGraph = {
 }
 
 describe("persistConceptGraph", () => {
-  it("creates concepts, links their stories, persists valid edges, and returns the shaped graph", async () => {
-    const repo = new FakeGraphPersistence()
-    const graph = await Effect.runPromise(
-      persistConceptGraph("chat-1", sample, repo)
-    )
+  it.effect(
+    "creates concepts, links their stories, persists valid edges, and returns the shaped graph",
+    () =>
+      Effect.gen(function* () {
+        const repo = new FakeGraphPersistence()
+        const graph = yield* persistConceptGraph("chat-1", sample, repo)
 
-    expect(repo.createConceptCalls).toEqual([
-      {
-        chatId: "chat-1",
-        name: "RAG",
-        summary: Option.some("Retrieval augmented generation"),
-      },
-      {
-        chatId: "chat-1",
-        name: "Vector DBs",
-        summary: Option.some("Databases for embeddings"),
-      },
-    ])
+        expect(repo.createConceptCalls).toEqual([
+          {
+            chatId: "chat-1",
+            name: "RAG",
+            summary: Option.some("Retrieval augmented generation"),
+          },
+          {
+            chatId: "chat-1",
+            name: "Vector DBs",
+            summary: Option.some("Databases for embeddings"),
+          },
+        ])
 
-    expect(repo.linkStoryCalls).toEqual([
-      { conceptId: "concept-RAG", storyId: "s1" },
-      { conceptId: "concept-RAG", storyId: "s2" },
-      { conceptId: "concept-Vector DBs", storyId: "s3" },
-    ])
+        expect(repo.linkStoryCalls).toEqual([
+          { conceptId: "concept-RAG", storyId: "s1" },
+          { conceptId: "concept-RAG", storyId: "s2" },
+          { conceptId: "concept-Vector DBs", storyId: "s3" },
+        ])
 
-    expect(repo.createEdgeCalls).toEqual([
-      {
-        chatId: "chat-1",
-        sourceConcept: "concept-RAG",
-        targetConcept: "concept-Vector DBs",
-        label: "builds on",
-      },
-    ])
+        expect(repo.createEdgeCalls).toEqual([
+          {
+            chatId: "chat-1",
+            sourceConcept: "concept-RAG",
+            targetConcept: "concept-Vector DBs",
+            label: "builds on",
+          },
+        ])
 
-    expect(graph.nodes).toHaveLength(2)
-    expect(graph.nodes[0]!.name).toBe("RAG")
+        expect(graph.nodes).toHaveLength(2)
+        expect(graph.nodes[0]!.name).toBe("RAG")
 
-    expect(graph.edges).toHaveLength(1)
-    expect(graph.edges[0]!.sourceConcept).toBe("concept-RAG")
-    expect(graph.edges[0]!.targetConcept).toBe("concept-Vector DBs")
+        expect(graph.edges).toHaveLength(1)
+        expect(graph.edges[0]!.sourceConcept).toBe("concept-RAG")
+        expect(graph.edges[0]!.targetConcept).toBe("concept-Vector DBs")
 
-    expect(graph.conceptStories).toHaveLength(3)
-    expect(graph.conceptStories[0]).toEqual({
-      conceptId: "concept-RAG",
-      storyId: "s1",
-    })
-  })
+        expect(graph.conceptStories).toHaveLength(3)
+        expect(graph.conceptStories[0]).toEqual({
+          conceptId: "concept-RAG",
+          storyId: "s1",
+        })
+      })
+  )
 })

@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest"
-import { Effect, Layer, pipe } from "effect"
+import { describe, expect, it } from "@effect/vitest"
+import { Effect, Layer } from "effect"
 import {
   ConceptRepository,
   ConceptEdgeRepository,
@@ -88,45 +88,40 @@ function fakeRepos() {
   return { conceptRepo, edgeRepo, storyLinkRepo }
 }
 
-describe("GraphService.getGraph", () => {
-  it("assembles nodes, edges, and conceptStories for a chat", async () => {
-    const { conceptRepo, edgeRepo, storyLinkRepo } = fakeRepos()
-
-    const service = await Effect.runPromise(
-      pipe(
-        Effect.gen(function* () {
-          return yield* GraphService
-        }),
-        Effect.provide(
-          GraphServiceLive.pipe(
-            Layer.provide(
-              Layer.mergeAll(
-                Layer.succeed(ConceptRepository, conceptRepo),
-                Layer.succeed(ConceptEdgeRepository, edgeRepo),
-                Layer.succeed(ConceptStoryRepository, storyLinkRepo)
-              )
-            )
-          )
-        )
+const graphServiceLayer = (() => {
+  const { conceptRepo, edgeRepo, storyLinkRepo } = fakeRepos()
+  return GraphServiceLive.pipe(
+    Layer.provide(
+      Layer.mergeAll(
+        Layer.succeed(ConceptRepository, conceptRepo),
+        Layer.succeed(ConceptEdgeRepository, edgeRepo),
+        Layer.succeed(ConceptStoryRepository, storyLinkRepo)
       )
     )
+  )
+})()
 
-    const graph = await Effect.runPromise(service.getGraph("chat-1"))
+describe("GraphService.getGraph", () => {
+  it.effect("assembles nodes, edges, and conceptStories for a chat", () =>
+    Effect.gen(function* () {
+      const service = yield* GraphService
+      const graph = yield* service.getGraph("chat-1")
 
-    expect(graph.nodes.map(n => n.name)).toEqual(["RAG", "Vector DBs"])
-    expect(graph.nodes[1]!.positionX).toBe(10)
+      expect(graph.nodes.map(n => n.name)).toEqual(["RAG", "Vector DBs"])
+      expect(graph.nodes[1]!.positionX).toBe(10)
 
-    expect(graph.edges).toHaveLength(1)
-    expect(graph.edges[0]).toMatchObject({
-      sourceConcept: "c1",
-      targetConcept: "c2",
-      label: "builds on",
-    })
+      expect(graph.edges).toHaveLength(1)
+      expect(graph.edges[0]).toMatchObject({
+        sourceConcept: "c1",
+        targetConcept: "c2",
+        label: "builds on",
+      })
 
-    expect(graph.conceptStories).toEqual([
-      { conceptId: "c1", storyId: "s1" },
-      { conceptId: "c1", storyId: "s2" },
-      { conceptId: "c2", storyId: "s3" },
-    ])
-  })
+      expect(graph.conceptStories).toEqual([
+        { conceptId: "c1", storyId: "s1" },
+        { conceptId: "c1", storyId: "s2" },
+        { conceptId: "c2", storyId: "s3" },
+      ])
+    }).pipe(Effect.provide(graphServiceLayer))
+  )
 })

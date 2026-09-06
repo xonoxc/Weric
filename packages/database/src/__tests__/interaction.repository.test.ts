@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from "vitest"
+import { describe, expect, it, beforeEach } from "@effect/vitest"
 import { Effect, Layer, Option } from "effect"
 import {
   InteractionRepository,
@@ -10,38 +10,24 @@ import {
 } from "~db/repositories/story.repository.ts"
 import { getTestDb, cleanDatabase } from "~db/__tests__/helpers.ts"
 import { users } from "~db/schema/tables.ts"
-import type { InteractionRepositoryShape } from "~db/repositories/interaction.repository.ts"
 
 import { Database } from "~db/connection.ts"
 import type { Db } from "~db/connection.ts"
 
-describe("InteractionRepository", () => {
-  let repo: InteractionRepositoryShape
-  let userId: string
-  let storyId: string
+const databaseLayer = Layer.effect(
+  Database,
+  Effect.sync(() => getTestDb())
+)
 
-  beforeEach(async () => {
-    await cleanDatabase()
-    const db: Db = getTestDb()
-    const DatabaseLayer = Layer.succeed(Database, db)
-    repo = Effect.runSync(
-      Effect.gen(function* () {
-        return yield* InteractionRepository
-      }).pipe(
-        Effect.provide(
-          InteractionRepositoryLive.pipe(Layer.provide(DatabaseLayer))
-        )
-      )
-    )
-    const storyRepo = Effect.runSync(
-      Effect.gen(function* () {
-        return yield* StoryRepository
-      }).pipe(
-        Effect.provide(StoryRepositoryLive.pipe(Layer.provide(DatabaseLayer)))
-      )
-    )
+const interactionRepoLayer = Layer.mergeAll(
+  databaseLayer,
+  InteractionRepositoryLive.pipe(Layer.provide(databaseLayer)),
+  StoryRepositoryLive.pipe(Layer.provide(databaseLayer))
+)
 
-    const [user] = await db
+function insertTestUser(db: Db): Effect.Effect<typeof users.$inferSelect> {
+  return Effect.promise(async () => {
+    const [row] = await db
       .insert(users)
       .values({
         name: "Int User",
@@ -49,112 +35,167 @@ describe("InteractionRepository", () => {
         username: "intuser",
       })
       .returning()
-    userId = user!.id
 
-    const story = await Effect.runPromise(
-      storyRepo.create({
+    return row!
+  })
+}
+
+describe("InteractionRepository", () => {
+  beforeEach(() => cleanDatabase())
+
+  it.effect("creates an interaction", () =>
+    Effect.gen(function* () {
+      const repo = yield* InteractionRepository
+      const storyRepo = yield* StoryRepository
+      const db = yield* Database
+
+      const user = yield* insertTestUser(db)
+
+      const story = yield* storyRepo.create({
         title: "Int Story",
         slug: "int-story",
         summary: Option.none(),
       })
-    )
-    storyId = story.id
-  })
 
-  it("creates an interaction", async () => {
-    const interaction = await Effect.runPromise(
-      repo.create({
-        userId,
-        storyId,
+      const interaction = yield* repo.create({
+        userId: user.id,
+        storyId: story.id,
         interactionType: "view",
         duration: Option.none(),
       })
-    )
-    expect(interaction.userId).toBe(userId)
-    expect(interaction.storyId).toBe(storyId)
-    expect(interaction.interactionType).toBe("view")
-  })
 
-  it("creates an interaction with duration", async () => {
-    const interaction = await Effect.runPromise(
-      repo.create({
-        userId,
-        storyId,
+      expect(interaction.userId).toBe(user.id)
+      expect(interaction.storyId).toBe(story.id)
+
+      expect(interaction.interactionType).toBe("view")
+    }).pipe(Effect.provide(interactionRepoLayer))
+  )
+
+  it.effect("creates an interaction with duration", () =>
+    Effect.gen(function* () {
+      const repo = yield* InteractionRepository
+      const storyRepo = yield* StoryRepository
+      const db = yield* Database
+
+      const user = yield* insertTestUser(db)
+
+      const story = yield* storyRepo.create({
+        title: "Int Story",
+        slug: "int-story",
+        summary: Option.none(),
+      })
+
+      const interaction = yield* repo.create({
+        userId: user.id,
+        storyId: story.id,
         interactionType: "read",
         duration: Option.some(120),
       })
-    )
-    expect(interaction.duration).toBe(120)
-  })
 
-  it("finds interactions by user", async () => {
-    await Effect.runPromise(
-      repo.create({
-        userId,
-        storyId,
+      expect(interaction.duration).toBe(120)
+    }).pipe(Effect.provide(interactionRepoLayer))
+  )
+
+  it.effect("finds interactions by user", () =>
+    Effect.gen(function* () {
+      const repo = yield* InteractionRepository
+      const storyRepo = yield* StoryRepository
+      const db = yield* Database
+
+      const user = yield* insertTestUser(db)
+
+      const story = yield* storyRepo.create({
+        title: "Int Story",
+        slug: "int-story",
+        summary: Option.none(),
+      })
+
+      yield* repo.create({
+        userId: user.id,
+        storyId: story.id,
         interactionType: "view",
         duration: Option.none(),
       })
-    )
-    await Effect.runPromise(
-      repo.create({
-        userId,
-        storyId,
+      yield* repo.create({
+        userId: user.id,
+        storyId: story.id,
         interactionType: "like",
         duration: Option.none(),
       })
-    )
 
-    const results = await Effect.runPromise(repo.findByUser(userId))
-    expect(results.length).toBe(2)
-  })
+      const results = yield* repo.findByUser(user.id)
 
-  it("finds interactions by story", async () => {
-    await Effect.runPromise(
-      repo.create({
-        userId,
-        storyId,
+      expect(results.length).toBe(2)
+    }).pipe(Effect.provide(interactionRepoLayer))
+  )
+
+  it.effect("finds interactions by story", () =>
+    Effect.gen(function* () {
+      const repo = yield* InteractionRepository
+      const storyRepo = yield* StoryRepository
+      const db = yield* Database
+
+      const user = yield* insertTestUser(db)
+
+      const story = yield* storyRepo.create({
+        title: "Int Story",
+        slug: "int-story",
+        summary: Option.none(),
+      })
+
+      yield* repo.create({
+        userId: user.id,
+        storyId: story.id,
         interactionType: "view",
         duration: Option.none(),
       })
-    )
 
-    const results = await Effect.runPromise(repo.findByStory(storyId))
-    expect(results.length).toBe(1)
-  })
+      const results = yield* repo.findByStory(story.id)
 
-  it("aggregates interactions by type", async () => {
-    await Effect.runPromise(
-      repo.create({
-        userId,
-        storyId,
+      expect(results.length).toBe(1)
+    }).pipe(Effect.provide(interactionRepoLayer))
+  )
+
+  it.effect("aggregates interactions by type", () =>
+    Effect.gen(function* () {
+      const repo = yield* InteractionRepository
+      const storyRepo = yield* StoryRepository
+      const db = yield* Database
+
+      const user = yield* insertTestUser(db)
+
+      const story = yield* storyRepo.create({
+        title: "Int Story",
+        slug: "int-story",
+        summary: Option.none(),
+      })
+
+      yield* repo.create({
+        userId: user.id,
+        storyId: story.id,
         interactionType: "view",
-
         duration: Option.none(),
       })
-    )
-    await Effect.runPromise(
-      repo.create({
-        userId,
-        storyId,
+      yield* repo.create({
+        userId: user.id,
+        storyId: story.id,
         interactionType: "view",
         duration: Option.none(),
       })
-    )
-    await Effect.runPromise(
-      repo.create({
-        userId,
-        storyId,
+      yield* repo.create({
+        userId: user.id,
+        storyId: story.id,
         interactionType: "like",
-
         duration: Option.none(),
       })
-    )
 
-    const aggs = await Effect.runPromise(repo.aggregateByType(userId))
-    expect(aggs.length).toBe(2)
-    const viewAgg = aggs.find(a => a.interactionType === "view")
-    expect(viewAgg).toBeDefined()
-    expect(viewAgg!.count).toBe(2)
-  })
+      const aggs = yield* repo.aggregateByType(user.id)
+      expect(aggs.length).toBe(2)
+
+      const viewAgg = aggs.find(a => a.interactionType === "view")
+      expect(viewAgg).toBeDefined()
+
+      expect(viewAgg!.count).toBe(2)
+    }).pipe(Effect.provide(interactionRepoLayer))
+  )
 })

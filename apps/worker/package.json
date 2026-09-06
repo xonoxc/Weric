@@ -6,7 +6,7 @@
   "main": "./src/index.ts",
   "scripts": {
     "dev": "bun run --hot --env-file=../../.env src/index.ts",
-    "build": "bun build src/index.ts --outdir dist",
+    "build": "bun build src/index.ts --outdir dist --target=bun",
     "start": "bun run dist/index.js",
     "check-types": "tsc --noEmit",
     "lint": "echo 'no linter configured'",

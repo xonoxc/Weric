@@ -33,8 +33,12 @@ export class GraphService extends Effect.Service<GraphServiceShape>()(
 
             for (const node of nodes) {
               const storyIds = yield* storyRepo.findStoryIdsByConcept(node.id)
+
               for (const storyId of storyIds) {
-                conceptStories.push({ conceptId: node.id, storyId })
+                conceptStories.push({
+                  conceptId: node.id,
+                  storyId,
+                })
               }
             }
 

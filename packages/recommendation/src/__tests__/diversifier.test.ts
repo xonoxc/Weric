@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeAll } from "vitest"
+import { describe, expect, it } from "@effect/vitest"
 import { Effect } from "effect"
 import { FeedDiversifier, FeedDiversifierLive } from "~rec/diversifier.ts"
 
@@ -28,57 +28,74 @@ function makeScored(title: string, score = 0.5): ScoredStory {
 }
 
 describe("FeedDiversifier", () => {
-  let diversifier: import("~rec/diversifier.ts").FeedDiversifier
+  it.effect("returns all items when fewer than requested count", () =>
+    Effect.gen(function* () {
+      const diversifier = yield* FeedDiversifier
 
-  beforeAll(async () => {
-    diversifier = (await Effect.runPromise(
-      Effect.gen(function* () {
-        return yield* FeedDiversifier
-      }).pipe(Effect.provide(FeedDiversifierLive))
-    )) as never
-  })
+      const items = [makeScored("AI Research"), makeScored("Sports")]
 
-  it("returns all items when fewer than requested count", () => {
-    const items = [makeScored("AI Research"), makeScored("Sports")]
-    const result = diversifier.diversify(items, 10)
-    expect(result).toHaveLength(2)
-  })
+      const result = diversifier.diversify(items, 10)
+      expect(result).toHaveLength(2)
+    }).pipe(Effect.provide(FeedDiversifierLive))
+  )
 
-  it("diversifies by extracting topic from title", () => {
-    const items = [
-      makeScored("AI Research Breakthrough"),
-      makeScored("AI in Healthcare"),
-      makeScored("Sports News"),
-      makeScored("Sports Results"),
-      makeScored("Music Review"),
-    ]
+  it.effect("diversifies by extracting topic from title", () =>
+    Effect.gen(function* () {
+      const diversifier = yield* FeedDiversifier
 
-    const result = diversifier.diversify(items, 3)
-    expect(result).toHaveLength(3)
+      const items = [
+        makeScored("AI Research Breakthrough"),
+        makeScored("AI in Healthcare"),
+        makeScored("Sports News"),
+        makeScored("Sports Results"),
+        makeScored("Music Review"),
+      ]
 
-    const topics = result.map(s => s.story.title)
-    expect(new Set(topics).size).toBe(3)
-  })
+      const result = diversifier.diversify(items, 3)
+      expect(result).toHaveLength(3)
 
-  it("uses 'general' topic when title has no significant words", () => {
-    const items = [makeScored("A"), makeScored("An"), makeScored("The")]
-    const result = diversifier.diversify(items, 3)
-    expect(result).toHaveLength(3)
-  })
+      const topics = result.map(s => s.story.title)
+      expect(new Set(topics).size).toBe(3)
+    }).pipe(Effect.provide(FeedDiversifierLive))
+  )
 
-  it("stops early when no more stories to pick", () => {
-    const items = [makeScored("Only Story")]
-    const result = diversifier.diversify(items, 10)
-    expect(result).toHaveLength(1)
-  })
+  it.effect("uses 'general' topic when title has no significant words", () =>
+    Effect.gen(function* () {
+      const diversifier = yield* FeedDiversifier
 
-  it("preserves order within same bucket (by score)", () => {
-    const items = [
-      makeScored("Sports News", 0.9),
-      makeScored("Sports Finals", 0.8),
-    ]
-    const result = diversifier.diversify(items, 2)
-    expect(result).toHaveLength(2)
-    expect(result[0]!.finalScore).toBeGreaterThanOrEqual(result[1]!.finalScore)
-  })
+      const items = [makeScored("A"), makeScored("An"), makeScored("The")]
+      const result = diversifier.diversify(items, 3)
+
+      expect(result).toHaveLength(3)
+    }).pipe(Effect.provide(FeedDiversifierLive))
+  )
+
+  it.effect("stops early when no more stories to pick", () =>
+    Effect.gen(function* () {
+      const diversifier = yield* FeedDiversifier
+
+      const items = [makeScored("Only Story")]
+      const result = diversifier.diversify(items, 10)
+
+      expect(result).toHaveLength(1)
+    }).pipe(Effect.provide(FeedDiversifierLive))
+  )
+
+  it.effect("preserves order within same bucket (by score)", () =>
+    Effect.gen(function* () {
+      const diversifier = yield* FeedDiversifier
+
+      const items = [
+        makeScored("Sports News", 0.9),
+        makeScored("Sports Finals", 0.8),
+      ]
+
+      const result = diversifier.diversify(items, 2)
+      expect(result).toHaveLength(2)
+
+      expect(result[0]!.finalScore).toBeGreaterThanOrEqual(
+        result[1]!.finalScore
+      )
+    }).pipe(Effect.provide(FeedDiversifierLive))
+  )
 })
