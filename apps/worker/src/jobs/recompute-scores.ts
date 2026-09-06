@@ -1,4 +1,4 @@
-import { Effect, Layer, pipe } from "effect"
+import { Effect, Layer, Option, pipe } from "effect"
 import {
   Database,
   StoryRepository,
@@ -42,10 +42,12 @@ export function createRecomputeScoresHandler(db: Db): JobHandler {
           const recommendationService = yield* RecommendationService
           const userRepo = yield* UserRepository
 
-          const { data: stories } = yield* storyRepo.findPublishedFeed({
-            page: 1,
-            limit: 100,
-          })
+          const { data: stories } = yield* storyRepo.findPublishedFeed(
+            Option.some({
+              page: Option.some(1),
+              limit: Option.some(100),
+            })
+          )
 
           const users = yield* userRepo.findAll()
 
@@ -56,7 +58,8 @@ export function createRecomputeScoresHandler(db: Db): JobHandler {
             user =>
               pipe(
                 recommendationService.generateFeed(user.id, {
-                  limit: 50,
+                  page: Option.none(),
+                  limit: Option.some(50),
                 }),
                 Effect.catchAll(() => Effect.succeed(null)),
                 Effect.tap(feed => {

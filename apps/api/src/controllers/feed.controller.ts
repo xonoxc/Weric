@@ -1,4 +1,4 @@
-import { Effect, Schema } from "effect"
+import { Effect, Option, Schema } from "effect"
 import { FeedService } from "~api/services/feed.service"
 import { requireUser } from "~api/lib/validation"
 import { PaginationQuery } from "~api/lib/validation"
@@ -30,8 +30,8 @@ export class FeedController extends Effect.Service<FeedControllerShape>()(
             )
 
             const feed: Feed = yield* service.generateFeed(user.id, {
-              page,
-              limit,
+              page: Option.some(page),
+              limit: Option.some(limit),
             })
 
             return ctx.json(feed)

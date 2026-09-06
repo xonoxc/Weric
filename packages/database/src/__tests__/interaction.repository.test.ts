@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from "vitest"
-import { Effect, Layer } from "effect"
+import { Effect, Layer, Option } from "effect"
 import {
   InteractionRepository,
   InteractionRepositoryLive,
@@ -52,14 +52,23 @@ describe("InteractionRepository", () => {
     userId = user!.id
 
     const story = await Effect.runPromise(
-      storyRepo.create({ title: "Int Story", slug: "int-story" })
+      storyRepo.create({
+        title: "Int Story",
+        slug: "int-story",
+        summary: Option.none(),
+      })
     )
     storyId = story.id
   })
 
   it("creates an interaction", async () => {
     const interaction = await Effect.runPromise(
-      repo.create({ userId, storyId, interactionType: "view" })
+      repo.create({
+        userId,
+        storyId,
+        interactionType: "view",
+        duration: Option.none(),
+      })
     )
     expect(interaction.userId).toBe(userId)
     expect(interaction.storyId).toBe(storyId)
@@ -68,17 +77,32 @@ describe("InteractionRepository", () => {
 
   it("creates an interaction with duration", async () => {
     const interaction = await Effect.runPromise(
-      repo.create({ userId, storyId, interactionType: "read", duration: 120 })
+      repo.create({
+        userId,
+        storyId,
+        interactionType: "read",
+        duration: Option.some(120),
+      })
     )
     expect(interaction.duration).toBe(120)
   })
 
   it("finds interactions by user", async () => {
     await Effect.runPromise(
-      repo.create({ userId, storyId, interactionType: "view" })
+      repo.create({
+        userId,
+        storyId,
+        interactionType: "view",
+        duration: Option.none(),
+      })
     )
     await Effect.runPromise(
-      repo.create({ userId, storyId, interactionType: "like" })
+      repo.create({
+        userId,
+        storyId,
+        interactionType: "like",
+        duration: Option.none(),
+      })
     )
 
     const results = await Effect.runPromise(repo.findByUser(userId))
@@ -87,7 +111,12 @@ describe("InteractionRepository", () => {
 
   it("finds interactions by story", async () => {
     await Effect.runPromise(
-      repo.create({ userId, storyId, interactionType: "view" })
+      repo.create({
+        userId,
+        storyId,
+        interactionType: "view",
+        duration: Option.none(),
+      })
     )
 
     const results = await Effect.runPromise(repo.findByStory(storyId))
@@ -96,13 +125,30 @@ describe("InteractionRepository", () => {
 
   it("aggregates interactions by type", async () => {
     await Effect.runPromise(
-      repo.create({ userId, storyId, interactionType: "view" })
+      repo.create({
+        userId,
+        storyId,
+        interactionType: "view",
+
+        duration: Option.none(),
+      })
     )
     await Effect.runPromise(
-      repo.create({ userId, storyId, interactionType: "view" })
+      repo.create({
+        userId,
+        storyId,
+        interactionType: "view",
+        duration: Option.none(),
+      })
     )
     await Effect.runPromise(
-      repo.create({ userId, storyId, interactionType: "like" })
+      repo.create({
+        userId,
+        storyId,
+        interactionType: "like",
+
+        duration: Option.none(),
+      })
     )
 
     const aggs = await Effect.runPromise(repo.aggregateByType(userId))

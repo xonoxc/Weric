@@ -15,6 +15,7 @@
     "@weric/config": "workspace:*",
     "@weric/contracts": "workspace:*",
     "@weric/shared": "workspace:*",
+    "@weric/utils": "workspace:*",
     "drizzle-orm": "^0.40.0",
     "effect": "^3.22.1",
     "postgres": "^3.4.0"

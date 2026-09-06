@@ -1,4 +1,4 @@
-import { Effect, Schema } from "effect"
+import { Effect, Option, Schema } from "effect"
 import { SearchService } from "~api/services/search.service"
 import { ConceptGraphSchema } from "@weric/contracts"
 
@@ -32,9 +32,9 @@ const SearchResponse = Schema.Struct({
     storyTotal: Schema.optional(Schema.Number),
     evidenceTotal: Schema.optional(Schema.Number),
   }),
-  jobId: Schema.optional(Schema.NullOr(Schema.String)),
-  chatId: Schema.optional(Schema.NullOr(Schema.String)),
-  graph: Schema.optional(Schema.NullOr(ConceptGraphSchema)),
+  jobId: Schema.optional(Schema.OptionFromNullOr(Schema.String)),
+  chatId: Schema.optional(Schema.OptionFromNullOr(Schema.String)),
+  graph: Schema.optional(Schema.OptionFromNullOr(ConceptGraphSchema)),
 })
 
 export interface SearchControllerShape {
@@ -63,9 +63,9 @@ export class SearchController extends Effect.Service<SearchControllerShape>()(
                 type: parsed.type,
                 page: parsed.page,
                 limit: parsed.limit,
-                chatId: parsed.chatId,
+                chatId: Option.fromNullable(parsed.chatId),
               },
-              user?.id ?? null
+              Option.fromNullable(user?.id)
             )
 
             return ctx.json(Schema.encode(SearchResponse)(result))

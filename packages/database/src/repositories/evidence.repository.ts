@@ -1,10 +1,11 @@
-import { Effect } from "effect"
+import { Effect, Option } from "effect"
 import { desc, eq, sql } from "drizzle-orm"
 import { DbEvidence, evidence } from "~db/schema/tables.ts"
 import { ConflictError, tryDb } from "./errors.ts"
 
 import { Database } from "~db/connection.ts"
 import type { RepositoryError } from "./errors.ts"
+import type { Optioned } from "@weric/utils"
 
 const TSFMT = 'YYYY-MM-DD"T"HH24:MI:SS"Z"'
 
@@ -12,10 +13,10 @@ export interface EvidenceSearchRow {
   id: string
   source: string
   url: string
-  author: string | null
+  author: Optioned<string>
   title: string
   content: string
-  publishedAt: string | null
+  publishedAt: Optioned<string>
   discoveredAt: string
 }
 
@@ -23,20 +24,20 @@ export interface EvidenceRepositoryShape {
   readonly create: (data: {
     source: string
     url: string
-    author?: string | null
+    author?: Optioned<string>
     title: string
     content: string
     metadata?: Record<string, unknown>
-    publishedAt?: Date | null
+    publishedAt?: Optioned<Date>
   }) => Effect.Effect<DbEvidence, RepositoryError>
 
   readonly findById: (
     id: string
-  ) => Effect.Effect<DbEvidence | null, RepositoryError>
+  ) => Effect.Effect<Optioned<DbEvidence>, RepositoryError>
 
   readonly findByUrl: (
     url: string
-  ) => Effect.Effect<DbEvidence | null, RepositoryError>
+  ) => Effect.Effect<Optioned<DbEvidence>, RepositoryError>
 
   readonly findBySource: (
     source: string,
@@ -72,11 +73,13 @@ export class EvidenceRepository extends Effect.Service<EvidenceRepositoryShape>(
                 .values({
                   source: data.source,
                   url: data.url,
-                  author: data.author ?? null,
+                  author: Option.getOrNull(data.author ?? Option.none()),
                   title: data.title,
                   content: data.content,
-                  metadata: (data.metadata ?? {}) as Record<string, unknown>,
-                  publishedAt: data.publishedAt ?? null,
+                  metadata: data.metadata ?? {},
+                  publishedAt: Option.getOrNull(
+                    data.publishedAt ?? Option.none()
+                  ),
                 })
                 .returning()
               return row!
@@ -104,7 +107,7 @@ export class EvidenceRepository extends Effect.Service<EvidenceRepositoryShape>(
               .from(evidence)
               .where(eq(evidence.id, id))
               .limit(1)
-            return row ?? null
+            return Option.fromNullable(row)
           })
         },
 
@@ -115,7 +118,7 @@ export class EvidenceRepository extends Effect.Service<EvidenceRepositoryShape>(
               .from(evidence)
               .where(eq(evidence.url, url))
               .limit(1)
-            return row ?? null
+            return Option.fromNullable(row)
           })
         },
 
@@ -186,8 +189,14 @@ export class EvidenceRepository extends Effect.Service<EvidenceRepositoryShape>(
               .from(evidence)
               .where(condition)
 
+            const data = rows.map(row => ({
+              ...row,
+              author: Option.fromNullable(row.author),
+              publishedAt: Option.fromNullable(row.publishedAt),
+            }))
+
             return {
-              data: rows as EvidenceSearchRow[],
+              data,
               total: totalResult?.count ?? 0,
             }
           })

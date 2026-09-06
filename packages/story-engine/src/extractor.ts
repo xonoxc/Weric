@@ -1,4 +1,4 @@
-import { Effect } from "effect"
+import { Effect, Option } from "effect"
 import { ExtractionError } from "./errors.ts"
 
 import type { EntityRepository } from "@weric/database"
@@ -157,8 +157,8 @@ export class EntityExtractor {
         )
 
         let entityId: string
-        if (existing) {
-          entityId = existing.id
+        if (Option.isSome(existing)) {
+          entityId = existing.value.id
         } else {
           const created = yield* entityRepo
             .create({ name, type, aliases: [name] })

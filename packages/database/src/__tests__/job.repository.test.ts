@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from "vitest"
-import { Effect, Layer } from "effect"
+import { Effect, Layer, Option } from "effect"
 import {
   JobRepository,
   JobRepositoryLive,
@@ -27,15 +27,25 @@ describe("JobRepository", () => {
   })
 
   it("creates a job", async () => {
-    const job = await Effect.runPromise(repo.create({ type: "scrape" }))
-    expect(job.type).toBe("scrape")
+    const job = await Effect.runPromise(
+      repo.create({
+        type: "discover_stories",
+        payload: Option.none(),
+        scheduledAt: Option.none(),
+      })
+    )
+    expect(job.type).toBe("discover_stories")
     expect(job.status).toBe("pending")
     expect(job.retries).toBe(0)
   })
 
   it("creates a job with payload", async () => {
     const job = await Effect.runPromise(
-      repo.create({ type: "process", payload: { url: "https://example.com" } })
+      repo.create({
+        type: "refresh_story",
+        payload: Option.some({ url: "https://example.com" }),
+        scheduledAt: Option.none(),
+      })
     )
     expect(job.payload).toEqual({ url: "https://example.com" })
   })
@@ -43,14 +53,30 @@ describe("JobRepository", () => {
   it("creates a scheduled job", async () => {
     const future = new Date(Date.now() + 3600000)
     const job = await Effect.runPromise(
-      repo.create({ type: "scheduled-task", scheduledAt: future })
+      repo.create({
+        type: "cleanup_evidence",
+        payload: Option.none(),
+        scheduledAt: Option.some(future),
+      })
     )
     expect(job.scheduledAt).toBeInstanceOf(Date)
   })
 
   it("finds pending jobs", async () => {
-    await Effect.runPromise(repo.create({ type: "job-a" }))
-    await Effect.runPromise(repo.create({ type: "job-b" }))
+    await Effect.runPromise(
+      repo.create({
+        type: "discover_stories",
+        payload: Option.none(),
+        scheduledAt: Option.none(),
+      })
+    )
+    await Effect.runPromise(
+      repo.create({
+        type: "search_discover",
+        payload: Option.none(),
+        scheduledAt: Option.none(),
+      })
+    )
 
     const pending = await Effect.runPromise(repo.findPending())
     expect(pending.length).toBe(2)
@@ -58,7 +84,11 @@ describe("JobRepository", () => {
 
   it("does not return running jobs as pending", async () => {
     const job = await Effect.runPromise(
-      repo.create({ type: "already-running" })
+      repo.create({
+        type: "refresh_story",
+        payload: Option.none(),
+        scheduledAt: Option.none(),
+      })
     )
     await Effect.runPromise(repo.updateStatus(job.id, "running"))
 
@@ -68,7 +98,13 @@ describe("JobRepository", () => {
   })
 
   it("updates job status", async () => {
-    const job = await Effect.runPromise(repo.create({ type: "status-test" }))
+    const job = await Effect.runPromise(
+      repo.create({
+        type: "rebuild_recommendations",
+        payload: Option.none(),
+        scheduledAt: Option.none(),
+      })
+    )
     await Effect.runPromise(repo.updateStatus(job.id, "completed"))
 
     const pending = await Effect.runPromise(repo.findPending())
@@ -77,7 +113,13 @@ describe("JobRepository", () => {
   })
 
   it("increments retries without error", async () => {
-    const job = await Effect.runPromise(repo.create({ type: "retry-test" }))
+    const job = await Effect.runPromise(
+      repo.create({
+        type: "learn_interests",
+        payload: Option.none(),
+        scheduledAt: Option.none(),
+      })
+    )
     await Effect.runPromise(repo.incrementRetries(job.id))
   })
 })

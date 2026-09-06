@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeAll } from "vitest"
-import { Effect } from "effect"
+import { Effect, Option } from "effect"
 import { FeedRanker, FeedRankerLive } from "~rec/ranker.ts"
 import { FeedDiversifierLive } from "~rec/diversifier.ts"
 
@@ -94,8 +94,8 @@ describe("FeedRanker", () => {
       }),
     ]
     const result = ranker.rank(items, 2)
-    expect(result.reasons.get("s1")).toBe("recent")
-    expect(result.reasons.get("s2")).toBeUndefined()
+    expect(Option.getOrElse(result.reasons.get("s1"), () => "")).toBe("recent")
+    expect(Option.isNone(result.reasons.get("s2")!)).toBe(true)
   })
 
   it("combines multiple reasons", () => {
@@ -108,6 +108,8 @@ describe("FeedRanker", () => {
       }),
     ]
     const result = ranker.rank(items, 1)
-    expect(result.reasons.get("s1")).toBe("recent, high quality")
+    expect(Option.getOrElse(result.reasons.get("s1"), () => "")).toBe(
+      "recent, high quality"
+    )
   })
 })

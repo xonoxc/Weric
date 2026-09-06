@@ -1,15 +1,16 @@
-import { Effect } from "effect"
+import { Effect, Option } from "effect"
 
 import type { SynthesizedGraph } from "@weric/ai"
 import type { ConceptGraph } from "@weric/contracts"
+import type { Optioned } from "@weric/utils"
 
 export interface GraphConceptRow {
   id: string
   chatId: string
   name: string
-  summary: string | null
-  positionX: number | null
-  positionY: number | null
+  summary: Optioned<string>
+  positionX: Optioned<number>
+  positionY: Optioned<number>
 }
 
 export interface GraphEdgeRow {
@@ -24,7 +25,9 @@ export interface GraphPersistence {
   createConcept(data: {
     chatId: string
     name: string
-    summary?: string | null
+    summary?: Optioned<string>
+    positionX?: Optioned<number>
+    positionY?: Optioned<number>
   }): Effect.Effect<GraphConceptRow, unknown>
   createEdge(data: {
     chatId: string
@@ -51,34 +54,43 @@ export function persistConceptGraph(
       const row = yield* repo.createConcept({
         chatId,
         name: concept.name,
-        summary: concept.summary,
+        summary: Option.fromNullable(concept.summary),
       })
+
       byName.set(concept.name, row.id)
+
       nodes.push({
         id: row.id,
         chatId: row.chatId,
         name: row.name,
-        summary: row.summary,
-        positionX: row.positionX,
-        positionY: row.positionY,
+        summary: Option.getOrNull(row.summary),
+        positionX: Option.getOrNull(row.positionX),
+        positionY: Option.getOrNull(row.positionY),
       })
 
       for (const storyId of concept.storyIds) {
         yield* repo.linkStory(row.id, storyId)
-        conceptStories.push({ conceptId: row.id, storyId })
+
+        conceptStories.push({
+          conceptId: row.id,
+          storyId,
+        })
       }
     }
 
     for (const edge of synthesis.edges) {
-      const source = byName.get(edge.source)
-      const target = byName.get(edge.target)
-      if (!source || !target) continue
+      const source = Option.fromNullable(byName.get(edge.source))
+      const target = Option.fromNullable(byName.get(edge.target))
+
+      if (Option.isNone(source) || Option.isNone(target)) continue
+
       const row = yield* repo.createEdge({
         chatId,
-        sourceConcept: source,
-        targetConcept: target,
+        sourceConcept: source.value,
+        targetConcept: target.value,
         label: edge.label,
       })
+
       edges.push({
         id: row.id,
         chatId: row.chatId,

@@ -51,7 +51,6 @@ export class BookmarkController extends Effect.Service<BookmarkControllerShape>(
         create: ctx =>
           Effect.gen(function* () {
             const user = requireUser(ctx)
-
             const rawBody = yield* parseReqBody(ctx.req)
 
             const { storyId } = Schema.decodeUnknownSync(

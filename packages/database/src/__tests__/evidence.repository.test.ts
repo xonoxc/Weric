@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from "vitest"
-import { Effect, Layer } from "effect"
+import { Effect, Layer, Option } from "effect"
 import {
   EvidenceRepository,
   EvidenceRepositoryLive,
@@ -94,13 +94,13 @@ describe("EvidenceRepository", () => {
     )
     const found = await Effect.runPromise(repo.findById(created.id))
 
-    expect(found).not.toBeNull()
-    expect(found!.id).toBe(created.id)
+    expect(Option.isSome(found)).toBe(true)
+    expect(Option.getOrThrow(found).id).toBe(created.id)
   })
 
   it("returns null when evidence not found by id", async () => {
     const result = await Effect.runPromise(repo.findById(NON_EXISTENT_ID))
-    expect(result).toBeNull()
+    expect(Option.isNone(result)).toBe(true)
   })
 
   it("finds evidence by url", async () => {
@@ -117,8 +117,8 @@ describe("EvidenceRepository", () => {
 
     const found = await Effect.runPromise(repo.findByUrl(url))
 
-    expect(found).not.toBeNull()
-    expect(found!.url).toBe(url)
+    expect(Option.isSome(found)).toBe(true)
+    expect(Option.getOrThrow(found).url).toBe(url)
   })
 
   it("finds evidence by source", async () => {

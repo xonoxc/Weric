@@ -1,4 +1,4 @@
-import { Effect } from "effect"
+import { Effect, Option } from "effect"
 import { desc, eq, sql } from "drizzle-orm"
 import {
   chats,
@@ -10,23 +10,16 @@ import { NotFoundError, tryDb } from "./errors.ts"
 
 import { Database } from "~db/connection.ts"
 import type { RepositoryError } from "./errors.ts"
-import type { StoryWithEvidenceCount } from "./story.repository.ts"
+import type { StoryWithEvidenceCount } from "~db/mappers/story.mapper"
+import { ChatListRow, toChatListRow } from "~db/mappers/chat.mapper"
+import type { Optioned } from "@weric/utils"
 
 const TSFMT = 'YYYY-MM-DD"T"HH24:MI:SS"Z"'
-
-export interface ChatListRow {
-  id: string
-  title: string
-  query: string | null
-  storyCount: number
-  createdAt: Date
-  updatedAt: Date
-}
 
 export interface ChatDetail {
   id: string
   title: string
-  query: string | null
+  query: Optioned<string>
   createdAt: Date
   updatedAt: Date
   stories: StoryWithEvidenceCount[]
@@ -35,17 +28,19 @@ export interface ChatDetail {
 export interface ChatRepositoryShape {
   readonly create: (data: {
     title: string
-    query?: string | null
-    userId?: string | null
+    query: Optioned<string>
+    userId: Optioned<string>
   }) => Effect.Effect<typeof chats.$inferSelect, RepositoryError>
 
   readonly findById: (
     id: string
-  ) => Effect.Effect<typeof chats.$inferSelect | null, RepositoryError>
+  ) => Effect.Effect<Optioned<typeof chats.$inferSelect>, RepositoryError>
 
   readonly findByUser: (
     userId: string,
-    options?: { limit?: number }
+    options: Optioned<{
+      limit: Optioned<number>
+    }>
   ) => Effect.Effect<ChatListRow[], RepositoryError>
 
   readonly countDistinctStoriesByUser: (
@@ -54,7 +49,7 @@ export interface ChatRepositoryShape {
 
   readonly findByIdWithStories: (
     id: string
-  ) => Effect.Effect<ChatDetail | null, RepositoryError>
+  ) => Effect.Effect<Optioned<ChatDetail>, RepositoryError>
 
   readonly addStory: (
     chatId: string,
@@ -79,10 +74,11 @@ export class ChatRepository extends Effect.Service<ChatRepositoryShape>()(
               .insert(chats)
               .values({
                 title: data.title,
-                query: data.query ?? null,
-                userId: data.userId ?? null,
+                query: Option.getOrNull(data.query),
+                userId: Option.getOrNull(data.userId),
               })
               .returning()
+
             return row!
           })
         },
@@ -94,13 +90,19 @@ export class ChatRepository extends Effect.Service<ChatRepositoryShape>()(
               .from(chats)
               .where(eq(chats.id, id))
               .limit(1)
-            return row ?? null
+
+            return Option.fromNullable(row)
           })
         },
 
-        findByUser: (userId, options = {}) => {
+        findByUser: (userId, options) => {
           return tryDb(async () => {
-            const limit = Math.min(options.limit ?? 100, 200)
+            const optionLimit = Option.match(options, {
+              onNone: () => 100,
+              onSome: ({ limit }) => Option.getOrElse(limit, () => 100),
+            })
+
+            const limit = Math.min(optionLimit, 200)
 
             const rows = await db
               .select({
@@ -118,7 +120,8 @@ export class ChatRepository extends Effect.Service<ChatRepositoryShape>()(
               .where(eq(chats.userId, userId))
               .orderBy(desc(chats.updatedAt))
               .limit(limit)
-            return rows as ChatListRow[]
+
+            return rows.map(toChatListRow)
           })
         },
 
@@ -142,7 +145,8 @@ export class ChatRepository extends Effect.Service<ChatRepositoryShape>()(
               .from(chats)
               .where(eq(chats.id, id))
               .limit(1)
-            if (!chat) return null
+
+            if (!chat) return Option.none()
 
             const rows = await db
               .select({
@@ -164,14 +168,14 @@ export class ChatRepository extends Effect.Service<ChatRepositoryShape>()(
               .where(eq(chatStories.chatId, id))
               .orderBy(desc(stories.createdAt))
 
-            return {
+            return Option.some({
               id: chat.id,
               title: chat.title,
-              query: chat.query,
+              query: Option.fromNullable(chat.query),
               createdAt: chat.createdAt,
               updatedAt: chat.updatedAt,
               stories: rows as StoryWithEvidenceCount[],
-            }
+            })
           })
         },
 
@@ -200,7 +204,11 @@ export class ChatRepository extends Effect.Service<ChatRepositoryShape>()(
               .from(chats)
               .where(eq(chats.id, id))
               .limit(1)
-            if (!existing) throw new NotFoundError("Chat", id)
+
+            if (!existing) {
+              throw new NotFoundError("Chat", id)
+            }
+
             await db.delete(chats).where(eq(chats.id, id))
           })
         },

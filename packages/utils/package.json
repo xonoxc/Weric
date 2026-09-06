@@ -1,5 +1,5 @@
 {
-  "name": "@weric/recommendation",
+  "name": "@weric/utils",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -8,19 +8,13 @@
   "scripts": {
     "check-types": "tsc --noEmit",
     "lint": "echo 'no linter configured'",
-    "test": "vitest run",
+    "test": "echo 'no tests yet'",
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@weric/contracts": "workspace:*",
-    "@weric/database": "workspace:*",
-    "@weric/shared": "workspace:*",
-    "@weric/utils": "workspace:*",
     "effect": "^3.22.1"
   },
   "devDependencies": {
-    "@effect/vitest": "^0.29.0",
-    "typescript": "5.9.2",
-    "vitest": "^3.1.0"
+    "typescript": "5.9.2"
   }
 }

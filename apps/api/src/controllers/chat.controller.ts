@@ -1,8 +1,10 @@
-import { Effect, Schema } from "effect"
+import { Effect, Option, Schema } from "effect"
 import { ChatService } from "~api/services/chat.service"
 import { requireUser } from "~api/lib/validation"
 import { parseReqBody } from "@weric/utils"
+import { deOption } from "~api/lib/json"
 
+import type { Optioned } from "@weric/utils"
 import type { ApiVariables } from "~api/app"
 import type { Context as HonoCtx } from "hono"
 
@@ -41,9 +43,9 @@ export class ChatController extends Effect.Service<ChatControllerShape>()(
       const service = yield* ChatService
 
       const owned = (
-        chat: { userId: string | null } | null,
+        chat: Optioned<{ userId: string | null }>,
         user: { id: string }
-      ): boolean => !!chat && chat.userId === user.id
+      ): boolean => Option.isSome(chat) && chat.value.userId === user.id
 
       return {
         list: ctx =>
@@ -63,15 +65,14 @@ export class ChatController extends Effect.Service<ChatControllerShape>()(
         create: ctx =>
           Effect.gen(function* () {
             const user = requireUser(ctx)
-
             const rawBody = yield* parseReqBody(ctx.req)
 
             const body = Schema.decodeUnknownSync(CreateChatRequest)(rawBody)
 
             const chat = yield* service.create({
               title: defaultChatTitle(),
-              query: body.query ?? null,
-              userId: user.id,
+              query: Option.fromNullable(body.query),
+              userId: Option.some(user.id),
             })
 
             return ctx.json(chat, 201)
@@ -98,7 +99,7 @@ export class ChatController extends Effect.Service<ChatControllerShape>()(
             }
 
             const detail = yield* service.findByIdWithStories(id)
-            return ctx.json(detail)
+            return ctx.json(deOption(detail))
           }),
 
         remove: ctx =>

@@ -1,4 +1,4 @@
-import { Effect } from "effect"
+import { Effect, Option } from "effect"
 import { ServiceError, StoryNotFoundError } from "./errors.ts"
 
 import type { StoryRepository } from "@weric/database"
@@ -27,32 +27,25 @@ export class TimelineBuilder {
           )
         )
 
-      if (!story) {
+      if (Option.isNone(story)) {
         return yield* Effect.fail(new StoryNotFoundError({ storyId }))
       }
 
+      const s = story.value
       const entries: TimelineEntry[] = []
 
       entries.push({
-        date:
-          story.createdAt instanceof Date
-            ? story.createdAt
-            : new Date(story.createdAt),
+        date: s.createdAt instanceof Date ? s.createdAt : new Date(s.createdAt),
         type: "created",
-        description: `Story "${story.title}" was created`,
+        description: `Story "${s.title}" was created`,
       })
 
-      if (
-        story.updatedAt &&
-        (!story.createdAt || story.updatedAt > story.createdAt)
-      ) {
+      if (s.updatedAt && (!s.createdAt || s.updatedAt > s.createdAt)) {
         entries.push({
           date:
-            story.updatedAt instanceof Date
-              ? story.updatedAt
-              : new Date(story.updatedAt),
+            s.updatedAt instanceof Date ? s.updatedAt : new Date(s.updatedAt),
           type: "updated",
-          description: `Story "${story.title}" was updated`,
+          description: `Story "${s.title}" was updated`,
         })
       }
 

@@ -1,17 +1,18 @@
-import { Effect } from "effect"
+import { Effect, Option } from "effect"
 import { NormalizationError, DuplicateEvidenceError } from "./errors.ts"
 
 import type { RawDocument } from "@weric/contracts"
 import type { EvidenceRepository } from "@weric/database"
 import type { StoryError } from "./errors.ts"
+import type { Optioned } from "@weric/utils"
 
 export interface NormalizedDocument {
   source: string
   url: string
-  author: string | null
+  author: Optioned<string>
   title: string
   content: string
-  publishedAt: Date | null
+  publishedAt: Optioned<Date>
 }
 
 function stripHtml(text: string): string {
@@ -51,7 +52,7 @@ export class StoryNormalizer {
         )
       )
 
-      if (existing) {
+      if (Option.isSome(existing)) {
         return yield* Effect.fail(new DuplicateEvidenceError({ url: raw.url }))
       }
 
@@ -61,10 +62,12 @@ export class StoryNormalizer {
       return {
         source: raw.source as string,
         url: raw.url,
-        author: raw.author ?? null,
+        author: Option.fromNullable(raw.author),
         title,
         content: cleanContent,
-        publishedAt: raw.publishedAt ? new Date(raw.publishedAt) : null,
+        publishedAt: Option.fromNullable(raw.publishedAt).pipe(
+          Option.map(value => new Date(value))
+        ),
       }
     })
   }

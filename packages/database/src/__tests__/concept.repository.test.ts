@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from "vitest"
-import { Effect, Layer } from "effect"
+import { Effect, Layer, Option } from "effect"
 import { ConceptRepository } from "~db/repositories/concept.repository.ts"
 import { ConceptRepositoryLive } from "~db/repositories/concept.repository.ts"
 import { ConceptEdgeRepository } from "~db/repositories/concept-edge.repository.ts"
@@ -79,7 +79,7 @@ describe("ConceptRepository", () => {
       services.concepts.create({
         chatId,
         name: "RAG",
-        summary: "Retrieval augmented generation",
+        summary: Option.some("Retrieval augmented generation"),
       })
     )
     expect(concept.chatId).toBe(chatId)

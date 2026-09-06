@@ -1,13 +1,14 @@
-import { Effect } from "effect"
+import { Effect, Option } from "effect"
 import { FeedDiversifier } from "./diversifier.ts"
 
 import type { ScoredStory } from "./scorer.ts"
 import type { StoryWithEvidenceCount } from "@weric/database"
+import type { Optioned } from "@weric/utils"
 
 export interface RankedFeed {
   items: StoryWithEvidenceCount[]
   scores: Map<string, number>
-  reasons: Map<string, string | undefined>
+  reasons: Map<string, Optioned<string>>
 }
 
 export interface FeedRankerShape {
@@ -30,7 +31,7 @@ export class FeedRanker extends Effect.Service<FeedRankerShape>()(
         const diversified = diversifier.diversify(sorted, limit)
 
         const scores = new Map<string, number>()
-        const reasons = new Map<string, string | undefined>()
+        const reasons = new Map<string, Optioned<string>>()
 
         for (const s of diversified) {
           scores.set(s.story.id, s.finalScore)
@@ -42,7 +43,7 @@ export class FeedRanker extends Effect.Service<FeedRankerShape>()(
 
           reasons.set(
             s.story.id,
-            parts.length > 0 ? parts.join(", ") : undefined
+            parts.length > 0 ? Option.some(parts.join(", ")) : Option.none()
           )
         }
 

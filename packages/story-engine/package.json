@@ -14,8 +14,8 @@
   "dependencies": {
     "@weric/contracts": "workspace:*",
     "@weric/database": "workspace:*",
-    "@weric/ai": "workspace:*",
     "@weric/shared": "workspace:*",
+    "@weric/utils": "workspace:*",
     "effect": "^3.22.1"
   },
   "devDependencies": {

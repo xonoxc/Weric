@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from "vitest"
-import { Effect, Layer } from "effect"
+import { Effect, Layer, Option } from "effect"
 import {
   UserRepository,
   UserRepositoryLive,
@@ -49,13 +49,13 @@ describe("UserRepository", () => {
   it("finds user by id", async () => {
     const created = await createTestUser()
     const found = await Effect.runPromise(repo.findById(created.id))
-    expect(found).not.toBeNull()
-    expect(found!.id).toBe(created.id)
+    expect(Option.isSome(found)).toBe(true)
+    expect(Option.getOrThrow(found).id).toBe(created.id)
   })
 
   it("returns null when user not found by id", async () => {
     const result = await Effect.runPromise(repo.findById(NON_EXISTENT_ID))
-    expect(result).toBeNull()
+    expect(Option.isNone(result)).toBe(true)
   })
 
   it("finds user by email", async () => {
@@ -63,8 +63,8 @@ describe("UserRepository", () => {
     const found = await Effect.runPromise(
       repo.findByEmail("byemail@example.com")
     )
-    expect(found).not.toBeNull()
-    expect(found!.email).toBe("byemail@example.com")
+    expect(Option.isSome(found)).toBe(true)
+    expect(Option.getOrThrow(found).email).toBe("byemail@example.com")
   })
 
   it("updates a user", async () => {

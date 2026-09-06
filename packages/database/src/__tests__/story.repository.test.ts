@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from "vitest"
-import { Effect, Layer } from "effect"
+import { Effect, Layer, Option } from "effect"
 import {
   StoryRepository,
   StoryRepositoryLive,
@@ -30,7 +30,11 @@ describe("StoryRepository", () => {
 
   it("creates a story with basic fields", async () => {
     const story = await Effect.runPromise(
-      repo.create({ title: "Test Story", slug: "test-story" })
+      repo.create({
+        title: "Test Story",
+        slug: "test-story",
+        summary: Option.none(),
+      })
     )
     expect(story.title).toBe("Test Story")
     expect(story.slug).toBe("test-story")
@@ -44,7 +48,7 @@ describe("StoryRepository", () => {
       repo.create({
         title: "Test Story",
         slug: "test-story",
-        summary: "A brief summary",
+        summary: Option.some("A brief summary"),
       })
     )
     expect(story.summary).toBe("A brief summary")
@@ -52,64 +56,84 @@ describe("StoryRepository", () => {
 
   it("finds a story by id", async () => {
     const created = await Effect.runPromise(
-      repo.create({ title: "Test", slug: "test" })
+      repo.create({ title: "Test", slug: "test", summary: Option.none() })
     )
     const found = await Effect.runPromise(repo.findById(created.id))
-    expect(found).not.toBeNull()
-    expect(found!.id).toBe(created.id)
+    expect(Option.isSome(found)).toBe(true)
+    expect(Option.getOrThrow(found).id).toBe(created.id)
   })
 
-  it("returns null when story not found by id", async () => {
+  it("returns none when story not found by id", async () => {
     const result = await Effect.runPromise(repo.findById(NON_EXISTENT_ID))
-    expect(result).toBeNull()
+    expect(Option.isNone(result)).toBe(true)
   })
 
   it("finds a story by slug", async () => {
-    await Effect.runPromise(repo.create({ title: "Test", slug: "my-slug" }))
+    await Effect.runPromise(
+      repo.create({ title: "Test", slug: "my-slug", summary: Option.none() })
+    )
     const found = await Effect.runPromise(repo.findBySlug("my-slug"))
-    expect(found).not.toBeNull()
-    expect(found!.slug).toBe("my-slug")
+    expect(Option.isSome(found)).toBe(true)
+    expect(Option.getOrThrow(found).slug).toBe("my-slug")
   })
 
   it("returns null when story not found by slug", async () => {
     const result = await Effect.runPromise(repo.findBySlug("non-existent-slug"))
-    expect(result).toBeNull()
+    expect(Option.isNone(result)).toBe(true)
   })
 
   it("finds stories with pagination", async () => {
-    await Effect.runPromise(repo.create({ title: "Story 1", slug: "story-1" }))
-    await Effect.runPromise(repo.create({ title: "Story 2", slug: "story-2" }))
-    await Effect.runPromise(repo.create({ title: "Story 3", slug: "story-3" }))
+    await Effect.runPromise(
+      repo.create({ title: "Story 1", slug: "story-1", summary: Option.none() })
+    )
+    await Effect.runPromise(
+      repo.create({ title: "Story 2", slug: "story-2", summary: Option.none() })
+    )
+    await Effect.runPromise(
+      repo.create({ title: "Story 3", slug: "story-3", summary: Option.none() })
+    )
 
-    const result = await Effect.runPromise(repo.findMany({ page: 1, limit: 2 }))
+    const result = await Effect.runPromise(
+      repo.findMany(Option.some({ page: 1, limit: 2 }))
+    )
     expect(result.data.length).toBe(2)
     expect(result.total).toBe(3)
   })
 
   it("updates a story", async () => {
     const created = await Effect.runPromise(
-      repo.create({ title: "Original", slug: "original" })
+      repo.create({
+        title: "Original",
+        slug: "original",
+        summary: Option.none(),
+      })
     )
     const updated = await Effect.runPromise(
-      repo.update(created.id, { title: "Updated" })
+      repo.update(created.id, { title: Option.some("Updated") })
     )
     expect(updated.title).toBe("Updated")
   })
 
   it("throws NotFoundError when updating non-existent story", async () => {
     const error = await Effect.runPromise(
-      repo.update(NON_EXISTENT_ID, { title: "Nope" }).pipe(Effect.flip)
+      repo
+        .update(NON_EXISTENT_ID, { title: Option.some("Nope") })
+        .pipe(Effect.flip)
     )
     expect(error._tag).toBe("NotFoundError")
   })
 
   it("deletes a story", async () => {
     const created = await Effect.runPromise(
-      repo.create({ title: "Delete Me", slug: "delete-me" })
+      repo.create({
+        title: "Delete Me",
+        slug: "delete-me",
+        summary: Option.none(),
+      })
     )
     await Effect.runPromise(repo.delete(created.id))
     const found = await Effect.runPromise(repo.findById(created.id))
-    expect(found).toBeNull()
+    expect(Option.isNone(found)).toBe(true)
   })
 
   it("throws NotFoundError when deleting non-existent story", async () => {

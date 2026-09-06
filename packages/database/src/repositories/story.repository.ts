@@ -1,4 +1,4 @@
-import { Effect } from "effect"
+import { Effect, Option } from "effect"
 import { and, desc, eq, sql } from "drizzle-orm"
 import {
   stories,
@@ -6,11 +6,16 @@ import {
   evidence,
   storyEntities,
   entities,
+  DBStory,
 } from "~db/schema/tables.ts"
 import { NotFoundError, tryDb } from "./errors.ts"
 
 import { Database } from "~db/connection.ts"
 import type { RepositoryError } from "./errors.ts"
+import type { StoryWithEvidenceCount } from "~db/mappers/story.mapper"
+import type { Optioned } from "@weric/utils"
+
+export type { StoryWithEvidenceCount } from "~db/mappers/story.mapper"
 
 const TSFMT = 'YYYY-MM-DD"T"HH24:MI:SS"Z"'
 
@@ -21,24 +26,12 @@ export interface StoryQueryOptions {
   sort?: string
 }
 
-export interface StoryWithEvidenceCount {
-  id: string
-  title: string
-  slug: string
-  summary: string
-  confidence: number
-  status: string
-  createdAt: string
-  updatedAt: string
-  evidenceCount: number
-}
-
 export interface StoryDetail {
   id: string
   title: string
   slug: string
-  summary: string | null
-  confidence: number | null
+  summary: Optioned<string>
+  confidence: Optioned<number>
   status: string
   createdAt: string
   updatedAt: string
@@ -46,9 +39,9 @@ export interface StoryDetail {
     id: string
     source: string
     url: string
-    author: string | null
+    author: Optioned<string>
     title: string
-    publishedAt: string | null
+    publishedAt: Optioned<string>
   }>
   entities: Array<{
     id: string
@@ -61,7 +54,7 @@ export interface StoryRepositoryShape {
   readonly create: (data: {
     title: string
     slug: string
-    summary?: string
+    summary: Optioned<string>
     evidenceIds?: string[]
   }) => Effect.Effect<
     {
@@ -81,15 +74,15 @@ export interface StoryRepositoryShape {
 
   readonly findById: (
     id: string
-  ) => Effect.Effect<typeof stories.$inferSelect | null, RepositoryError>
+  ) => Effect.Effect<Optioned<DBStory>, RepositoryError>
 
   readonly findBySlug: (
     slug: string
-  ) => Effect.Effect<typeof stories.$inferSelect | null, RepositoryError>
+  ) => Effect.Effect<Optioned<DBStory>, RepositoryError>
 
-  readonly findMany: (options?: StoryQueryOptions) => Effect.Effect<
+  readonly findMany: (options: Optioned<StoryQueryOptions>) => Effect.Effect<
     {
-      data: (typeof stories.$inferSelect)[]
+      data: DBStory[]
       total: number
     },
     RepositoryError
@@ -107,11 +100,14 @@ export interface StoryRepositoryShape {
 
   readonly findBySlugWithDetails: (
     slug: string
-  ) => Effect.Effect<StoryDetail | null, RepositoryError>
+  ) => Effect.Effect<Optioned<StoryDetail>, RepositoryError>
 
   readonly searchStories: (
     query: string,
-    options?: { page?: number; limit?: number }
+    options: Optioned<{
+      page: Optioned<number>
+      limit: Optioned<number>
+    }>
   ) => Effect.Effect<
     {
       data: StoryWithEvidenceCount[]
@@ -120,10 +116,12 @@ export interface StoryRepositoryShape {
     RepositoryError
   >
 
-  readonly findPublishedFeed: (options?: {
-    page?: number
-    limit?: number
-  }) => Effect.Effect<
+  readonly findPublishedFeed: (
+    options: Optioned<{
+      page: Optioned<number>
+      limit: Optioned<number>
+    }>
+  ) => Effect.Effect<
     {
       data: StoryWithEvidenceCount[]
       total: number
@@ -134,13 +132,13 @@ export interface StoryRepositoryShape {
   readonly update: (
     id: string,
     data: {
-      title?: string
-      slug?: string
-      summary?: string
-      status?: "draft" | "published" | "archived"
-      confidence?: number
+      title?: Optioned<string>
+      slug?: Optioned<string>
+      summary?: Optioned<string>
+      status?: Optioned<"draft" | "published" | "archived">
+      confidence?: Optioned<number>
     }
-  ) => Effect.Effect<typeof stories.$inferSelect, RepositoryError>
+  ) => Effect.Effect<DBStory, RepositoryError>
 
   readonly delete: (id: string) => Effect.Effect<void, RepositoryError>
 }
@@ -159,7 +157,7 @@ export class StoryRepository extends Effect.Service<StoryRepositoryShape>()(
               .values({
                 title: data.title,
                 slug: data.slug,
-                summary: data.summary ?? null,
+                summary: Option.getOrNull(data.summary),
               })
               .returning()
 
@@ -194,7 +192,7 @@ export class StoryRepository extends Effect.Service<StoryRepositoryShape>()(
               .from(stories)
               .where(eq(stories.id, id))
               .limit(1)
-            return row ?? null
+            return Option.fromNullable(row)
           })
         },
 
@@ -205,22 +203,27 @@ export class StoryRepository extends Effect.Service<StoryRepositoryShape>()(
               .from(stories)
               .where(eq(stories.slug, slug))
               .limit(1)
-            return row ?? null
+
+            return Option.fromNullable(row)
           })
         },
 
-        findMany(options = {}) {
+        findMany(options) {
           return tryDb(async () => {
-            const page = options.page ?? 1
-            const limit = Math.min(options.limit ?? 20, 100)
+            const opts = Option.getOrElse(
+              options,
+              () => ({}) as StoryQueryOptions
+            )
+            const page = opts.page ?? 1
+            const limit = Math.min(opts.limit ?? 20, 100)
             const offset = (page - 1) * limit
 
             const conditions = []
-            if (options.status) {
+            if (opts.status) {
               conditions.push(
                 eq(
                   stories.status,
-                  options.status as "draft" | "published" | "archived"
+                  opts.status as "draft" | "published" | "archived"
                 )
               )
             }
@@ -317,7 +320,7 @@ export class StoryRepository extends Effect.Service<StoryRepositoryShape>()(
               .where(eq(stories.slug, slug))
               .limit(1)
 
-            if (!storyRow) return null
+            if (!storyRow) return Option.none()
 
             const evidenceRows = await db
               .select({
@@ -344,18 +347,30 @@ export class StoryRepository extends Effect.Service<StoryRepositoryShape>()(
               .innerJoin(entities, eq(storyEntities.entityId, entities.id))
               .where(eq(storyEntities.storyId, storyRow.id))
 
-            return {
+            return Option.some({
               ...storyRow,
-              evidence: evidenceRows as StoryDetail["evidence"],
+              summary: Option.fromNullable(storyRow.summary),
+              confidence: Option.fromNullable(storyRow.confidence),
+              evidence: evidenceRows.map(evidenceRow => ({
+                ...evidenceRow,
+                author: Option.fromNullable(evidenceRow.author),
+                publishedAt: Option.fromNullable(evidenceRow.publishedAt),
+              })),
               entities: entityRows as StoryDetail["entities"],
-            }
+            })
           })
         },
 
-        searchStories(query, options = {}) {
+        searchStories(query, options) {
           return tryDb(async () => {
-            const page = options.page ?? 1
-            const limit = Math.min(options.limit ?? 100, 100)
+            const page = Option.getOrElse(
+              Option.flatMap(options, opts => opts.page),
+              () => 1
+            )
+            const limit = Option.getOrElse(
+              Option.flatMap(options, opts => opts.limit),
+              () => 100
+            )
             const offset = (page - 1) * limit
             const pattern = `%${query}%`
 
@@ -402,10 +417,16 @@ export class StoryRepository extends Effect.Service<StoryRepositoryShape>()(
           })
         },
 
-        findPublishedFeed(options = {}) {
+        findPublishedFeed(options) {
           return tryDb(async () => {
-            const page = options.page ?? 1
-            const limit = Math.min(options.limit ?? 50, 100)
+            const page = Option.getOrElse(
+              Option.flatMap(options, opts => opts.page),
+              () => 1
+            )
+            const limit = Option.getOrElse(
+              Option.flatMap(options, opts => opts.limit),
+              () => 50
+            )
             const offset = (page - 1) * limit
 
             const rows = await db
@@ -456,7 +477,16 @@ export class StoryRepository extends Effect.Service<StoryRepositoryShape>()(
 
             const [row] = await db
               .update(stories)
-              .set({ ...data, updatedAt: new Date() })
+              .set({
+                title: Option.getOrUndefined(data.title ?? Option.none()),
+                slug: Option.getOrUndefined(data.slug ?? Option.none()),
+                summary: Option.getOrUndefined(data.summary ?? Option.none()),
+                status: Option.getOrUndefined(data.status ?? Option.none()),
+                confidence: Option.getOrUndefined(
+                  data.confidence ?? Option.none()
+                ),
+                updatedAt: new Date(),
+              })
               .where(eq(stories.id, id))
               .returning()
 

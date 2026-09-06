@@ -1,4 +1,4 @@
-import { Effect, Layer } from "effect"
+import { Effect, Layer, Option } from "effect"
 import {
   Database,
   StoryRepositoryLive,
@@ -45,12 +45,17 @@ export function createRebuildRecommendationsHandler(db: Db): JobHandler {
         yield* Effect.forEach(
           users,
           user =>
-            recommendationService.generateFeed(user.id, { limit: 100 }).pipe(
-              Effect.catchAll(() => Effect.succeed(null)),
-              Effect.tap(feed => {
-                if (feed) totalStories += feed.data.length
+            recommendationService
+              .generateFeed(user.id, {
+                page: Option.none(),
+                limit: Option.some(100),
               })
-            ),
+              .pipe(
+                Effect.catchAll(() => Effect.succeed(null)),
+                Effect.tap(feed => {
+                  if (feed) totalStories += feed.data.length
+                })
+              ),
           { concurrency: 10 }
         )
 

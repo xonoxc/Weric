@@ -1,10 +1,11 @@
-import { Effect } from "effect"
+import { Effect, Option } from "effect"
 import { and, eq, sql } from "drizzle-orm"
 import { bookmarks, stories, storyEvidence } from "~db/schema/tables.ts"
 import { ConflictError, NotFoundError, tryDb } from "./errors.ts"
 
 import { Database } from "~db/connection.ts"
 import type { RepositoryError } from "./errors.ts"
+import type { Optioned } from "@weric/utils"
 
 const TSFMT = 'YYYY-MM-DD"T"HH24:MI:SS"Z"'
 
@@ -16,8 +17,8 @@ export interface BookmarkWithStory {
     id: string
     title: string
     slug: string
-    summary: string | null
-    confidence: number | null
+    summary: Optioned<string>
+    confidence: Optioned<number>
     status: string
     createdAt: string
     updatedAt: string
@@ -114,7 +115,14 @@ export class BookmarkRepository extends Effect.Service<BookmarkRepositoryShape>(
               .where(eq(bookmarks.userId, userId))
               .orderBy(bookmarks.createdAt)
 
-            return rows as BookmarkWithStory[]
+            return rows.map(row => ({
+              ...row,
+              story: {
+                ...row.story,
+                summary: Option.fromNullable(row.story.summary),
+                confidence: Option.fromNullable(row.story.confidence),
+              },
+            }))
           }),
 
         delete: (userId, storyId) =>

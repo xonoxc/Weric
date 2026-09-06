@@ -60,11 +60,8 @@ export type {
   InterestRepositoryShape,
 } from "./interest.repository.ts"
 export { ChatRepository, ChatRepositoryLive } from "./chat.repository.ts"
-export type {
-  ChatListRow,
-  ChatDetail,
-  ChatRepositoryShape,
-} from "./chat.repository.ts"
+export type { ChatDetail, ChatRepositoryShape } from "./chat.repository.ts"
+export type { ChatListRow } from "~db/mappers/chat.mapper.ts"
 export {
   NotFoundError,
   ConflictError,

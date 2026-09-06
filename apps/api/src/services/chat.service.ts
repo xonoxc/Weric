@@ -1,11 +1,10 @@
-import { Effect } from "effect"
+import { Effect, Option } from "effect"
 import { ChatRepository } from "@weric/database"
-import { chats } from "~db/schema/tables.ts"
 
+import type { Optioned } from "@weric/utils"
 import type { RepositoryError } from "@weric/database"
 import type { ChatListRow, ChatDetail } from "@weric/database"
-
-type ChatRow = (typeof chats)["$inferSelect"]
+import type { DBChat as DBChatRow } from "~db/schema/tables.ts"
 
 export interface ChatServiceShape {
   readonly findByUser: (
@@ -14,17 +13,17 @@ export interface ChatServiceShape {
 
   readonly create: (data: {
     title: string
-    query?: string | null
-    userId?: string | null
-  }) => Effect.Effect<ChatRow, RepositoryError>
+    query: Optioned<string>
+    userId: Optioned<string>
+  }) => Effect.Effect<DBChatRow, RepositoryError>
 
   readonly findById: (
     id: string
-  ) => Effect.Effect<ChatRow | null, RepositoryError>
+  ) => Effect.Effect<Optioned<DBChatRow>, RepositoryError>
 
   readonly findByIdWithStories: (
     id: string
-  ) => Effect.Effect<ChatDetail | null, RepositoryError>
+  ) => Effect.Effect<Optioned<ChatDetail>, RepositoryError>
 
   readonly delete: (id: string) => Effect.Effect<void, RepositoryError>
 }
@@ -36,10 +35,14 @@ export class ChatService extends Effect.Service<ChatServiceShape>()(
       const repo = yield* ChatRepository
 
       return {
-        findByUser: userId => repo.findByUser(userId),
+        findByUser: userId => repo.findByUser(userId, Option.none()),
+
         create: data => repo.create(data),
+
         findById: id => repo.findById(id),
+
         findByIdWithStories: id => repo.findByIdWithStories(id),
+
         delete: id => repo.delete(id),
       } satisfies ChatServiceShape
     }),

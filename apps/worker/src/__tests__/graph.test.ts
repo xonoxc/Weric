@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { Effect } from "effect"
+import { Effect, Option } from "effect"
 import { persistConceptGraph } from "../graph.ts"
 
 import type {
@@ -13,7 +13,7 @@ class FakeGraphPersistence implements GraphPersistence {
   createConceptCalls: {
     chatId: string
     name: string
-    summary?: string | null
+    summary?: Option.Option<string>
   }[] = []
   createEdgeCalls: {
     chatId: string
@@ -26,16 +26,16 @@ class FakeGraphPersistence implements GraphPersistence {
   createConcept(data: {
     chatId: string
     name: string
-    summary?: string | null
+    summary?: Option.Option<string>
   }): Effect.Effect<GraphConceptRow> {
     this.createConceptCalls.push(data)
     return Effect.succeed({
       id: `concept-${data.name}`,
       chatId: data.chatId,
       name: data.name,
-      summary: data.summary ?? null,
-      positionX: null,
-      positionY: null,
+      summary: data.summary ?? Option.none(),
+      positionX: Option.none(),
+      positionY: Option.none(),
     })
   }
 
@@ -88,12 +88,12 @@ describe("persistConceptGraph", () => {
       {
         chatId: "chat-1",
         name: "RAG",
-        summary: "Retrieval augmented generation",
+        summary: Option.some("Retrieval augmented generation"),
       },
       {
         chatId: "chat-1",
         name: "Vector DBs",
-        summary: "Databases for embeddings",
+        summary: Option.some("Databases for embeddings"),
       },
     ])
 

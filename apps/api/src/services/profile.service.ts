@@ -1,4 +1,4 @@
-import { Effect } from "effect"
+import { Effect, Option } from "effect"
 import {
   BookmarkRepository,
   ChatRepository,
@@ -52,7 +52,7 @@ export class ProfileService extends Effect.Service<ProfileServiceShape>()(
               activity,
             ] = yield* Effect.all(
               [
-                chatRepo.findByUser(user.id),
+                chatRepo.findByUser(user.id, Option.none()),
                 chatRepo.countDistinctStoriesByUser(user.id),
                 interestRepo.findByUserId(user.id),
                 bookmarkRepo.findByUserWithStories(user.id),

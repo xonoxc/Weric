@@ -1,28 +1,31 @@
-import { Effect } from "effect"
+import { Effect, Option } from "effect"
 import { MergeError, StoryNotFoundError } from "./errors.ts"
 
 import type { StoryRepository } from "@weric/database"
 import type { StoryError } from "./errors.ts"
+import type { Optioned } from "@weric/utils"
 
 export interface MergeResult {
   storyId: string
   title: string
-  summary: string | null
+  summary: Optioned<string>
   confidence: number
 }
 
 function mergeSummaries(
-  targetSummary: string | null,
-  sourceSummary: string | null
+  targetSummary: Optioned<string>,
+  sourceSummary: Optioned<string>
 ): string {
-  if (!targetSummary && !sourceSummary) return ""
-  if (!targetSummary) return sourceSummary ?? ""
-  if (!sourceSummary) return targetSummary
+  const target = Option.getOrElse(targetSummary, () => "")
+  const source = Option.getOrElse(sourceSummary, () => "")
+  if (!target && !source) return ""
+  if (!target) return source
+  if (!source) return target
 
-  const targetSentences = targetSummary
+  const targetSentences = target
     .split(/[.!?]+/)
     .filter(s => s.trim().length > 0)
-  const sourceSentences = sourceSummary
+  const sourceSentences = source
     .split(/[.!?]+/)
     .filter(s => s.trim().length > 0)
 
@@ -59,7 +62,7 @@ export class StoryMerger {
         )
       )
 
-      if (!target) {
+      if (Option.isNone(target)) {
         return yield* Effect.fail(new StoryNotFoundError({ storyId: targetId }))
       }
 
@@ -74,24 +77,25 @@ export class StoryMerger {
         )
       )
 
-      if (!source) {
+      if (Option.isNone(source)) {
         return yield* Effect.fail(new StoryNotFoundError({ storyId: sourceId }))
       }
 
       const mergedSummary = mergeSummaries(
-        target.summary ?? null,
-        source.summary ?? null
+        Option.fromNullable(target.value.summary),
+        Option.fromNullable(source.value.summary)
       )
       const mergedConfidence = Math.min(
-        ((target.confidence ?? 0) + (source.confidence ?? 0)) / 2 + 0.05,
+        ((target.value.confidence ?? 0) + (source.value.confidence ?? 0)) / 2 +
+          0.05,
         1.0
       )
 
       yield* storyRepo
         .update(targetId, {
-          summary: mergedSummary || undefined,
-          confidence: mergedConfidence,
-          status: "published",
+          summary: mergedSummary ? Option.some(mergedSummary) : Option.none(),
+          confidence: Option.some(mergedConfidence),
+          status: Option.some("published" as const),
         })
         .pipe(
           Effect.catchAll(cause =>
@@ -117,8 +121,8 @@ export class StoryMerger {
 
       return {
         storyId: targetId,
-        title: target.title,
-        summary: mergedSummary || null,
+        title: target.value.title,
+        summary: Option.some(mergedSummary),
         confidence: mergedConfidence,
       }
     })

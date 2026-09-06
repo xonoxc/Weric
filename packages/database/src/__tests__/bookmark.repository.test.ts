@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from "vitest"
-import { Effect, Layer } from "effect"
+import { Effect, Layer, Option } from "effect"
 import {
   BookmarkRepository,
   BookmarkRepositoryLive,
@@ -46,7 +46,11 @@ describe("BookmarkRepository", () => {
     userId = user!.id
 
     const story = await Effect.runPromise(
-      storyRepo.create({ title: "BM Story", slug: "bm-story" })
+      storyRepo.create({
+        title: "BM Story",
+        slug: "bm-story",
+        summary: Option.none(),
+      })
     )
     storyId = story.id
   })

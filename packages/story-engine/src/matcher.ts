@@ -1,9 +1,10 @@
-import { Effect } from "effect"
+import { Effect, Option } from "effect"
 import { MatchError } from "./errors.ts"
 
 import type { StoryRepository } from "@weric/database"
 import type { StoryError } from "./errors.ts"
 import type { NormalizedDocument } from "./normalizer.ts"
+import type { Optioned } from "@weric/utils"
 
 export interface MatchResult {
   storyId: string
@@ -38,12 +39,12 @@ function titleSimilarity(
 
 function contentSimilarity(
   evidence: NormalizedDocument,
-  storySummary: string | null
+  storySummary: Optioned<string>
 ): number {
   const evContent = tokenize(
     evidence.title + " " + evidence.content.slice(0, 1000)
   )
-  const stContent = tokenize(storySummary ?? "")
+  const stContent = tokenize(Option.getOrElse(storySummary, () => ""))
   return jaccardSimilarity(evContent, stContent)
 }
 
@@ -62,7 +63,13 @@ export class StoryMatcher {
     const storyRepo = this.storyRepo
 
     return storyRepo
-      .findMany({ page: 1, limit: this.storyLimit, sort: "latest" })
+      .findMany(
+        Option.some({
+          page: 1,
+          limit: this.storyLimit,
+          sort: "latest",
+        })
+      )
       .pipe(
         Effect.map(result => {
           const matches: MatchResult[] = []
@@ -73,7 +80,7 @@ export class StoryMatcher {
 
             const contentSim = contentSimilarity(
               evidence,
-              story.summary ?? null
+              Option.fromNullable(story.summary)
             )
             if (
               titleSim + contentSim <

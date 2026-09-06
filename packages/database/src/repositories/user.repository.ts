@@ -1,9 +1,10 @@
-import { Effect } from "effect"
+import { Effect, Option } from "effect"
 import { eq } from "drizzle-orm"
 import { users } from "~db/schema/tables.ts"
 import { tryDb } from "./errors.ts"
 
 import { Database } from "~db/connection.ts"
+import type { Optioned } from "@weric/utils"
 
 import { RepositoryError, NotFoundError } from "./errors.ts"
 
@@ -15,15 +16,15 @@ export interface UserRepositoryShape {
 
   readonly findById: (
     id: string
-  ) => Effect.Effect<typeof users.$inferSelect | null, RepositoryError>
+  ) => Effect.Effect<Optioned<typeof users.$inferSelect>, RepositoryError>
 
   readonly findByEmail: (
     email: string
-  ) => Effect.Effect<typeof users.$inferSelect | null, RepositoryError>
+  ) => Effect.Effect<Optioned<typeof users.$inferSelect>, RepositoryError>
 
   readonly findByUsername: (
     username: string
-  ) => Effect.Effect<typeof users.$inferSelect | null, RepositoryError>
+  ) => Effect.Effect<Optioned<typeof users.$inferSelect>, RepositoryError>
 
   readonly update: (
     id: string,
@@ -51,7 +52,7 @@ export class UserRepository extends Effect.Service<UserRepositoryShape>()(
               .from(users)
               .where(eq(users.id, id))
               .limit(1)
-            return row ?? null
+            return Option.fromNullable(row)
           })
         },
 
@@ -62,7 +63,7 @@ export class UserRepository extends Effect.Service<UserRepositoryShape>()(
               .from(users)
               .where(eq(users.email, email))
               .limit(1)
-            return row ?? null
+            return Option.fromNullable(row)
           })
         },
 
@@ -73,7 +74,7 @@ export class UserRepository extends Effect.Service<UserRepositoryShape>()(
               .from(users)
               .where(eq(users.username, username))
               .limit(1)
-            return row ?? null
+            return Option.fromNullable(row)
           })
         },
 

@@ -1,18 +1,19 @@
-import { Effect } from "effect"
+import { Effect, Option } from "effect"
 import { eq } from "drizzle-orm"
 import { concepts } from "~db/schema/tables.ts"
 import { tryDb } from "./errors.ts"
 
 import { Database } from "~db/connection.ts"
 import type { RepositoryError } from "./errors.ts"
+import type { Optioned } from "@weric/utils"
 
 export interface ConceptRepositoryShape {
   readonly create: (data: {
     chatId: string
     name: string
-    summary?: string | null
-    positionX?: number | null
-    positionY?: number | null
+    summary?: Optioned<string>
+    positionX?: Optioned<number>
+    positionY?: Optioned<number>
   }) => Effect.Effect<typeof concepts.$inferSelect, RepositoryError>
 
   readonly findByChat: (
@@ -40,9 +41,9 @@ export class ConceptRepository extends Effect.Service<ConceptRepositoryShape>()(
               .values({
                 chatId: data.chatId,
                 name: data.name,
-                summary: data.summary ?? null,
-                positionX: data.positionX ?? null,
-                positionY: data.positionY ?? null,
+                summary: Option.getOrNull(data.summary ?? Option.none()),
+                positionX: Option.getOrNull(data.positionX ?? Option.none()),
+                positionY: Option.getOrNull(data.positionY ?? Option.none()),
               })
               .returning()
             return row!

@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from "vitest"
-import { Effect, Layer } from "effect"
+import { Effect, Layer, Option } from "effect"
 import { EntityRepository } from "~db/repositories/entity.repository.ts"
 import {
   StoryRepository,
@@ -52,13 +52,13 @@ describe("EntityRepository", () => {
   it("finds entity by name", async () => {
     await Effect.runPromise(repo.create({ name: "Jane Doe", type: "person" }))
     const found = await Effect.runPromise(repo.findByName("Jane Doe"))
-    expect(found).not.toBeNull()
-    expect(found!.name).toBe("Jane Doe")
+    expect(Option.isSome(found)).toBe(true)
+    expect(Option.getOrThrow(found).name).toBe("Jane Doe")
   })
 
   it("returns null when entity not found by name", async () => {
     const result = await Effect.runPromise(repo.findByName("Non Existent"))
-    expect(result).toBeNull()
+    expect(Option.isNone(result)).toBe(true)
   })
 
   it("finds entities by type", async () => {
@@ -82,7 +82,11 @@ describe("EntityRepository", () => {
       repo.create({ name: "Linked Entity", type: "person" })
     )
     const story = await Effect.runPromise(
-      storyRepo.create({ title: "Linked Story", slug: "linked-story" })
+      storyRepo.create({
+        title: "Linked Story",
+        slug: "linked-story",
+        summary: Option.none(),
+      })
     )
 
     await Effect.runPromise(repo.linkToStory(story.id, entity.id))

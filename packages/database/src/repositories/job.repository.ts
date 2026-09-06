@@ -1,23 +1,27 @@
-import { Effect } from "effect"
+import { Effect, Option } from "effect"
 import { jobs } from "~db/schema/tables.ts"
 import { tryDb } from "./errors.ts"
 
 import { Database } from "~db/connection.ts"
-import type { RepositoryError } from "./errors.ts"
-import type { Job, JobStatus } from "packages/contracts/src/job"
 import { sql, eq } from "drizzle-orm"
 import { toJob } from "~db/mappers/job.mapper.ts"
+
+import type { RepositoryError } from "./errors.ts"
+import type { Job, JobStatus } from "packages/contracts/src/job"
+import type { Optioned } from "@weric/utils"
 
 export interface JobRepositoryShape {
   readonly create: (data: {
     type: string
-    payload?: Record<string, unknown>
-    scheduledAt?: Date | null
+    payload: Optioned<Record<string, unknown>>
+    scheduledAt: Optioned<Date>
   }) => Effect.Effect<Job, RepositoryError>
 
   readonly findPending: () => Effect.Effect<Job[], RepositoryError>
 
-  readonly findById: (id: string) => Effect.Effect<Job | null, RepositoryError>
+  readonly findById: (
+    id: string
+  ) => Effect.Effect<Optioned<Job>, RepositoryError>
 
   readonly updateStatus: (
     id: string,
@@ -47,13 +51,17 @@ export class JobRepository extends Effect.Service<JobRepositoryShape>()(
               .insert(jobs)
               .values({
                 type: data.type,
-                payload: (data.payload ?? {}) as Record<string, unknown>,
-                scheduledAt: data.scheduledAt ?? null,
+                ...(Option.isSome(data.payload)
+                  ? { payload: data.payload.value }
+                  : {}),
+                scheduledAt: Option.getOrNull(data.scheduledAt),
               })
               .returning()
+
             return toJob(row!)
           })
         },
+
         findPending: () => {
           return tryDb(async () => {
             const rows = await db
@@ -77,9 +85,10 @@ export class JobRepository extends Effect.Service<JobRepositoryShape>()(
               .where(eq(jobs.id, id))
               .limit(1)
 
-            return row ? toJob(row) : null
+            return row ? Option.some(toJob(row)) : Option.none()
           })
         },
+
         updateStatus: (id, status) => {
           return tryDb(
             async () =>
@@ -92,6 +101,7 @@ export class JobRepository extends Effect.Service<JobRepositoryShape>()(
                 .where(eq(jobs.id, id))
           )
         },
+
         incrementRetries: id => {
           return tryDb(
             async () =>
@@ -101,6 +111,7 @@ export class JobRepository extends Effect.Service<JobRepositoryShape>()(
                 .where(eq(jobs.id, id))
           )
         },
+
         updatePayload: (id, payload) => {
           return tryDb(
             async () =>

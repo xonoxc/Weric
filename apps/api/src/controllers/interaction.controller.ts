@@ -1,6 +1,7 @@
-import { Effect, Schema } from "effect"
+import { Effect, Option, Schema } from "effect"
 import { InteractionService } from "~api/services/interaction.service"
 import { requireUser } from "~api/lib/validation"
+import { parseReqBody } from "@weric/utils"
 
 import { CreateInteractionInputSchema, InteractionType } from "@weric/contracts"
 
@@ -42,7 +43,7 @@ export class InteractionController extends Effect.Service<InteractionControllerS
               userId: user.id,
               storyId: body.storyId,
               interactionType: body.interactionType,
-              duration: body.duration ?? null,
+              duration: Option.fromNullable(body.duration),
             })
 
             return ctx.json(

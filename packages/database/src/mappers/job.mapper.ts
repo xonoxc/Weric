@@ -17,7 +17,7 @@ export function toJob(row: DbJob): Job {
     payload: payload,
     status: row.status as JobStatus,
     retries: row.retries,
-    scheduledAt: (row.scheduledAt ? row.scheduledAt : null) as Date,
-    executedAt: (row.executedAt ? row.executedAt : null) as Date,
+    scheduledAt: row.scheduledAt,
+    executedAt: row.executedAt,
   }
 }

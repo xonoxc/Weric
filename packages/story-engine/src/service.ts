@@ -1,4 +1,4 @@
-import { Effect, Random } from "effect"
+import { Effect, Option, Random } from "effect"
 import { ServiceError } from "./errors.ts"
 import { StoryNormalizer } from "./normalizer.ts"
 import { StoryMatcher } from "./matcher.ts"
@@ -13,17 +13,18 @@ import type { MatchResult } from "./matcher.ts"
 import type { MergeResult } from "./merger.ts"
 import type { TimelineEntry } from "./timeline.ts"
 import type { RawDocument } from "@weric/contracts"
+import type { Optioned } from "@weric/utils"
 
 export interface IngestResult {
   story: {
     id: string
     title: string
     slug: string
-    summary: string | null
+    summary: Optioned<string>
     createdAt: Date
   }
   entities: Array<{ name: string; type: string }>
-  match?: MatchResult
+  match: Optioned<MatchResult>
   timeline: TimelineEntry[]
 }
 
@@ -58,10 +59,10 @@ export class StoryService {
 
       for (const doc of documents) {
         const matches = yield* matcher.findMatches(doc)
-        const bestMatch = matches[0] ?? null
+        const bestMatch = Option.fromNullable(matches[0])
 
-        if (bestMatch && bestMatch.confidence > 0.4) {
-          const result = yield* linkToExisting(doc, bestMatch)
+        if (Option.isSome(bestMatch) && bestMatch.value.confidence > 0.4) {
+          const result = yield* linkToExisting(doc, bestMatch.value)
           results.push(result)
         } else {
           const result = yield* createNew(doc)
@@ -85,7 +86,11 @@ export class StoryService {
       const slug = yield* generateUniqueSlug(doc.title, storyRepo)
 
       const story = yield* storyRepo
-        .create({ title: doc.title, slug, summary: doc.content.slice(0, 300) })
+        .create({
+          title: doc.title,
+          slug,
+          summary: Option.some(doc.content.slice(0, 300)),
+        })
         .pipe(
           Effect.catchAll(cause =>
             Effect.fail(
@@ -119,13 +124,14 @@ export class StoryService {
           id: story.id,
           title: story.title,
           slug: story.slug,
-          summary: story.summary ?? null,
+          summary: Option.fromNullable(story.summary),
           createdAt:
             story.createdAt instanceof Date
               ? story.createdAt
               : new Date(story.createdAt),
         },
         entities,
+        match: Option.none(),
         timeline: entries,
       }
     })
@@ -178,14 +184,15 @@ export class StoryService {
           id: match.storyId,
           title: match.title,
           slug: slugify(match.title),
-          summary: (story?.summary ?? null) as string | null,
-          createdAt:
-            story?.createdAt instanceof Date
-              ? story.createdAt
-              : new Date(story?.createdAt ?? Date.now()),
+          summary: Option.flatMap(story, s => Option.fromNullable(s.summary)),
+          createdAt: Option.match(story, {
+            onSome: s =>
+              s.createdAt instanceof Date ? s.createdAt : new Date(s.createdAt),
+            onNone: () => new Date(Date.now()),
+          }),
         },
         entities,
-        match,
+        match: Option.some(match),
         timeline: entries,
       }
     })
@@ -193,7 +200,10 @@ export class StoryService {
 
   update(
     storyId: string,
-    data: { summary?: string; confidence?: number }
+    data: {
+      summary?: Optioned<string>
+      confidence?: Optioned<number>
+    }
   ): Effect.Effect<IngestResult, StoryError> {
     const storyRepo = this.storyRepo
     const timeline = this.timeline
@@ -216,13 +226,14 @@ export class StoryService {
           id: story.id,
           title: story.title,
           slug: story.slug,
-          summary: story.summary ?? null,
+          summary: Option.fromNullable(story.summary),
           createdAt:
             story.createdAt instanceof Date
               ? story.createdAt
               : new Date(story.createdAt),
         },
         entities: [],
+        match: Option.none(),
         timeline: entries,
       }
     })
@@ -262,7 +273,7 @@ function generateUniqueSlug(
         )
       )
 
-      if (!existing) return slug
+      if (Option.isNone(existing)) return slug
 
       attempt++
       const suffix = yield* Random.nextIntBetween(1000, 9999)

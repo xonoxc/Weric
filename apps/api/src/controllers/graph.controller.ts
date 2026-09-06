@@ -1,9 +1,10 @@
-import { Effect, Schema } from "effect"
+import { Effect, Option, Schema } from "effect"
 import { GraphService } from "~api/services/graph.service"
 import { ChatService } from "~api/services/chat.service"
 import { requireUser } from "~api/lib/validation"
 import { ConceptGraphSchema } from "@weric/contracts"
 
+import type { Optioned } from "@weric/utils"
 import type { ApiVariables } from "~api/app"
 import type { Context as HonoCtx } from "hono"
 
@@ -25,9 +26,9 @@ export class GraphController extends Effect.Service<GraphControllerShape>()(
       const chatService = yield* ChatService
 
       const owned = (
-        chat: { userId: string | null } | null,
+        chat: Optioned<{ userId: string | null }>,
         user: { id: string }
-      ): boolean => !!chat && chat.userId === user.id
+      ): boolean => Option.isSome(chat) && chat.value.userId === user.id
 
       return {
         getById: ctx =>

@@ -1,4 +1,4 @@
-import { Effect, Data } from "effect"
+import { Effect, Option, Data } from "effect"
 import { BrowserService } from "@weric/browser"
 
 import type { JobHandler } from "~worker/runtime.ts"
@@ -35,7 +35,7 @@ export function createRefreshStoryHandler(
             )
           )
 
-        if (!story) return
+        if (Option.isNone(story)) return
 
         const url = payload.url as string | undefined
         if (!url) return
@@ -50,11 +50,11 @@ export function createRefreshStoryHandler(
           .create({
             source: "refresh",
             url,
-            author: null,
+            author: Option.none(),
             title: page.title,
             content: page.text.slice(0, 10_000),
             metadata: { refreshedBy: "worker", storyId },
-            publishedAt: null,
+            publishedAt: Option.none(),
           })
           .pipe(Effect.catchAll(() => Effect.succeed(null)))
 

@@ -1,10 +1,11 @@
-import { Effect } from "effect"
+import { Effect, Option } from "effect"
 import { eq } from "drizzle-orm"
 import { entities, storyEntities } from "~db/schema/tables.ts"
 import { tryDb } from "./errors.ts"
 
 import type { Db } from "~db/connection.ts"
 import type { RepositoryError } from "./errors.ts"
+import type { Optioned } from "@weric/utils"
 
 export class EntityRepository {
   constructor(private readonly db: Db) {}
@@ -29,14 +30,14 @@ export class EntityRepository {
 
   findByName(
     name: string
-  ): Effect.Effect<typeof entities.$inferSelect | null, RepositoryError> {
+  ): Effect.Effect<Optioned<typeof entities.$inferSelect>, RepositoryError> {
     return tryDb(async () => {
       const [row] = await this.db
         .select()
         .from(entities)
         .where(eq(entities.name, name))
         .limit(1)
-      return row ?? null
+      return Option.fromNullable(row)
     })
   }
 

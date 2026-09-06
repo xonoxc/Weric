@@ -1,4 +1,4 @@
-import { Effect } from "effect"
+import { Effect, Option } from "effect"
 import { BrowserService } from "@weric/browser"
 import { AIService } from "@weric/ai"
 import { persistConceptGraph } from "~worker/graph.ts"
@@ -12,7 +12,7 @@ import type {
   ConceptEdgeRepositoryShape,
   ConceptStoryRepositoryShape,
 } from "@weric/database"
-import type { GraphPersistence } from "~worker/graph.ts"
+import type { GraphPersistence, GraphConceptRow } from "~worker/graph.ts"
 import type { FetchedPage } from "@weric/browser"
 import type { Summary } from "@weric/ai"
 
@@ -78,11 +78,18 @@ export function createSearchDiscoverHandler(
 
       return Effect.gen(function* () {
         const failures: string[] = []
-        const safe = <R, E>(desc: string, fx: Effect.Effect<R, E>) =>
+
+        const safe = <R, E>(
+          desc: string,
+          fx: Effect.Effect<R, E>
+        ): Effect.Effect<Option.Option<R>, never> =>
           fx.pipe(
-            Effect.catchAll(error => {
-              failures.push(`${desc}: ${describeError(error)}`)
-              return Effect.succeed(null as R | null)
+            Effect.match({
+              onFailure: error => {
+                failures.push(`${desc}: ${describeError(error)}`)
+                return Option.none<R>()
+              },
+              onSuccess: value => Option.some(value),
             })
           )
 
@@ -97,7 +104,7 @@ export function createSearchDiscoverHandler(
             )
         )
 
-        if (!results || results.length === 0) {
+        if (Option.isNone(results) || results.value.length === 0) {
           postProgress(jobId, {
             progress: 1,
             message: "No results found",
@@ -106,7 +113,7 @@ export function createSearchDiscoverHandler(
           return
         }
 
-        const total = Math.min(results.length, 5)
+        const total = Math.min(results.value.length, 5)
         let succeeded = 0
         const discoveredStories: {
           id: string
@@ -115,7 +122,7 @@ export function createSearchDiscoverHandler(
         }[] = []
 
         const processResult = (
-          result: (typeof results)[number],
+          result: (typeof results.value)[number],
           index: number
         ): Effect.Effect<void, never> => {
           const stepProgress = 0.15 + ((index + 1) / total) * 0.75
@@ -131,7 +138,7 @@ export function createSearchDiscoverHandler(
               `fetch ${result.url}`,
               browser.fetchUrl(result.url)
             )
-            if (!page) return
+            if (Option.isNone(page)) return
 
             report(
               baseProgress + 0.05,
@@ -139,96 +146,103 @@ export function createSearchDiscoverHandler(
             )
 
             const summary = yield* safe(
-              `summarize "${page.title.slice(0, 60)}"`,
-              ai.summarize(page.text)
+              `summarize "${page.value.title.slice(0, 60)}"`,
+              ai.summarize(page.value.text)
             )
 
-            const storySummary = summary?.summary ?? page.text.slice(0, 500)
-            const slug = toSlug(page.title)
+            const storySummary = Option.getOrElse(
+              Option.map(summary, s => s.summary),
+              () => page.value.text.slice(0, 500)
+            )
+            const slug = toSlug(page.value.title)
 
             const evidence = yield* safe(
               `create evidence ${result.url}`,
               evidenceRepo.create({
                 source: "search_discover",
                 url: result.url,
-                author: null,
-                title: page.title,
-                content: page.text.slice(0, 10_000),
+                author: Option.none(),
+                title: page.value.title,
+                content: page.value.text.slice(0, 10_000),
                 metadata: { searchQuery: query, discoveredBy: "worker" },
-                publishedAt: null,
+                publishedAt: Option.none(),
               })
             )
 
-            if (!evidence) return
+            if (Option.isNone(evidence)) return
 
             const existing = yield* safe(
               `lookup story "${slug}"`,
               storyRepo.findBySlug(slug)
-            )
+            ).pipe(Effect.map(Option.flatten))
 
-            if (existing) {
+            if (Option.isSome(existing)) {
               yield* safe(
                 `link evidence to story "${slug}"`,
-                storyRepo.addEvidence(existing.id, evidence.id)
+                storyRepo.addEvidence(existing.value.id, evidence.value.id)
               )
               if (chatId) {
                 yield* safe(
                   `link chat ${chatId} to story "${slug}"`,
-                  chatRepo.addStory(chatId, existing.id)
+                  chatRepo.addStory(chatId, existing.value.id)
                 )
               }
               succeeded++
               discoveredStories.push({
-                id: existing.id,
-                title: existing.title,
-                summary: existing.summary ?? "",
+                id: existing.value.id,
+                title: existing.value.title,
+                summary: existing.value.summary ?? "",
               })
               report(
                 stepProgress,
-                `Linked evidence to existing story: ${page.title.slice(0, 60)}`
+                `Linked evidence to existing story: ${page.value.title.slice(0, 60)}`
               )
             } else {
               const created = yield* safe(
                 `create story "${slug}"`,
                 storyRepo.create({
-                  title: page.title,
+                  title: page.value.title,
                   slug,
-                  summary: storySummary,
-                  evidenceIds: [evidence.id],
+                  summary: Option.some(storySummary),
+                  evidenceIds: [evidence.value.id],
                 })
               )
 
-              if (created) {
+              if (Option.isSome(created)) {
                 if (chatId) {
                   yield* safe(
                     `link chat ${chatId} to story "${slug}"`,
-                    chatRepo.addStory(chatId, created.id)
+                    chatRepo.addStory(chatId, created.value.id)
                   )
                 }
                 succeeded++
                 discoveredStories.push({
-                  id: created.id,
-                  title: created.title,
-                  summary: created.summary ?? "",
+                  id: created.value.id,
+                  title: created.value.title,
+                  summary: created.value.summary ?? "",
                 })
-                report(stepProgress, `Discovered: ${page.title.slice(0, 60)}`, {
-                  stories: [
-                    {
-                      id: created.id,
-                      title: created.title,
-                      slug: created.slug,
-                      summary: created.summary ?? "",
-                      confidence: 0,
-                    },
-                  ],
-                })
+                report(
+                  stepProgress,
+                  `Discovered: ${page.value.title.slice(0, 60)}`,
+                  {
+                    stories: [
+                      {
+                        id: created.value.id,
+                        title: created.value.title,
+                        slug: created.value.slug,
+                        summary: created.value.summary ?? "",
+                        confidence: 0,
+                      },
+                    ],
+                  }
+                )
               }
             }
           })
         }
 
         yield* Effect.all(
-          results
+          results.value
             .slice(0, total)
             .map((result, index) => processResult(result, index)),
           { concurrency: 5 }
@@ -262,9 +276,20 @@ export function createSearchDiscoverHandler(
             })
           )
 
-          if (synthesis) {
+          if (Option.isSome(synthesis)) {
             const graphRepo: GraphPersistence = {
-              createConcept: data => conceptRepo.create(data),
+              createConcept: data =>
+                conceptRepo.create(data).pipe(
+                  Effect.map(
+                    row =>
+                      ({
+                        ...row,
+                        summary: Option.fromNullable(row.summary),
+                        positionX: Option.fromNullable(row.positionX),
+                        positionY: Option.fromNullable(row.positionY),
+                      }) as GraphConceptRow
+                  )
+                ),
               createEdge: data => conceptEdgeRepo.create(data),
               linkStory: (conceptId, storyId) =>
                 conceptStoryRepo.link(conceptId, storyId),
@@ -272,11 +297,11 @@ export function createSearchDiscoverHandler(
 
             const graph = yield* safe(
               "persist concept graph",
-              persistConceptGraph(chatId, synthesis, graphRepo)
+              persistConceptGraph(chatId, synthesis.value, graphRepo)
             )
 
-            if (graph) {
-              postProgress(jobId, { progress: 0.97, graph })
+            if (Option.isSome(graph)) {
+              postProgress(jobId, { progress: 0.97, graph: graph.value })
             }
           }
         }

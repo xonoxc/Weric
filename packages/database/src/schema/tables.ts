@@ -37,6 +37,9 @@ export const stories = pgTable(
   ]
 )
 
+export type DBStory = typeof stories.$inferSelect
+export type DBStoryInsert = typeof stories.$inferInsert
+
 export const evidence = pgTable(
   "evidence",
   {
@@ -266,6 +269,9 @@ export const interactions = pgTable(
     index("idx_interactions_created_at").on(table.createdAt),
   ]
 )
+
+export type DbInteraction = typeof interactions.$inferSelect
+export type DbInteractionInsert = typeof interactions.$inferInsert
 
 export const bookmarks = pgTable(
   "bookmarks",

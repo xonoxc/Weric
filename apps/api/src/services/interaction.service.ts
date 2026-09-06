@@ -4,22 +4,21 @@ import { RecommendationService } from "@weric/recommendation"
 
 import type { RepositoryError } from "@weric/database"
 import type { RecommendationError } from "@weric/recommendation"
+import type { Optioned } from "@weric/utils"
 
-import { interactions } from "~db/schema/tables.ts"
-
-type InteractionRow = (typeof interactions)["$inferSelect"]
+import type { DbInteraction as DBInteractionRow } from "~db/schema/tables.ts"
 
 export interface CreateInteractionInput {
   userId: string
   storyId: string
   interactionType: string
-  duration?: number | null
+  duration: Optioned<number>
 }
 
 export interface InteractionServiceShape {
   readonly create: (
     input: CreateInteractionInput
-  ) => Effect.Effect<InteractionRow, RepositoryError | RecommendationError>
+  ) => Effect.Effect<DBInteractionRow, RepositoryError | RecommendationError>
 }
 
 export class InteractionService extends Effect.Service<InteractionServiceShape>()(
@@ -36,7 +35,7 @@ export class InteractionService extends Effect.Service<InteractionServiceShape>(
               userId: input.userId,
               storyId: input.storyId,
               interactionType: input.interactionType,
-              duration: input.duration ?? null,
+              duration: input.duration,
             })
 
             yield* recommendationService.updateInterests(

@@ -1,10 +1,11 @@
-import { Effect } from "effect"
+import { Effect, Option } from "effect"
 import { desc, eq, sql } from "drizzle-orm"
 import { interactions, stories } from "~db/schema/tables.ts"
 import { tryDb } from "./errors.ts"
 
 import { Database, type Db } from "~db/connection.ts"
 import type { RepositoryError } from "./errors.ts"
+import type { Optioned } from "@weric/utils"
 
 export interface InteractionAggregate {
   interactionType: string
@@ -15,7 +16,7 @@ export interface InteractionWithStory {
   id: string
   storyId: string
   interactionType: string
-  duration: number | null
+  duration: Optioned<number>
   createdAt: Date
   story: {
     id: string
@@ -29,7 +30,7 @@ export interface InteractionRepositoryShape {
     userId: string
     storyId: string
     interactionType: string
-    duration?: number | null
+    duration: Optioned<number>
   }) => Effect.Effect<typeof interactions.$inferSelect, RepositoryError>
 
   readonly findByUser: (
@@ -65,7 +66,7 @@ export class InteractionRepository extends Effect.Service<InteractionRepositoryS
                 userId: data.userId,
                 storyId: data.storyId,
                 interactionType: data.interactionType,
-                duration: data.duration ?? null,
+                duration: Option.getOrNull(data.duration),
               })
               .returning()
 
@@ -129,7 +130,12 @@ export class InteractionRepository extends Effect.Service<InteractionRepositoryS
               .orderBy(desc(interactions.createdAt))
               .limit(Math.min(limit, 50))
 
-            return rows
+            const domainifiedRows = rows.map(row => ({
+              ...row,
+              duration: Option.fromNullable(row.duration),
+            }))
+
+            return domainifiedRows
           })
         },
       } satisfies InteractionRepositoryShape

@@ -1,4 +1,4 @@
-import { Effect } from "effect"
+import { Effect, Option } from "effect"
 import {
   StoryRepository,
   EvidenceRepository,
@@ -12,13 +12,14 @@ import { defaultChatTitle } from "~api/controllers/chat.controller.ts"
 import type { RepositoryError } from "@weric/database"
 import type { StoryWithEvidenceCount, EvidenceSearchRow } from "@weric/database"
 import type { ConceptGraph } from "@weric/contracts"
+import type { Optioned } from "@weric/utils"
 
 export interface SearchParams {
   q: string
   type: "all" | "stories" | "evidence"
   page: number
   limit: number
-  chatId: string | undefined
+  chatId: Optioned<string>
 }
 
 export interface SearchResult {
@@ -30,15 +31,15 @@ export interface SearchResult {
     storyTotal: number
     evidenceTotal: number
   }
-  jobId: string | null
-  chatId: string | null
-  graph: ConceptGraph | null
+  jobId: Optioned<string>
+  chatId: Optioned<string>
+  graph: Optioned<ConceptGraph>
 }
 
 export interface SearchServiceShape {
   readonly search: (
     params: SearchParams,
-    userId: string | null
+    userId: Optioned<string>
   ) => Effect.Effect<SearchResult, RepositoryError>
 }
 
@@ -55,79 +56,133 @@ export class SearchService extends Effect.Service<SearchServiceShape>()(
       return {
         search: (params, userId) =>
           Effect.gen(function* () {
-            let storyResult: {
+            let storyResult: Optioned<{
               data: StoryWithEvidenceCount[]
               total: number
-            } | null = null
-            let evidenceResult: {
+            }> = Option.none()
+
+            let evidenceResult: Optioned<{
               data: EvidenceSearchRow[]
               total: number
-            } | null = null
+            }> = Option.none()
 
             if (params.type === "all" || params.type === "stories") {
-              storyResult = yield* storyRepo.searchStories(params.q, {
-                page: params.page,
-                limit: params.limit,
-              })
+              storyResult = Option.some(
+                yield* storyRepo.searchStories(
+                  params.q,
+                  Option.some({
+                    page: Option.some(params.page),
+                    limit: Option.some(params.limit),
+                  })
+                )
+              )
             }
 
             if (params.type === "all" || params.type === "evidence") {
-              evidenceResult = yield* evidenceRepo.searchEvidence(params.q, {
-                page: params.page,
-                limit: params.limit,
-              })
-            }
-
-            let resolvedChatId: string | null = null
-            try {
-              if (params.chatId) {
-                const chat = yield* chatRepo.findById(params.chatId)
-                if (chat) resolvedChatId = chat.id
-              } else {
-                const chat = yield* chatRepo.create({
-                  title: defaultChatTitle(),
-                  query: params.q,
-                  userId: userId ?? null,
+              evidenceResult = Option.some(
+                yield* evidenceRepo.searchEvidence(params.q, {
+                  page: params.page,
+                  limit: params.limit,
                 })
-                resolvedChatId = chat.id
-              }
-            } catch {}
-
-            let jobId: string | null = null
-
-            try {
-              const job = yield* jobRepo.create({
-                type: "search_discover",
-                payload: { query: params.q, chatId: resolvedChatId },
-              })
-              jobId = job.id
-
-              jobBus.sendJobToWorker({
-                id: job.id,
-                type: job.type,
-                payload: job.payload,
-              })
-            } catch {}
-
-            let graph: ConceptGraph | null = null
-            if (resolvedChatId) {
-              try {
-                const g = yield* graphService.getGraph(resolvedChatId)
-                graph = g.nodes.length > 0 ? g : null
-              } catch {}
+              )
             }
+
+            const resolvedChatId: Optioned<string> = yield* Option.match(
+              params.chatId,
+              {
+                onSome: chatId =>
+                  Effect.gen(function* () {
+                    const chat = yield* chatRepo.findById(chatId)
+
+                    return Option.map(chat, chat => chat.id)
+                  }),
+
+                onNone: () =>
+                  Effect.gen(function* () {
+                    const chat = yield* chatRepo.create({
+                      title: defaultChatTitle(),
+                      query: Option.some(params.q),
+                      userId,
+                    })
+
+                    return Option.some(chat.id)
+                  }),
+              }
+            )
+
+            let jobId: Optioned<string> = yield* Option.match(resolvedChatId, {
+              onSome: chatId =>
+                Effect.gen(function* () {
+                  const job = yield* jobRepo.create({
+                    type: "search_discover",
+                    payload: Option.some({
+                      query: params.q,
+                      chatId,
+                    }),
+                    scheduledAt: Option.none(),
+                  })
+
+                  jobBus.sendJobToWorker({
+                    id: job.id,
+                    type: job.type,
+                    payload: job.payload,
+                  })
+
+                  return Option.some(job.id)
+                }),
+
+              onNone: () => Effect.succeed(Option.none()),
+            })
+
+            let graph: Optioned<ConceptGraph> = yield* Option.match(
+              resolvedChatId,
+              {
+                onSome: chatId =>
+                  Effect.gen(function* () {
+                    const graph = yield* graphService.getGraph(chatId)
+
+                    return graph.nodes.length > 0
+                      ? Option.some(graph)
+                      : Option.none()
+                  }),
+
+                onNone: () => Effect.succeed(Option.none()),
+              }
+            )
+
+            const stories = Option.getOrElse(
+              Option.map(storyResult, result => result.data),
+              () => []
+            )
+
+            const evidence = Option.getOrElse(
+              Option.map(evidenceResult, result =>
+                result.data.map(ent => ({
+                  ...ent,
+                  content: ent.content.slice(0, 500),
+                }))
+              ),
+              () => []
+            )
+
+            const storyTotal = Option.getOrElse(
+              Option.map(storyResult, result => result.total),
+              () => 0
+            )
+
+            const evidenceTotal = Option.getOrElse(
+              Option.map(evidenceResult, result => result.total),
+              () => 0
+            )
 
             return {
-              stories: storyResult?.data ?? [],
-              evidence: (evidenceResult?.data ?? []).map(e => ({
-                ...e,
-                content: e.content.slice(0, 500),
-              })),
+              stories,
+              evidence,
               meta: {
                 page: params.page,
                 limit: params.limit,
-                storyTotal: storyResult?.total ?? 0,
-                evidenceTotal: evidenceResult?.total ?? 0,
+                storyTotal,
+                evidenceTotal,
               },
               jobId,
               chatId: resolvedChatId,
