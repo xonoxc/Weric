@@ -1,6 +1,6 @@
-import { Effect, Schema } from "effect"
+import { Effect, Fiber, Schema, Stream } from "effect"
 import { JobService } from "~api/services/job.service"
-import { jobBus } from "~api/lib/job-bus.ts"
+import { JobBus } from "~api/lib/job-bus.ts"
 import { JobStatus } from "@weric/contracts"
 import { streamSSE } from "hono/streaming"
 import { parseReqBody } from "@weric/utils"
@@ -47,6 +47,7 @@ export class WorkerController extends Effect.Service<WorkerControllerShape>()(
   {
     effect: Effect.gen(function* () {
       const jobService = yield* JobService
+      const jobBus = yield* JobBus
 
       return {
         streamEvents: ctx =>
@@ -86,15 +87,38 @@ export class WorkerController extends Effect.Service<WorkerControllerShape>()(
                 stream.write(": keepalive\n\n").catch(() => {})
               }, 5_000)
 
-              jobBus.registerWorker(writer)
-
-              await new Promise<void>(resolve => {
-                stream.onAbort(() => {
-                  clearInterval(keepalive)
-                  jobBus.unregisterWorker(writer)
-                  resolve()
-                })
+              const abort = new Promise<void>(resolve => {
+                stream.onAbort(resolve)
               })
+
+              await Effect.runPromise(
+                Effect.scoped(
+                  Effect.gen(function* () {
+                    const drain = yield* jobBus.subscribeWorker().pipe(
+                      Effect.flatMap(subscription =>
+                        Stream.fromQueue(subscription).pipe(
+                          Stream.tap(event =>
+                            Effect.sync(() => {
+                              if (event._tag === "init") {
+                                writer.send("init", event.jobs)
+                              } else {
+                                writer.send("new_job", event.job)
+                              }
+                            })
+                          ),
+                          Stream.runDrain
+                        )
+                      ),
+                      Effect.fork
+                    )
+
+                    yield* Effect.promise(() => abort)
+                    yield* Fiber.interrupt(drain)
+                  })
+                )
+              )
+
+              clearInterval(keepalive)
             })
           ),
 
@@ -104,7 +128,9 @@ export class WorkerController extends Effect.Service<WorkerControllerShape>()(
 
             const body = Schema.decodeUnknownSync(JobProgressSchema)(raw)
 
-            jobBus.sendToClient(body.jobId, "progress", {
+            yield* jobBus.publishClient({
+              jobId: body.jobId,
+              event: "progress",
               progress: body.progress,
               message: body.message,
               stories: body.stories,
@@ -115,10 +141,11 @@ export class WorkerController extends Effect.Service<WorkerControllerShape>()(
               body.status
             )
             if (terminal._tag === "Right") {
-              jobBus.sendToClient(body.jobId, "status", {
+              yield* jobBus.publishClient({
+                jobId: body.jobId,
+                event: "status",
                 status: terminal.right,
               })
-              jobBus.closeClient(body.jobId)
             }
 
             return ctx.json({ ok: true })

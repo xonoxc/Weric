@@ -1,10 +1,11 @@
 import { Context, Effect, Layer } from "effect"
 import { Database, DatabaseLive } from "~db/connection"
 import { AuthService, AuthServiceLive } from "~api/services/auth.service"
+import { JobBus, JobBusLive } from "~api/lib/job-bus"
 
 import type { Auth } from "@weric/auth"
 
-export type AppContext = Context.Context<Database | AuthService>
+export type AppContext = Context.Context<Database | AuthService | JobBus>
 
 export interface BuiltAppContext {
   readonly context: AppContext
@@ -16,7 +17,8 @@ export const buildAppContext = (): BuiltAppContext => {
     Layer.build(
       Layer.mergeAll(
         DatabaseLive,
-        AuthServiceLive.pipe(Layer.provide(DatabaseLive))
+        AuthServiceLive.pipe(Layer.provide(DatabaseLive)),
+        JobBusLive
       )
     ).pipe(Effect.scoped)
   )

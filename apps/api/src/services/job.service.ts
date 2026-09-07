@@ -2,9 +2,8 @@ import { Effect } from "effect"
 import { JobRepository } from "@weric/database"
 
 import type { Job } from "@weric/contracts"
-
+import type { Optioned } from "@weric/utils"
 import type { RepositoryError } from "@weric/database"
-import { Optioned } from "@weric/utils"
 
 export interface JobServiceShape {
   readonly findById: (

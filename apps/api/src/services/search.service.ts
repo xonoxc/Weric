@@ -6,7 +6,7 @@ import {
   ChatRepository,
 } from "@weric/database"
 import { GraphService } from "~api/services/graph.service"
-import { jobBus } from "~api/lib/job-bus.ts"
+import { JobBus } from "~api/lib/job-bus.ts"
 import { defaultChatTitle } from "~api/controllers/chat.controller.ts"
 
 import type { RepositoryError } from "@weric/database"
@@ -52,6 +52,7 @@ export class SearchService extends Effect.Service<SearchServiceShape>()(
       const jobRepo = yield* JobRepository
       const chatRepo = yield* ChatRepository
       const graphService = yield* GraphService
+      const jobBus = yield* JobBus
 
       return {
         search: (params, userId) =>
@@ -122,10 +123,13 @@ export class SearchService extends Effect.Service<SearchServiceShape>()(
                     scheduledAt: Option.none(),
                   })
 
-                  jobBus.sendJobToWorker({
-                    id: job.id,
-                    type: job.type,
-                    payload: job.payload,
+                  yield* jobBus.publishWorker({
+                    _tag: "new_job",
+                    job: {
+                      id: job.id,
+                      type: job.type,
+                      payload: job.payload,
+                    },
                   })
 
                   return Option.some(job.id)

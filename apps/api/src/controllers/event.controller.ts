@@ -1,6 +1,6 @@
-import { Effect } from "effect"
+import { Effect, Fiber, Stream } from "effect"
 import { JobService } from "~api/services/job.service"
-import { jobBus } from "~api/lib/job-bus.ts"
+import { JobBus } from "~api/lib/job-bus.ts"
 import { streamSSE } from "hono/streaming"
 
 import type { ApiVariables } from "~api/app"
@@ -23,6 +23,7 @@ export class EventController extends Effect.Service<EventControllerShape>()(
   {
     effect: Effect.gen(function* () {
       const jobService = yield* JobService
+      const jobBus = yield* JobBus
 
       return {
         getJob: ctx =>
@@ -59,7 +60,6 @@ export class EventController extends Effect.Service<EventControllerShape>()(
 
               stream.onAbort(() => {
                 closeRef.current = true
-                jobBus.unregisterClient(jobId)
               })
 
               const writer: StreamWriter = {
@@ -77,20 +77,63 @@ export class EventController extends Effect.Service<EventControllerShape>()(
                 onAbort: cb => stream.onAbort(cb),
               }
 
-              jobBus.registerClient(jobId, writer)
-
               const clientKeepalive = setInterval(() => {
                 stream.write(": keepalive\n\n").catch(() => {})
               }, 5_000)
 
-              while (!closeRef.current) {
-                await new Promise(r => setTimeout(r, 500))
+              const finish = () => {
+                if (closeRef.current) return
+                closeRef.current = true
+                clearInterval(clientKeepalive)
+                stream.close()
               }
 
-              clearInterval(clientKeepalive)
+              stream.onAbort(finish)
 
-              jobBus.unregisterClient(jobId)
-              stream.close()
+              const abort = new Promise<void>(resolve => {
+                stream.onAbort(resolve)
+              })
+
+              await Effect.runPromise(
+                Effect.scoped(
+                  Effect.gen(function* () {
+                    const drain = yield* jobBus.subscribeClient().pipe(
+                      Effect.flatMap(subscription =>
+                        Stream.fromQueue(subscription).pipe(
+                          Stream.filter(event => event.jobId === jobId),
+                          Stream.tap(event =>
+                            Effect.sync(() => {
+                              if (event.event === "progress") {
+                                writer.send("progress", {
+                                  progress: event.progress,
+                                  message: event.message,
+                                  stories: event.stories,
+                                  graph: event.graph,
+                                })
+                              } else {
+                                writer.send("status", {
+                                  status: event.status,
+                                })
+                              }
+                            })
+                          ),
+                          Stream.takeWhile(event => event.event !== "status"),
+                          Stream.runDrain
+                        )
+                      ),
+                      Effect.fork
+                    )
+
+                    yield* Effect.raceFirst(
+                      Effect.promise(() => abort),
+                      Fiber.join(drain)
+                    )
+                    yield* Fiber.interrupt(drain)
+                  })
+                )
+              )
+
+              finish()
             })
           }),
       } satisfies EventControllerShape

@@ -371,6 +371,7 @@ export class StoryRepository extends Effect.Service<StoryRepositoryShape>()(
               Option.flatMap(options, opts => opts.limit),
               () => 100
             )
+
             const offset = (page - 1) * limit
             const pattern = `%${query}%`
 
